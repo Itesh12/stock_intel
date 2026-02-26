@@ -138,8 +138,8 @@ export default function DashboardLayout({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto bg-[#050505] relative flex flex-col">
-                <header className="h-32 border-b border-white/5 px-10 sticky top-0 bg-[#050505]/98 backdrop-blur-3xl z-50 flex justify-center">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden w-full bg-[#050505] relative flex flex-col">
+                <header className="h-32 border-b border-white/5 px-4 lg:px-10 sticky top-0 bg-[#050505]/98 backdrop-blur-3xl z-50 flex justify-center w-full">
                     <div className="w-full max-w-[1600px] flex items-start justify-between pt-10">
                         <div className="flex items-center gap-6">
                             <button
@@ -248,7 +248,7 @@ export default function DashboardLayout({
                     </div>
                 </header>
 
-                <div className="flex-1 px-10 pt-10 max-w-[1600px] mx-auto w-full pl-4">
+                <div className="flex-1 px-4 lg:px-10 pt-6 lg:pt-10 max-w-[1600px] mx-auto w-full">
                     {children}
                 </div>
             </main>
