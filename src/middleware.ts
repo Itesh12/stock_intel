@@ -4,6 +4,7 @@ export default withAuth({
     pages: {
         signIn: "/auth/login",
     },
+    secret: process.env.NEXTAUTH_SECRET || "fallback_secret_for_development_only",
 });
 
 export const config = {
