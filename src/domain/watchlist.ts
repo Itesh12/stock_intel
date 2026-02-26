@@ -1,0 +1,6 @@
+export interface Watchlist {
+    id: string;
+    userId: string;
+    symbols: string[];
+    updatedAt: Date;
+}

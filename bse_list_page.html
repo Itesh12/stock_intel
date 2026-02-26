@@ -1,0 +1,291 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+    <meta name="MobileOptimized" content="width" />
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7, IE=EmulateIE8, IE=EmulateIE9, IE=EmulateIE10, IE=EmulateIE11 ">
+    <meta name="description" content="Get a comprehensive record of listed companies. Find all the details and stock market updates of any company listed by BSE India." />
+    <meta name="keywords" content="listed companies, listed company, list of Securities, Company names group wise, company group, company name segment wise, company segment, company name industry wise, sector wise company names, active companies, delisted companies, suspended companies, bse, bse india." />
+
+
+
+
+    <title>List Of Securities</title>
+    <script>
+        var a = new Date();
+        var mon = a.getMonth();
+        mon = mon + 1;
+        var time = a.getDate() + "" + mon + "" + a.getFullYear() + "" + a.getHours() + "" + a.getMinutes();
+        document.write("<script type='text/javascript' src='/version.js?v=" + time + "'><\/script>");
+    </script>
+    <script>
+        document.write('<link href="/include/css/bootstrap.css?v=' + version_js + '" rel="stylesheet" />');
+    </script>
+    <link href="/include/css/style.css" type="text/css" rel="stylesheet">
+    <link href="/include/css/font-awesome.css" type="text/css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/include/css/design.css">
+
+   
+    <script src="/include/js/jquerylatest.js"></script>
+    <script src="/include/js/jqueryuilatest.js"></script>
+    <link href="/include/css/jquery-ui-Latest.min.css" rel="stylesheet" />
+    <script src="/D90/Angular/angular.latest.js"></script>
+    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+    <!--For Google AD-->
+    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+    <script>
+        window.googletag = window.googletag || { cmd: [] };
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/35735749/Corp_List_Scrips', [[300, 100], [970, 90], [234, 60], [728, 90]], 'div-gpt-ad-1566886211942-0').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+    </script>
+    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+    <script>
+        window.googletag = window.googletag || { cmd: [] };
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/35735749/Corp_Second', [[234, 60], [728, 90], [970, 90], [300, 100]], 'div-gpt-ad-1566808164151-0').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+    </script>
+
+
+
+</head>
+<body ng-app="listScrip_module" ng-controller="Listofscrip_controller" ng-cloak>
+
+    <div id="topDiv" ng-include="'/D90/Header/top_new.html'"></div>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div id="Divhomemenu" class="container-fluid" ng-include="'/D90/Header/corporates_menu.html'"></div>
+    </nav>
+
+    <br>
+    <input id="hdnCode" type="hidden" runat="server" />
+    <!--Google AD-->
+    <br>
+    <div align="center" class="largetable">
+
+        <!-- /35735749/Corp_List_Scrips -->
+        <div id='div-gpt-ad-1566886211942-0'>
+            <script>
+                googletag.cmd.push(function () { googletag.display('div-gpt-ad-1566886211942-0'); });
+            </script>
+        </div>
+
+    </div>
+
+    <div class="whitebox">
+        <div class="container-fluid marketstartarea">
+
+            <div class="row">
+                <div class="col-lg-7">
+                    <div class=" blueheading" style="text-align: left">
+                        <div class="home_widget">
+                            <span class="page_info_title_s2">
+                                List Of Securities
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5 text-right">
+                    <asp:LinkButton ID="lnkDownload" runat="server" ng-click="fn_downloadcsv()"><i class="fa fa-download iconfont"></i></asp:LinkButton>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid whitebox marketstartarea">
+        <div class="row marketstartarea">
+            <div class="col-lg-1 text-left"><strong>Segment <span style="color:red">*</span></strong></div>
+            <div class="col-lg-2 text-left">
+                <select id="ddlsegment" class="form-control">
+                    <option Value="Select" selected="selected">Select</option>
+                    <option Text="Equity T+1" Value="Equity">Equity T+1</option>
+                    <option Text="Equity T+0" Value="EQT0">Equity T+0</option>
+                    <!--<option value="DER">Derivatives</option>-->
+                    <option Text="MF/ETF" Value="MF">MF/ETF</option>
+                    <!--<option value="DB">Debt/Others</option>
+                    <option value="CR">Currency Derivatives</option>
+                    <option value="CO">Commodity Derivatives</option>
+                    <option value="EGR">Electronic Gold Receipts</option>-->
+                    <option value="HS">Hybrid Security</option>
+                    <option value="MB">Municipal Bonds</option>
+                    <option Text="Preference Shares" Value="Preference Shares">Preference Shares</option>
+                    <option Text="Debentures and Bonds" Value="Debentures and Bonds">Debentures and Bonds</option>
+                    <option Text="Equity - Institutional Series" Value="Equity - Institutional Series">Equity - Institutional Series</option>
+                    <option Text="Commercial Papers" Value="Commercial Papers">Commercial Papers</option>
+                    <option Text="SSE" Value="SSE">SSE</option>
+                </select>
+
+
+
+            </div>
+
+            <div class="col-lg-1 text-left"><strong>Status</strong></div>
+            <div class="col-lg-2 text-left">
+                <select id="ddlstatus" class="form-control">
+                    <option Value="Select" selected="selected">Select</option>
+                    <option Text="Active" Value="Active">Active</option>
+                    <option Text="Suspended" Value="Suspended">Suspended</option>
+                    <option Text="Delisted" Value="Delisted">Delisted</option>
+
+                </select>
+            </div>
+            <div class="col-lg-1 text-left"><strong>Security Name</strong></div>
+            <div class="col-lg-2">
+                <div ng-include="'/Comman/SmartSearch.html'" ng-model="scripcode" class="scode">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row marketstartarea" ng-init="init()">
+
+            <div class="col-lg-1"><b>Groups</b></div>
+            <div class="col-lg-2" ng-init="fn_Groups()">
+                <select id="ddlGroup" class="form-control" ng-model="i.GROUP_CODE" name="ddlGroup" required="">
+                    <option value="" selected="selected">Select</option>
+                    <option ng-repeat="i in groups" value="{{i.GROUP_CODE}}">{{i.GROUP_CODE}}</option>
+                </select>
+            </div>
+
+            <!--<div class="col-lg-1"><b>Industry</b></div>
+            <div class="col-lg-2" ng-init="fn_dllIndustry()">
+                <select id="ddlIndustry" class="form-control" ng-model="i.industry_name" name="ddlIndustry" required="">
+                    <option value="" selected="selected">Select</option>
+                    <option ng-repeat="i in Industry" value="{{i.industry_name}}">{{i.industry_name}}</option>
+                </select>
+            </div>-->
+
+            <div class="col-lg-4">
+                <input type="submit" value="Submit" ng-click="fn_submit()" id="btnSubmit" class="btn btn-default" />
+                <input type="submit" value="Reset" ng-click="fn_reset()" id="btnReset" class="btn btn-default" />
+
+            </div>
+        </div>
+
+
+    </div>
+
+    <div class="whitebox">
+        <div class="container-fluid marketstartarea">
+            <div class="row">
+                <!--<div class="col-lg-12 breadcrumbarea" ng-init="fn_Scrip()">-->
+                <div class="col-lg-12 breadcrumbarea">
+                    <div ng-if="loader.gloading=='loading'" class="text-center"><img src="/include/images/loader.gif" /></div>
+                    
+                    <div ng-if="loader.gloading=='loaded'">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tbody>
+                                <tr>
+                                    <td bgcolor="#d6d6d6">
+                                        <!--<div ng-if="loader.gloading=='loading'" class="text-center"><img src="/include/images/loader.gif" /></div>-->
+                                        <div>
+                                            <table class="mGrid" cellspacing="1" cellpadding="4" style="width:100%;" ng-show="isdatavisible">
+                                                <tbody ng-if="listofscrip != null && listofscrip.length != 0">
+
+                                                    <tr class="innertable_header">
+                                                        <th scope="col">Security Code</th>
+                                                        <th scope="col">Issuer Name</th>
+                                                        <th scope="col">Security Id</th>
+                                                        <th scope="col">Security Name</th>
+                                                        <th scope="col">Status</th>
+                                                        <th scope="col">Group</th>
+                                                        <th scope="col">Face Value</th>
+                                                        <th scope="col">ISIN No</th>
+                                                        <!--<th scope="col">Industry</th>-->
+                                                        <!--<th scope="col">Instrument</th>-->
+                                                        <th scope="col">Market Capitalisation (Rs. Cr.)</th>
+                                                    </tr>
+                                                    <tr class="TTRow" ng-repeat="a in getPaginatedData()">
+                                                        <td><a class="tablebluelink" href="{{a.NSURL}}">{{a.SCRIP_CD}}</a></td>
+                                                        <td class="TTRow_left"> {{a.Issuer_Name}}</td>
+                                                        <td class="TTRow_left">{{a.scrip_id}}</td>
+                                                        <td class="TTRow_left">{{a.Scrip_Name}}</td>
+                                                        <td class="TTRow">{{a.Status}}</td>
+                                                        <td class="TTRow">{{a.GROUP  == null ? '-' : a.GROUP}}</td>
+                                                        <td class="TTRow">{{a.FACE_VALUE  ==null ? '-' :a.FACE_VALUE }}</td>
+                                                        <td class="TTRow">{{a.ISIN_NUMBER  == null ? '-' :a.ISIN_NUMBER}}</td>
+                                                        <!--<td class="TTRow_left">  {{a.INDUSTRY  == null ? '-' :a.INDUSTRY}}</td>-->
+                                                        <!--<td class="TTRow">  {{a.Segment == null ? '-' : a.Segment}}</td>-->
+                                                        <td class="TTRow_right">  {{a.Mktcap == null ? '-' : a.Mktcap}}</td>
+
+                                                    </tr>
+                                                </tbody>
+                                                <tbody ng-if="listofscrip.length == 0">
+                                                    <tr>
+                                                        <td ng-if="listofscrip.length == 0"> No Record Found</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+<div ng-if="listofscrip != null && listofscrip.length != 0" style="font-size: 15px;">
+                                                       For the full list of securities along with the 4 Levels of Industry Classification please reach out to
+<a>bseindex@bseindia.com</a>
+</div>
+                    </div>
+
+                    <div class="pagination-controls" ng-show="listofscrip.length > pageSize">
+                        <button ng-disabled="currentPage == 1" ng-click="currentPage = currentPage - 1">Previous</button>
+                        Page {{currentPage}} of {{totalPages()}}
+                        <button ng-disabled="currentPage >= totalPages()" ng-click="currentPage = currentPage + 1">Next</button>
+
+                    </div>
+                </div>
+
+        </div>
+    </div>
+
+
+    <br /><br />
+
+
+
+    <div align="center" class="largetable">
+        <!-- /35735749/Corp_Second -->
+        <div id='div-gpt-ad-1566808164151-0'>
+            <script>
+                googletag.cmd.push(function () { googletag.display('div-gpt-ad-1566808164151-0'); });
+            </script>
+        </div>
+    </div>
+
+
+
+    <footer class="footerarea" ng-include="'/footer.aspx'"></footer>
+    <script src="/D90/Angular/angular-sanitize.latest.js"></script>
+    <script src="/include/js/jquery.ui.touch-punch.min.js"></script>
+    <link href="https://bnotification.bseindia.com/" rel="preconnect">
+    <script src="https://bnotification.bseindia.com/socket.io/socket.io.js"></script>
+    <script>
+        document.write("<script type='text/javascript' src='/include/js/bootstrap.min.js?v=" + version_js + "'><\/script>");
+    </script>
+
+    <script src="/include/js/jquery.bootstrap-responsive-tabs.min.js"></script>
+    <script src="/D90/Angular/ui-bootstrap-tpls-Latest.min.js"></script>
+    <script>
+        document.write("<script type='text/javascript' src='/D90/Controller/factoryother.js?v=" + version_cntroller + "'><\/script>");
+    </script>
+    <script>
+        document.write("<script type='text/javascript' src='/D90/Controller/AppnewController.js?v=" + version_cntroller + "'><\/script>");
+        document.write("<script type='text/javascript' src='/D90/Controller/Headernew_streamController.js?v=" + version_cntroller + "'><\/script>");
+       // document.write("<script type='text/javascript' src='/D90/Controller/SmartSearchSSE182Controller.js?v=" + version_cntroller + "'><\/script>");
+         document.write("<script type='text/javascript' src='/D90/Controller/ListScripsmartsearchController.js?v=" + version_cntroller + "'><\/script>");
+        document.write("<script type='text/javascript' src='/D90/Controller/Corporate/ListOfscripController.js?v2=" + version_cntroller + "'><\/script>");
+      
+    </script>
+</body>
+</html>
