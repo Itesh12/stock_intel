@@ -98,7 +98,7 @@ export default function LoginPage() {
                                 </button>
                             </div>
                             <div className="flex justify-end px-1 pt-1">
-                                <Link href="/auth/forgot-password" title="Recover account" className="text-[11px] text-blue-500 hover:text-blue-400 font-bold uppercase tracking-wider transition-colors">Forgot Password?</Link>
+                                <Link href="/auth/forgot-password" prefetch={false} title="Recover account" className="text-[11px] text-blue-500 hover:text-blue-400 font-bold uppercase tracking-wider transition-colors">Forgot Password?</Link>
                             </div>
                         </div>
 
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 </div>
 
                 <p className="mt-8 text-center text-sm text-slate-500">
-                    New to StockIntel? <Link href="/auth/register" className="text-blue-500 font-bold hover:text-blue-400 transition-colors">Create Account</Link>
+                    New to StockIntel? <Link href="/auth/register" prefetch={false} className="text-blue-500 font-bold hover:text-blue-400 transition-colors">Create Account</Link>
                 </p>
             </div>
         </div>
