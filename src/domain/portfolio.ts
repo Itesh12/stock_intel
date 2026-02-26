@@ -7,6 +7,8 @@ export interface Holding {
     marketValue: number;
     unrealizedPL: number;
     unrealizedPLPercent: number;
+    dayChange?: number;
+    dayChangePercent?: number;
     sector: string;
     weight: number; // Percentage of total portfolio
 }
@@ -19,6 +21,8 @@ export interface Portfolio {
     totalValue: number;
     totalPL: number;
     totalPLPercent: number;
+    dayPnL?: number;
+    dayPnLPercent?: number;
     cashBalance: number;
     riskScore: number; // 0-100
     sectorExposure: Record<string, number>; // Sector -> Percentage
