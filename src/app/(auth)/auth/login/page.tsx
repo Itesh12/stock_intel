@@ -34,8 +34,7 @@ export default function LoginPage() {
                 showSnackbar("Access Granted. Synchronizing Portfolio...", "success");
                 setTimeout(() => {
                     hideLoader();
-                    router.push("/");
-                    router.refresh();
+                    window.location.href = "/";
                 }, 1000);
             }
         } catch (error) {
