@@ -18,8 +18,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         if (recommendations.length === 0 || recommendations[0].timestamp < oneHourAgo) {
             console.log(`[StrategyAPI] Recommendations stale for ${slug}. Triggering scan...`);
-            const { CanslimScanner } = await import("@/services/quant-scanner");
-            const scanner = new CanslimScanner(infra);
+            const { CanslimScanner, IntermarketScanner } = await import("@/services/quant-scanner");
+            const scanner = slug === 'canslim' ? new CanslimScanner(infra) : new IntermarketScanner(infra);
             await scanner.scan();
             recommendations = await infra.strategy.getRecommendations(strategy.id);
         }

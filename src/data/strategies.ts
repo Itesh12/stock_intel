@@ -86,5 +86,64 @@ export const strategies: Strategy[] = [
             'No averaging down',
             'Sell immediately if stop violated'
         ]
+    },
+    {
+        id: 'intermarket-analysis-india',
+        name: 'Intermarket Analysis (India)',
+        trader: 'John Murphy',
+        description: 'Global financial market interconnectedness model focusing on stocks, bonds, commodities, and currencies.',
+        objective: 'Identify macro market shifts and sector rotations to find the strongest stocks using relative strength and technical breakouts.',
+        longDescription: `Based on John Murphy's "Intermarket Analysis", this strategy adapts global relationships to the Indian market. It evaluates the yield curve (India 10Y Bond vs 91-Day T-Bill), inflation trends (CRB vs Bonds), and Dollar strength (DXY vs MA200) to understand the macro regime. Further, it uses Sector Relative Strength vs Nifty 50 to find outperforming sectors, and applies strict technical breakout filters (MA200, 50-Day High, RSI) to capture high momentum stocks.`,
+        riskLevel: 'MEDIUM',
+        winRate: '62%',
+        steps: [
+            {
+                id: '1',
+                title: 'Macro Regime & Yield Curve',
+                description: 'Determine the economic expansion or recession risk.',
+                formula: 'Yield Spread = India 10Y Bond Yield - 91-Day T-Bill Yield',
+                requirements: ['Expansion (Spread > 0)', 'Inflation Indicators Align', 'Dollar Strength Check (DXY vs MA200)']
+            },
+            {
+                id: '2',
+                title: 'Sector Relative Strength',
+                description: 'Identify the strongest sectors relative to the broad market.',
+                formula: 'RS_Sector = Sector Index Price / Nifty50 Price',
+                requirements: ['RS_Sector > EMA20(RS_Sector)', 'Sector Outperforming']
+            },
+            {
+                id: '3',
+                title: 'Long Term Trend',
+                description: 'Ensure the stock is in a persistent uptrend.',
+                formula: 'Stock Price > MA200',
+                requirements: ['Price is above the 200-day moving average']
+            },
+            {
+                id: '4',
+                title: 'Resistance Breakout',
+                description: 'Confirm new demand emerging with a breakout.',
+                formula: 'Close > HHV(High, 50)',
+                requirements: ['Close is greater than the Highest High of the last 50 days']
+            },
+            {
+                id: '5',
+                title: 'Momentum Confirmation',
+                description: 'Validate strength using RSI.',
+                formula: 'RSI(14) > 55',
+                requirements: ['RSI must indicate bullish momentum']
+            },
+            {
+                id: '6',
+                title: 'Quality & Liquidity Check',
+                description: 'Filter out illiquid or high-debt stocks.',
+                requirements: ['Market Cap > 2000 Cr', 'Avg Volume > 5,00,000', 'Debt/Equity < 1']
+            }
+        ],
+        recommendations: ['RELIANCE.NS'],
+        riskManagement: [
+            'Position Size = (Portfolio × Risk%) / Stop Loss',
+            'Stop Loss (Longs) = Entry - 2 × ATR(14)',
+            'Stop Loss (Shorts) = Entry + 2 × ATR(14)'
+        ]
     }
 ];

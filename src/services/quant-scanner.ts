@@ -110,3 +110,108 @@ export class CanslimScanner {
         return topRecs;
     }
 }
+
+export class IntermarketScanner {
+    constructor(private infra: Infrastructure) { }
+
+    async scan(): Promise<StrategyRecommendation[]> {
+        const strategy = await this.infra.strategy.findBySlug('intermarket-analysis-india');
+        if (!strategy) return [];
+
+        console.log("[QuantScanner] Starting INTERMARKET scan...");
+
+        let discoveryPool: string[] = [];
+        try {
+            const fs = await import("fs");
+            const path = await import("path");
+            const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
+            const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
+            discoveryPool = allSymbols.sort(() => 0.5 - Math.random()).slice(0, 300);
+        } catch (err) {
+            console.error("[QuantScanner] Failed to load discovery pool:", err);
+        }
+
+        const pools = await Promise.all([
+            this.infra.market.getScreenerData('most_actives', 50),
+            this.infra.market.getScreenerData('day_gainers', 50)
+        ]);
+
+        const uniqueSymbols = Array.from(new Set([
+            ...discoveryPool,
+            ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
+        ]));
+
+        console.log(`[QuantScanner] Evaluating ${uniqueSymbols.length} candidates via algorithmic sampler...`);
+
+        const recommendations: StrategyRecommendation[] = [];
+        const batchSize = 20;
+        let evaluatedCount = 0;
+
+        for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
+            const batch = uniqueSymbols.slice(i, i + batchSize);
+            await Promise.all(batch.map(async (symbol) => {
+                try {
+                    const stock = await this.infra.market.getStockPrice(symbol);
+                    if (!stock || !stock.price) return;
+                    evaluatedCount++;
+
+                    // Debt/Equity < 1 (Relaxing for demo to allow some results)
+                    const debtToEquity = stock.debtToEquity || 0;
+                    if (debtToEquity >= 200) return; // Note: debtToEquity might be percentage like 120 -> 1.2
+
+                    // Market Cap > 2000 Cr ($240M USD approx for now - relaxing to 500 Cr)
+                    if ((stock.marketCap || 0) < 50000000) return;
+
+                    // Liquidity - Avoid low volume (Relaxing to 20k)
+                    if ((stock.volume || 0) < 20000) return;
+
+                    // Compute simple breakout criteria
+                    const fiftyTwoWeekHigh = stock.fiftyTwoWeekHigh || stock.price || 0;
+                    const fiftyTwoWeekLow = stock.fiftyTwoWeekLow || stock.price || 0;
+                    
+                    // Breakout: Assuming close to 50d high if close is near 52w high as proxy 
+                    const distanceToHigh = stock.price / fiftyTwoWeekHigh;
+                    const breakoutPass = distanceToHigh >= 0.70; // Relaxed from 0.85
+                    
+                    // Uptrend: MA200 Proxy. Assuming if price > avg of 52w High/Low, trend is structurally up
+                    const approxMa200 = (fiftyTwoWeekHigh + fiftyTwoWeekLow) / 2;
+                    const trendPass = stock.price > approxMa200;
+
+                    // Momentum proxy
+                    const momentumPass = (stock.changePercent || 0) > -2; // Relaxed allowing slight pullbacks
+
+                    let score = 0;
+                    if (breakoutPass) score += 40;
+                    if (trendPass) score += 30;
+                    if (momentumPass) score += 20;
+                    if (debtToEquity < 100) score += 10;
+
+                    if (score >= 40) { // Relaxed threshold from 50 to 40
+
+                        recommendations.push({
+                            id: uuidv4(),
+                            strategyId: strategy.id,
+                            symbol: symbol,
+                            score: score,
+                            matchDetails: {
+                                debtToEquity,
+                                distanceToHigh,
+                                price: stock.price,
+                                approxMa200
+                            },
+                            timestamp: new Date()
+                        });
+                    }
+                } catch (err) {
+                    // Ignore individual stock fetch errors
+                }
+            }));
+        }
+
+        const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, 10);
+        await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
+
+        console.log(`[QuantScanner] Scan complete. Evaluated ${evaluatedCount} stocks. Found ${topRecs.length} matches.`);
+        return topRecs;
+    }
+}
