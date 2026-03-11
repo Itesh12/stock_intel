@@ -138,34 +138,63 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                             <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
                                 <th className="px-8 py-5 font-bold">Security Symbol</th>
                                 <th className="px-8 py-5 font-bold">Strategic Sector</th>
-                                <th className="px-8 py-5 font-bold text-right">Portfolio weight</th>
+                                <th className="px-8 py-5 font-bold text-right">Avg Price</th>
+                                <th className="px-8 py-5 font-bold text-right">Current Price</th>
+                                <th className="px-8 py-5 font-bold text-right">Total P&L</th>
+                                <th className="px-8 py-5 font-bold text-right">Weight</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {profile.holdings.map((holding: any, i: number) => (
-                                <tr key={i} className="hover:bg-white/[0.03] transition-all">
-                                    <td className="px-8 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold text-blue-400 border border-white/5">{holding.symbol[0]}</div>
-                                            <span className="font-bold text-white tracking-tight uppercase">{holding.symbol}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{holding.sector || "Other"}</span>
-                                    </td>
-                                    <td className="px-8 py-5 text-right">
-                                        <div className="flex items-center justify-end gap-3 font-mono font-bold text-white">
-                                            {holding.weight.toFixed(2)}%
-                                            <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-blue-500 rounded-full"
-                                                    style={{ width: `${holding.weight}%` }}
-                                                />
+                             {profile.holdings.map((holding: any, i: number) => {
+                                const pnlPositive = holding.unrealizedPL >= 0;
+                                return (
+                                    <tr key={i} className="hover:bg-white/[0.03] transition-all border-b border-white/[0.02] last:border-0 group">
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold text-blue-400 border border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all">{holding.symbol[0]}</div>
+                                                <div>
+                                                    <div className="font-bold text-white tracking-tight uppercase leading-none mb-1 group-hover:text-blue-400 transition-colors">{holding.symbol.replace(/\.(NS|BO)$/, '')}</div>
+                                                    <div className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{holding.symbol.endsWith('.NS') ? 'NSE' : 'BSE'}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{holding.sector || "Other"}</span>
+                                        </td>
+                                        <td className="px-8 py-5 text-right font-mono text-xs font-medium text-slate-400">
+                                            ₹{formatIndianNumber(holding.averagePrice)}
+                                        </td>
+                                        <td className="px-8 py-5 text-right font-mono text-xs font-bold text-white">
+                                            ₹{formatIndianNumber(holding.currentPrice)}
+                                        </td>
+                                        <td className="px-8 py-5 text-right">
+                                            <div className={cn(
+                                                "font-mono text-xs font-bold leading-none mb-1",
+                                                pnlPositive ? "text-emerald-400" : "text-rose-400"
+                                            )}>
+                                                {pnlPositive ? '+' : ''}₹{formatIndianNumber(Math.abs(holding.unrealizedPL))}
+                                            </div>
+                                            <div className={cn(
+                                                "text-[9px] font-bold uppercase tracking-widest opacity-60",
+                                                pnlPositive ? "text-emerald-500" : "text-rose-500"
+                                            )}>
+                                                {pnlPositive ? '+' : ''}{holding.unrealizedPLPercent.toFixed(2)}%
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5 text-right">
+                                            <div className="flex flex-col items-end gap-1.5">
+                                                <span className="font-mono text-[10px] font-bold text-slate-400">{holding.weight.toFixed(2)}%</span>
+                                                <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-blue-500 rounded-full"
+                                                        style={{ width: `${holding.weight}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

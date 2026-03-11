@@ -17,23 +17,63 @@ export async function GET(
         const portfolios = await infra.portfolio.findByUserId(id);
         const portfolio = portfolios[0];
 
+        if (!portfolio) {
+            return NextResponse.json({
+                id: user.id,
+                name: user.name,
+                totalValue: 0,
+                growthPercent: 0,
+                holdingsCount: 0,
+                holdings: []
+            });
+        }
+
+        // Fetch live performance for each holding to show real-time P&L
+        const updatedHoldings = await Promise.all(
+            portfolio.holdings.map(async (h) => {
+                try {
+                    const perf = await infra.market.getPerformance(h.symbol, "1d");
+                    const unrealizedPL = (perf.currentPrice - h.averagePrice) * h.quantity;
+                    const unrealizedPLPercent = h.averagePrice > 0 
+                        ? ((perf.currentPrice - h.averagePrice) / h.averagePrice) * 100 
+                        : 0;
+
+                    return {
+                        ...h,
+                        currentPrice: perf.currentPrice,
+                        unrealizedPL,
+                        unrealizedPLPercent,
+                        marketValue: h.quantity * perf.currentPrice,
+                        changePercent: perf.changePercent
+                    };
+                } catch (err) {
+                    return h;
+                }
+            })
+        );
+
         const INITIAL_BALANCE = 1000000;
-        const growth = portfolio ? ((portfolio.totalValue - INITIAL_BALANCE) / INITIAL_BALANCE) * 100 : 0;
+        const totalValue = portfolio.cashBalance + updatedHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
+        const growth = ((totalValue - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
 
         // Return public-safe data
         return NextResponse.json({
             id: user.id,
             name: user.name,
-            totalValue: portfolio?.totalValue || 0,
+            totalValue,
             growthPercent: growth,
-            holdingsCount: portfolio?.holdings?.length || 0,
-            // Only expose symbols and weights, not exact quantities for "copy-trading" protection if desired
-            // But for this demo, we can show symbols.
-            holdings: portfolio?.holdings?.map(h => ({
+            holdingsCount: updatedHoldings.length,
+            holdings: updatedHoldings.map(h => ({
                 symbol: h.symbol,
-                weight: h.weight,
+                quantity: h.quantity,
+                averagePrice: h.averagePrice,
+                currentPrice: h.currentPrice,
+                unrealizedPL: h.unrealizedPL,
+                unrealizedPLPercent: h.unrealizedPLPercent,
+                marketValue: h.marketValue,
+                weight: (h.marketValue / (totalValue - portfolio.cashBalance)) * 100,
                 sector: h.sector
-            })) || []
+            }))
         });
 
     } catch (err) {
