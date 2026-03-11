@@ -7,13 +7,13 @@ export default function NewsIntelligencePage() {
                         <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-glow"></span>
                         <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.2em]">Semantic Stream</span>
                     </div>
-                    <h1 className="text-4xl font-bold text-white tracking-tight font-outfit">News Intelligence</h1>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight font-outfit">News Intelligence</h1>
                     <p className="text-slate-500 mt-2 text-sm font-medium">Real-time sentiment analysis and high-impact event indexing.</p>
                 </div>
             </div>
 
-            <div className="glass-morphic-card rounded-[40px] p-20 flex flex-col items-center justify-center text-center">
-                <div className="w-32 h-32 rounded-full border border-indigo-500/20 flex items-center justify-center mb-10 relative">
+            <div className="glass-morphic-card rounded-[40px] p-8 sm:p-20 flex flex-col items-center justify-center text-center">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border border-indigo-500/20 flex items-center justify-center mb-10 relative">
                     <div className="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin-slow"></div>
                     <div className="w-24 h-24 rounded-full bg-indigo-500/10 flex items-center justify-center">
                         <span className="text-4xl text-white">📡</span>

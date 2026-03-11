@@ -42,7 +42,7 @@ export default function LeaderboardPage() {
     }
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1400px] mx-auto px-6 py-6 pb-20">
+        <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1400px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-10">
                 <div className="space-y-4">
@@ -53,7 +53,7 @@ export default function LeaderboardPage() {
                             <Users size={12} /> {leaderboard.length} Active Traders
                         </span>
                     </div>
-                    <h1 className="text-5xl font-bold text-white tracking-tighter font-outfit">Apex Rankings</h1>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tighter font-outfit">Apex Rankings</h1>
                     <p className="text-slate-500 text-sm font-medium max-w-xl">
                         The definitive arena for virtual alpha. Ranks are determined by historical portfolio ROI from the initial 10L capital injection.
                     </p>
@@ -74,7 +74,6 @@ export default function LeaderboardPage() {
             </div>
 
             {/* Top 3 Podium Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {filteredLeaderboard.slice(0, 3).map((trader, i) => (
                     <PodiumCard key={trader.userId} trader={trader} position={i + 1} />
                 ))}
@@ -86,11 +85,11 @@ export default function LeaderboardPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-[0.2em] border-b border-white/5">
-                                <th className="px-10 py-6 font-bold text-center w-20">Rank</th>
-                                <th className="px-10 py-6 font-bold">Trader Hierarchy</th>
-                                <th className="px-10 py-6 font-bold">Structural NAV</th>
-                                <th className="px-10 py-6 font-bold text-right">Growth Index</th>
-                                <th className="px-10 py-6 font-bold text-right w-32">Status</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-center w-20">Rank</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Trader Hierarchy</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Structural NAV</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right">Growth Index</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right w-32">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -128,7 +127,7 @@ function PodiumCard({ trader, position }: { trader: any, position: number }) {
                 colors[position as keyof typeof colors]
             )}
         >
-            <div className="bg-[#0A0A0B] rounded-[31px] p-8 h-full flex flex-col gap-6 relative overflow-hidden">
+            <div className="bg-[#0A0A0B] rounded-[31px] p-5 sm:p-8 h-full flex flex-col gap-6 relative overflow-hidden">
                 {/* Background Glow */}
                 <div className={cn(
                     "absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[80px] opacity-20",
@@ -141,7 +140,7 @@ function PodiumCard({ trader, position }: { trader: any, position: number }) {
                     </div>
                     <div className="flex flex-col items-end">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rank</span>
-                        <span className="text-4xl font-black text-white font-outfit leading-none mt-1">#{position}</span>
+                        <span className="text-2xl sm:text-4xl font-black text-white font-outfit leading-none mt-1">#{position}</span>
                     </div>
                 </div>
 
@@ -179,12 +178,12 @@ function LeaderboardRow({ trader }: { trader: any }) {
 
     return (
         <tr className="hover:bg-white/[0.03] transition-all group border-b border-white/[0.02] last:border-0">
-            <td className="px-10 py-6 text-center">
+            <td className="px-6 md:px-10 py-4 md:py-6 text-center">
                 <span className="text-lg font-black text-slate-600 group-hover:text-white transition-colors font-mono">
                     {trader.rank}
                 </span>
             </td>
-            <td className="px-10 py-6">
+            <td className="px-6 md:px-10 py-4 md:py-6">
                 <Link href={`/profile/${trader.userId}`} className="flex items-center gap-4 group/rowlink">
                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-slate-300 group-hover/rowlink:bg-blue-600 group-hover/rowlink:text-white transition-all duration-300 shadow-sm border border-white/5">{trader.name[0]}</div>
                     <div>
@@ -195,7 +194,7 @@ function LeaderboardRow({ trader }: { trader: any }) {
                     </div>
                 </Link>
             </td>
-            <td className="px-10 py-6 text-sm font-bold text-white font-mono tracking-tighter">
+            <td className="px-6 md:px-10 py-4 md:py-6 text-sm font-bold text-white font-mono tracking-tighter">
                 ₹{formatIndianNumber(trader.totalValue)}
             </td>
             <td className="px-10 py-6 text-right">

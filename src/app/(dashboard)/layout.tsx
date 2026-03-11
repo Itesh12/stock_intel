@@ -149,8 +149,8 @@ export default function DashboardLayout({
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden w-full bg-[#050505] relative flex flex-col">
-                <header className="h-32 border-b border-white/5 px-4 lg:px-10 sticky top-0 bg-[#050505]/98 backdrop-blur-3xl z-50 flex justify-center w-full">
-                    <div className="w-full max-w-[1600px] flex items-start justify-between pt-10">
+                <header className="h-16 md:h-24 border-b border-white/5 px-3 md:px-6 lg:px-10 sticky top-0 bg-[#050505]/98 backdrop-blur-3xl z-50 flex justify-center w-full">
+                    <div className="w-full max-w-[1600px] flex items-center justify-between">
                         <div className="flex items-center gap-6">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
@@ -158,7 +158,7 @@ export default function DashboardLayout({
                             >
                                 <Menu size={20} />
                             </button>
-                            <div className="relative group/search w-[300px] lg:w-[450px]" ref={searchRef}>
+                            <div className="relative group/search w-[200px] sm:w-[280px] lg:w-[420px]" ref={searchRef}>
                                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within/search:text-blue-500 transition-colors pointer-events-none" />
                                 <input
                                     type="text"
@@ -245,18 +245,18 @@ export default function DashboardLayout({
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-2 lg:gap-3">
+                            <div className="flex items-center gap-1.5 lg:gap-3">
                                 <ThemeSwitcher />
-                                <button className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all relative group">
-                                    <Bell size={20} />
-                                    <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-blue-500 rounded-full border border-[#050505] group-hover:scale-110 transition-transform"></span>
+                                <button className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all relative group">
+                                    <Bell size={18} />
+                                    <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-blue-500 rounded-full border border-[#050505] group-hover:scale-110 transition-transform"></span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </header>
 
-                <div className="flex-1 px-4 lg:px-10 pt-6 lg:pt-10 max-w-[1600px] mx-auto w-full">
+                <div className="flex-1 px-3 sm:px-6 lg:px-10 pt-5 lg:pt-8 pb-10 max-w-[1600px] mx-auto w-full">
                     {children}
                 </div>
             </main>

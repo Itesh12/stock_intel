@@ -56,7 +56,7 @@ export default function RegisterPage() {
                     <p className="text-slate-500 mt-2 text-sm text-center">Join StockIntel for professional market insights.</p>
                 </div>
 
-                <div className="glass-card p-10 relative overflow-hidden group">
+                <div className="glass-card p-6 sm:p-10 relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">

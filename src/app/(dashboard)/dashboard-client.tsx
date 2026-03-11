@@ -182,7 +182,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
     const moneyFlows = [...sectors].sort((a, b) => b.momentum - a.momentum).slice(0, 3);
 
     return (
-        <div className="relative space-y-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
+        <div className="relative space-y-10 md:space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-10 md:pb-20">
             {/* Loading Overlay */}
             {isLoading && (
                 <div className="absolute inset-x-0 -top-8 flex justify-center z-50 pointer-events-none">
@@ -201,7 +201,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                             <Hexagon size={12} className="text-blue-400 fill-blue-400/20" />
                             <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">Global Intel v5.0 SPA</span>
                         </div>
-                        <h1 className="text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
                             Strategic <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Market Vision</span>
                         </h1>
                     </div>
@@ -282,7 +282,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 placeholder="Search Symbol (e.g. TCS)"
                                 value={newSymbol}
                                 onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all w-64"
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all w-full sm:w-64"
                             />
                             {isSearching && (
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-[0.4] origin-right pointer-events-none">
@@ -422,8 +422,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* SECTION 3: INDIAN SECTOR ALPHA (Definitive Grid Alignment) */}
-            <div className="pt-16 border-t border-white/5">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+            <div className="pt-8 md:pt-16 border-t border-white/5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 items-start">
                     {/* Headers Row */}
                     <div className="lg:col-span-2 flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
@@ -452,7 +452,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         ))}
                     </div>
 
-                    <div className="glass-card px-10 pt-[31px] pb-10 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[460px]">
+                    <div className="lg:col-span-2 glass-card px-5 sm:px-10 pt-5 sm:pt-8 pb-8 sm:pb-10 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[320px] sm:min-h-[460px]">
                         <p className="text-[10px] text-slate-500 mb-8 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
                         <div className="space-y-8">
                             {moneyFlows.map((flow, i) => (
@@ -488,7 +488,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* Core Health Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <DataPointCard
                     label="Market Breadth"
                     mainValue={breadth}
