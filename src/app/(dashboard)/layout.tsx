@@ -155,7 +155,7 @@ export default function DashboardLayout({
                                     placeholder="Search symbols (e.g. RELIANCE)..."
                                     className="input-field !py-2.5 !pl-12 !pr-10 !bg-white/[0.03] !border-white/5 focus:!border-blue-500/50 transition-all text-sm"
                                     value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value)}
+                                    onChange={(e) => handleSearch(e.target.value.toUpperCase())}
                                 />
                                 {isSearching && (
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 scale-[0.4] origin-right">

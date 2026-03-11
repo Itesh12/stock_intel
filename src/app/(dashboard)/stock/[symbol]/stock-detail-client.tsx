@@ -6,7 +6,7 @@ import {
     BarChart3, Shield, Loader2, Landmark, Wallet, PieChart,
     ArrowUpRight, ArrowDownRight, Layers, Briefcase, GraduationCap,
     Clock, RefreshCcw, Search, ExternalLink, ChevronRight, Scale,
-    HelpCircle, Database, Server, Terminal, Gauge, ShoppingCart, Ban, Star
+    HelpCircle, Database, Server, Terminal, Gauge, ShoppingCart, Ban, Star, X
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -31,6 +31,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
     const [portfolio, setPortfolio] = useState<any>(null);
     const [isTrading, setIsTrading] = useState(false);
     const [isWatched, setIsWatched] = useState(false);
+    const [watchlistCount, setWatchlistCount] = useState(0);
     const [isWatchlistLoading, setIsWatchlistLoading] = useState(false);
     const [trades, setTrades] = useState<any[]>([]);
     const [earliestTradeDate, setEarliestTradeDate] = useState<Date | null>(null);
@@ -74,6 +75,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
             const data = await res.json();
             if (Array.isArray(data)) {
                 setIsWatched(data.includes(symbol));
+                setWatchlistCount(data.length);
             }
         } catch (err) {
             console.error("Failed to fetch watchlist status", err);
@@ -81,6 +83,10 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
     };
 
     const toggleWatchlist = async () => {
+        if (!isWatched && watchlistCount >= 20) {
+            alert("Watchlist limit reached. You can only track up to 20 stocks.");
+            return;
+        }
         setIsWatchlistLoading(true);
         try {
             const res = await fetch('/api/watchlist', {
@@ -223,18 +229,39 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     onClick={toggleWatchlist}
                                     disabled={isWatchlistLoading}
                                     className={cn(
-                                        "p-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center",
+                                        "px-4 py-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center gap-2 group",
                                         isWatched
-                                            ? "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
-                                            : "bg-white/5 border-white/10 text-slate-500 hover:text-white hover:border-white/20"
+                                            ? "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400"
+                                            : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
                                     )}
                                     title={isWatched ? "Remove from Watchlist" : "Add to Watchlist"}
                                 >
                                     {isWatchlistLoading ? (
-                                        <Loader2 size={18} className="animate-spin" />
+                                        <Loader2 size={16} className="animate-spin" />
+                                    ) : isWatched ? (
+                                        <>
+                                            <Star size={16} fill="currentColor" className="group-hover:hidden" />
+                                            <X size={16} className="hidden group-hover:block" />
+                                        </>
                                     ) : (
-                                        <Star size={18} fill={isWatched ? "currentColor" : "none"} />
+                                        <Star size={16} fill="none" />
                                     )}
+                                    <span className="text-xs font-bold uppercase tracking-wider relative overflow-hidden h-4 w-28 flex flex-col items-center justify-center">
+                                        {isWatched ? (
+                                            <>
+                                                <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
+                                                    Watched
+                                                </span>
+                                                <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 translate-y-full group-hover:translate-y-0">
+                                                    Unwatch
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <span className="absolute inset-0 flex items-center justify-center w-full">
+                                                Add to Watchlist
+                                            </span>
+                                        )}
+                                    </span>
                                 </button>
                             </div>
                         </div>

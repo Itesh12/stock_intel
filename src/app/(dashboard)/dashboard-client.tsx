@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     TrendingUp, Activity, Zap, Shield,
     ArrowUpRight, ArrowDownRight, AlertCircle,
     Globe, Gauge, Hexagon, Coins, Landmark, Repeat,
-    Banknote, Timer, Loader2, Star
+    Banknote, Timer, Loader2, Star, Plus
 } from "lucide-react";
 import Link from "next/link";
 import { formatIndianNumber } from "@/lib/utils";
@@ -30,6 +30,11 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
     const [watchlistData, setWatchlistData] = useState<MarketDataPoint[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isWatchlistLoading, setIsWatchlistLoading] = useState(false);
+    const [newSymbol, setNewSymbol] = useState("");
+    const [isAdding, setIsAdding] = useState(false);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => {
         const isInitial = timeframe === "1d" && marketData === initialData;
@@ -67,6 +72,71 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
         } finally {
             setIsWatchlistLoading(false);
         }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setSearchResults([]);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        if (newSymbol.length < 2) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const res = await fetch(`/api/stock/search?q=${encodeURIComponent(newSymbol)}`);
+                const data = await res.json();
+                setSearchResults(data);
+            } catch (err) {
+                console.error("Watchlist search failed", err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [newSymbol]);
+
+    const submitSymbol = async (symbolToAdd: string) => {
+        if (!symbolToAdd.trim()) return;
+
+        if (watchlistData.length >= 20) {
+            alert("Watchlist limit reached. You can only track up to 20 stocks.");
+            return;
+        }
+        
+        setIsAdding(true);
+        try {
+            const res = await fetch('/api/watchlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: symbolToAdd.toUpperCase(), action: 'ADD' })
+            });
+            if (res.ok) {
+                setNewSymbol("");
+                setSearchResults([]);
+                await fetchWatchlist();
+            }
+        } catch (err) {
+            console.error("Failed to add to watchlist", err);
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const handleAddWatchlist = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await submitSymbol(newSymbol);
     };
 
     const getPerf = (sym: string) => marketData.find(m => m.symbol === sym) || { currentPrice: 0, changePercent: 0, volume: 0 };
@@ -193,16 +263,70 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
 
             {/* SECTION 1.5: WATCHLIST MONITOR */}
             <section className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
-                        <Star className="text-amber-400" size={20} fill="currentColor" />
-                        Watchlist Monitor
-                        {isWatchlistLoading && <Loader2 size={14} className="animate-spin text-slate-500" />}
-                    </h2>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{watchlistData.length} Targets</span>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
+                            <Star className="text-amber-400" size={20} fill="currentColor" />
+                            Watchlist Monitor
+                            {isWatchlistLoading && <Loader2 size={14} className="animate-spin text-slate-500" />}
+                        </h2>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 border border-white/5 px-2 py-1 rounded-md">
+                            {watchlistData.length} Targets
+                        </span>
+                    </div>
+
+                    <form onSubmit={handleAddWatchlist} className="flex items-center gap-2 relative" ref={searchRef}>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search Symbol (e.g. TCS)"
+                                value={newSymbol}
+                                onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all w-64"
+                            />
+                            {isSearching && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-[0.4] origin-right pointer-events-none">
+                                    <CandleLoader />
+                                </div>
+                            )}
+
+                            {/* Search Results Dropdown */}
+                            {searchResults.length > 0 && (
+                                <div className="absolute top-full left-0 w-full mt-2 bg-[#0c0c0e] border border-white/10 rounded-2xl shadow-2xl shadow-black p-2 z-[60] animate-in fade-in slide-in-from-top-2 duration-200 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                    {searchResults.map((result, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                submitSymbol(result.symbol);
+                                            }}
+                                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 transition-all text-left group"
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-xs font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight truncate">
+                                                        {(result.symbol || '').replace(/\.(NS|BO)$/, '')}
+                                                    </div>
+                                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest">
+                                                        {result.symbol?.endsWith('.NS') ? 'NSE' :
+                                                            result.symbol?.endsWith('.BO') ? 'BSE' :
+                                                                (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQ')}
+                                                    </span>
+                                                </div>
+                                                <div className="text-[9px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity">
+                                                    {result.name}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </form>
                 </div>
                 {watchlistData.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
                         {watchlistData.map((item) => (
                             <Link key={item.symbol} href={`/stock/${item.symbol}`}>
                                 <div className="glass-card p-5 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
@@ -231,6 +355,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 </div>
                             </Link>
                         ))}
+                        </div>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-12 rounded-[32px] border border-dashed border-white/5 bg-white/[0.01]">

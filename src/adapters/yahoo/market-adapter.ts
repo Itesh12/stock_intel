@@ -321,7 +321,7 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
         try {
             // Fetch more results to allow for better ranking/filtering in the API layer
             // Increased to 50 to ensure we capture both NSE and BSE versions of highly traded stocks
-            const result = await (yahooFinance.search(query, { quotesCount: 50 }) as any);
+            const result = await (yahooFinance.search(query, { quotesCount: 50 }, { validateResult: false }) as any);
 
             if (!result.quotes) return [];
 
