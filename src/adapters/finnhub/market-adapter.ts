@@ -82,4 +82,8 @@ export class FinnhubMarketAdapter implements MarketDataPort {
         // Return empty to satisfy interface for now
         return [];
     }
+
+    async getNews(symbol: string, count: number = 5): Promise<any[]> {
+        return [];
+    }
 }

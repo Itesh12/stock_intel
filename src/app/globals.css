@@ -8,6 +8,10 @@
   --color-foreground: var(--foreground);
 }
 
+/* ════════════════════════════════════════════════════════════
+   BASE CSS VARIABLES — Default (Obsidian) theme
+   All themes override these via JS injection on :root
+   ════════════════════════════════════════════════════════════ */
 :root {
   --foreground-rgb: 255, 255, 255;
   --background: #050505;
@@ -17,7 +21,98 @@
   --glass-bg: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.05);
   --glass-highlight: rgba(37, 99, 235, 0.5);
+
+  /* Theme tokens — overridden per theme by ThemeProvider */
+  --theme-bg:           #050505;
+  --theme-bg-98:        rgba(5, 5, 5, 0.98);
+  --theme-sidebar:      #08080a;
+  --theme-card:         #0A0A0B;
+  --theme-card-80:      rgba(10, 10, 11, 0.80);
+  --theme-dropdown:     #0c0c0e;
+  --theme-surface:      #111111;
+  --theme-accent:       #3b82f6;
+  --theme-accent-subtle:rgba(59, 130, 246, 0.1);
+  --theme-border:       rgba(255, 255, 255, 0.05);
+  --theme-border-md:    rgba(255, 255, 255, 0.10);
+  --theme-faint:        rgba(255, 255, 255, 0.03);
+  --theme-faint-2:      rgba(255, 255, 255, 0.02);
+  --theme-faint-5:      rgba(255, 255, 255, 0.05);
 }
+
+/* ════════════════════════════════════════════════════════════
+   UNIVERSAL THEME CONSUMPTION
+   These rules map CSS variables → actual visual properties.
+   Works for ALL themes simultaneously via variable injection.
+   ════════════════════════════════════════════════════════════ */
+
+/* — Structural layout elements — */
+body {
+  background-color: var(--theme-bg) !important;
+}
+aside {
+  background-color: var(--theme-sidebar) !important;
+}
+main {
+  background-color: var(--theme-bg) !important;
+}
+header {
+  background-color: var(--theme-bg-98) !important;
+}
+
+/* — Card & panel backgrounds — */
+.bg-\[\#0A0A0B\], .bg-\[\#0a0a0b\], .bg-\[\#0a0a0c\] {
+  background-color: var(--theme-card) !important;
+}
+.bg-\[\#050505\], .bg-\[\#08080a\] {
+  background-color: var(--theme-bg) !important;
+}
+.bg-\[\#0c0c0e\], .bg-\[\#111\], .bg-\[\#121214\] {
+  background-color: var(--theme-dropdown) !important;
+}
+
+/* — Semi-transparent overlays — */
+.bg-\[\#0A0A0B\]\/80 {
+  background-color: var(--theme-card-80) !important;
+}
+.bg-\[\#050505\]\/98 {
+  background-color: var(--theme-bg-98) !important;
+}
+
+/* — Faint card tints (bg-white/[0.02], bg-white/[0.03], bg-white/5) — */
+.bg-white\/\[0\.03\] { background-color: var(--theme-faint) !important; }
+.bg-white\/\[0\.02\] { background-color: var(--theme-faint-2) !important; }
+.bg-white\/5       { background-color: var(--theme-faint-5) !important; }
+
+/* — Card borders — */
+.border-white\/5  { border-color: var(--theme-border) !important; }
+.border-white\/10 { border-color: var(--theme-border-md) !important; }
+
+/* — Active nav items, primary buttons, accent elements — */
+.bg-blue-600        { background-color: var(--theme-accent) !important; }
+.text-blue-400,
+.text-blue-500      { color: var(--theme-accent) !important; }
+.border-blue-500\/20 { border-color: var(--theme-accent-subtle) !important; }
+.bg-blue-500\/10    { background-color: var(--theme-accent-subtle) !important; }
+
+/* — glass-morphic-card borders — */
+.glass-morphic-card {
+  border-color: var(--theme-border) !important;
+}
+
+/* — Smooth transitions on all themed elements — */
+body, aside, main, header,
+.glass-morphic-card,
+.bg-\[\#0A0A0B\], .bg-\[\#0a0a0b\], .bg-\[\#050505\],
+.bg-\[\#0c0c0e\], .bg-\[\#111\], .bg-\[\#121214\],
+.bg-white\/\[0\.03\], .bg-white\/\[0\.02\], .bg-white\/5 {
+  transition: background-color 0.4s ease, border-color 0.4s ease !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   DEFAULT THEME: Obsidian — nav accent stays blue
+   ════════════════════════════════════════════════════════════ */
+[data-theme="default"] .bg-blue-600 { background-color: #3b82f6 !important; }
+[data-theme="default"] .text-blue-400, [data-theme="default"] .text-blue-500 { color: #60a5fa !important; }
 
 html, body {
   overflow-x: hidden;

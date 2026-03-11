@@ -5,6 +5,8 @@ import { formatCurrency, formatIndianNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import PortfolioHeatmap from "@/components/portfolio/Heatmap";
+import TraderJournal from "@/components/portfolio/TraderJournal";
 
 export default function PortfolioPage() {
     const [portfolio, setPortfolio] = useState<any>(null);
@@ -129,6 +131,18 @@ export default function PortfolioPage() {
                         </div>
                         <div className="h-[280px] w-full">
                             <PerformanceCurve data={analytics?.history || []} />
+                        </div>
+                    </section>
+
+                    <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-xl font-bold text-white tracking-tight">Portfolio Density Heatmap</h2>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Relative Weights & Performance Distribution</p>
+                            </div>
+                        </div>
+                        <div className="h-[300px]">
+                            <PortfolioHeatmap holdings={holdings} />
                         </div>
                     </section>
 
@@ -444,6 +458,10 @@ export default function PortfolioPage() {
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
+                        <TraderJournal />
                     </section>
                 </div>
             </div>

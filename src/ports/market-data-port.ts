@@ -15,4 +15,5 @@ export interface MarketDataPort {
     }>;
     searchStocks(query: string): Promise<Partial<Stock>[]>;
     getScreenerData(scrId: string, count?: number): Promise<Partial<Stock>[]>;
+    getNews(symbol: string, count?: number): Promise<any[]>;
 }

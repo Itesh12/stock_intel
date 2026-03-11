@@ -6,7 +6,7 @@ import {
     BarChart3, Shield, Loader2, Landmark, Wallet, PieChart,
     ArrowUpRight, ArrowDownRight, Layers, Briefcase, GraduationCap,
     Clock, RefreshCcw, Search, ExternalLink, ChevronRight, Scale,
-    HelpCircle, Database, Server, Terminal, Gauge, ShoppingCart, Ban, Star, X
+    HelpCircle, Database, Server, Terminal, Gauge, ShoppingCart, Ban, Star, X, Newspaper
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -15,6 +15,9 @@ import InteractiveChart from '@/components/charts/InteractiveChart';
 import { formatCurrency, formatIndianNumber, formatPercent, cn } from '../../../../lib/utils';
 import TerminalFooter from '@/components/ui/terminal-footer';
 import { CandleLoader } from '@/components/ui/candle-loader';
+import StockNewsSentiment from "@/components/stock/NewsSentiment";
+import AlertManager from "@/components/alerts/AlertManager";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 interface StockDetailClientProps {
     symbol: string;
@@ -477,20 +480,8 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                             setIsTrading={setIsTrading}
                         />
                     </div>
-
-                    <div className="bg-blue-600 rounded-3xl p-6 shadow-2xl flex flex-col justify-between group cursor-pointer hover:bg-blue-500 transition-colors">
-                        <div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <ShieldCheck size={18} className="text-white" />
-                                <h3 className="text-xs font-bold text-white uppercase tracking-widest leading-none">Alpha Guardian</h3>
-                            </div>
-                            <p className="text-[12px] text-blue-100 font-medium leading-relaxed mb-6 opacity-80 group-hover:opacity-100 transition-opacity">
-                                Active neural tracking configured for priority whale movements & liquid flux.
-                            </p>
-                        </div>
-                        <button className="w-full py-3.5 bg-white text-blue-600 rounded-2xl text-[10px] font-bold uppercase tracking-widest ring-0 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all">
-                            Configure Stream
-                        </button>
+                    <div className="bg-[#0A0A0B] border border-white/5 rounded-3xl p-6 shadow-2xl">
+                        <AlertManager symbol={symbol} currentPrice={current} />
                     </div>
                 </motion.div>
             </div>
@@ -650,6 +641,19 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         </div>
                     </div>
                 </div>
+
+                <section className="glass-morphic-card rounded-[32px] p-8 mt-10 border-blue-500/10">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
+                            <Newspaper size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
+                        </div>
+                    </div>
+                    <StockNewsSentiment symbol={symbol} />
+                </section>
 
                 <TerminalFooter />
             </motion.div>

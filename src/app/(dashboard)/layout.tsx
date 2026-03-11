@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy } from "lucide-react";
+import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette } from "lucide-react";
 import { UserNav } from "@/components/user-nav";
 import { CandleLoader } from "@/components/ui/candle-loader";
+import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 
 export default function DashboardLayout({
     children,
@@ -131,6 +132,15 @@ export default function DashboardLayout({
                                 <NavItem icon={<Search size={18} />} label="Strategy Finder" href="/search" setOpen={setIsSidebarOpen} />
                             </nav>
                         </div>
+
+                        <div className="space-y-2">
+                            <span className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest opacity-50">Alpha Hub</span>
+                            <nav className="space-y-1">
+                                <NavItem icon={<Scale size={18} />} label="Stock Duel" href="/comparison" setOpen={setIsSidebarOpen} />
+                                <NavItem icon={<FlaskConical size={18} />} label="Backtesting Lab" href="/backtesting" setOpen={setIsSidebarOpen} />
+                                <NavItem icon={<BookOpen size={18} />} label="Trader Journal" href="/journal" setOpen={setIsSidebarOpen} />
+                            </nav>
+                        </div>
                     </div>
                 </div>
 
@@ -236,12 +246,10 @@ export default function DashboardLayout({
                             )}
 
                             <div className="flex items-center gap-2 lg:gap-3">
+                                <ThemeSwitcher />
                                 <button className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all relative group">
                                     <Bell size={20} />
                                     <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-blue-500 rounded-full border border-[#050505] group-hover:scale-110 transition-transform"></span>
-                                </button>
-                                <button className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all hidden sm:block">
-                                    <Settings size={20} />
                                 </button>
                             </div>
                         </div>

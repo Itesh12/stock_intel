@@ -443,4 +443,14 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             return fallback || [];
         }
     }
+
+    async getNews(symbol: string, count: number = 5): Promise<any[]> {
+        try {
+            const result = await (yahooFinance.search(symbol, { newsCount: count }, { validateResult: false }) as any);
+            return result.news || [];
+        } catch (error) {
+            console.error(`Error fetching news for ${symbol}:`, error);
+            return [];
+        }
+    }
 }

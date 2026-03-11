@@ -40,4 +40,8 @@ export class NoOpMarketAdapter implements MarketDataPort {
     async getScreenerData(scrId: string, count: number = 25): Promise<Partial<Stock>[]> {
         return [];
     }
+
+    async getNews(symbol: string, count: number = 5): Promise<any[]> {
+        return [];
+    }
 }

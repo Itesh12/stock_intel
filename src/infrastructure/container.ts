@@ -19,6 +19,8 @@ import { MongoAnalyticsRepository } from "../adapters/mongodb/analytics-repo";
 import { LimitOrderRepository } from "../domain/limit-order";
 import { MongoLimitOrderRepository } from "../adapters/mongodb/limit-order-repo";
 import { MongoStrategyRepository } from "../adapters/mongodb/strategy-repo";
+import { MongoJournalRepository } from "../adapters/mongodb/journal-repo";
+import { MongoAlertRepository } from "../adapters/mongodb/alert-repo";
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -38,6 +40,8 @@ export interface Infrastructure {
     analytics: AnalyticsRepository;
     limitOrder: LimitOrderRepository;
     strategy: StrategyRepository;
+    journal: MongoJournalRepository;
+    alert: MongoAlertRepository;
     market: MarketDataPort;
 }
 
@@ -57,6 +61,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let analyticsRepo: AnalyticsRepository;
     let limitOrderRepo: LimitOrderRepository;
     let strategyRepo: StrategyRepository;
+    let journalRepo: MongoJournalRepository;
+    let alertRepo: MongoAlertRepository;
 
     // Use Yahoo Finance as primary for free real-time support (NSE/BSE)
     // Finnhub can be used if API key is provided for US stocks
@@ -75,6 +81,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         analyticsRepo = new MongoAnalyticsRepository(db);
         limitOrderRepo = new MongoLimitOrderRepository(db);
         strategyRepo = new MongoStrategyRepository(db);
+        journalRepo = new MongoJournalRepository(db);
+        alertRepo = new MongoAlertRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -86,6 +94,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         analyticsRepo = new MongoAnalyticsRepository({} as any);
         limitOrderRepo = new MongoLimitOrderRepository({} as any);
         strategyRepo = new MongoStrategyRepository({} as any);
+        journalRepo = new MongoJournalRepository({} as any);
+        alertRepo = new MongoAlertRepository({} as any);
     }
 
     cachedInfra = {
@@ -97,8 +107,10 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         analytics: analyticsRepo,
         limitOrder: limitOrderRepo,
         strategy: strategyRepo,
+        journal: journalRepo,
+        alert: alertRepo,
         market: marketAdapter,
     };
 
-    return cachedInfra;
+    return cachedInfra as Infrastructure;
 }
