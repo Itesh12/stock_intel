@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { cn, formatIndianNumber } from '@/lib/utils';
 
 interface PortfolioHeatmapProps {
@@ -8,15 +9,26 @@ interface PortfolioHeatmapProps {
 }
 
 export default function PortfolioHeatmap({ holdings }: PortfolioHeatmapProps) {
+    const router = useRouter();
+
     const treemapData = useMemo(() => {
         if (!holdings || holdings.length === 0) return [];
         
-        // Filter out zero value holdings and sort by size (market value)
+        // Sequence requested: Green first (High -> Low) -> Most Red (Most Negative First)
         const validHoldings = holdings
-            .filter(h => h.marketValue > 0)
-            .sort((a, b) => b.marketValue - a.marketValue);
+            .filter(h => h.marketValue > 0);
+
+        const greens = validHoldings
+            .filter(h => (h.unrealizedPLPercent || 0) >= 0)
+            .sort((a, b) => (b.unrealizedPLPercent || 0) - (a.unrealizedPLPercent || 0));
+        
+        const reds = validHoldings
+            .filter(h => (h.unrealizedPLPercent || 0) < 0)
+            .sort((a, b) => (a.unrealizedPLPercent || 0) - (b.unrealizedPLPercent || 0));
+
+        const sortedHoldings = [...greens, ...reds];
             
-        const totalValue = validHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+        const totalValue = sortedHoldings.reduce((sum, h) => sum + h.marketValue, 0);
         
         // Simple recursive bisection treemap algorithm
         const items: any[] = [];
@@ -59,66 +71,129 @@ export default function PortfolioHeatmap({ holdings }: PortfolioHeatmapProps) {
             }
         };
         
-        partition(validHoldings, 0, 0, 100, 100);
-        return items;
+        partition(sortedHoldings, 0, 0, 100, 100);
+        return items.map(item => ({
+            ...item,
+            // Calculate a score for visual importance
+            significance: item.marketValue / totalValue
+        }));
     }, [holdings]);
 
     if (!holdings || holdings.length === 0) return null;
 
+    const handleNavigation = (symbol: string) => {
+        const cleanSymbol = symbol.split('.')[0];
+        router.push(`/stock/${cleanSymbol}`);
+    };
+
     return (
-        <div className="w-full h-full min-h-[300px] relative rounded-3xl overflow-hidden border border-white/5 bg-black/20">
+        <div className="w-full h-full relative rounded-none overflow-hidden border border-white/5 bg-[#0a0a0c]/40 backdrop-blur-sm p-1">
             {treemapData.map((item, i) => {
                 const pnl = item.unrealizedPLPercent || 0;
-                // Color mapping: -5% (rose-600) to 0% (slate-800) to +5% (emerald-600)
-                let bgColor = "bg-slate-800";
-                if (pnl > 0.5) bgColor = "bg-emerald-900/40";
-                if (pnl > 2) bgColor = "bg-emerald-700/60";
-                if (pnl > 5) bgColor = "bg-emerald-500/80";
-                if (pnl < -0.5) bgColor = "bg-rose-900/40";
-                if (pnl < -2) bgColor = "bg-rose-700/60";
-                if (pnl < -5) bgColor = "bg-rose-500/80";
+                
+                // Premium Color System: HSL-based for smoother gradients
+                let bgColor = "rgba(30, 41, 59, 0.4)"; // Default slate
+                let borderColor = "rgba(255, 255, 255, 0.05)";
 
-                const isSmall = item.w < 15 || item.h < 15;
+                if (pnl > 0.5) {
+                    bgColor = "rgba(6, 78, 59, 0.3)";
+                    borderColor = "rgba(16, 185, 129, 0.1)";
+                }
+                if (pnl > 2) {
+                    bgColor = "rgba(5, 150, 105, 0.4)";
+                    borderColor = "rgba(16, 185, 129, 0.2)";
+                }
+                if (pnl > 5) {
+                    bgColor = "rgba(16, 185, 129, 0.6)";
+                    borderColor = "rgba(16, 185, 129, 0.4)";
+                }
+                
+                if (pnl < -0.5) {
+                    bgColor = "rgba(159, 18, 57, 0.3)";
+                    borderColor = "rgba(244, 63, 94, 0.1)";
+                }
+                if (pnl < -2) {
+                    bgColor = "rgba(225, 29, 72, 0.4)";
+                    borderColor = "rgba(244, 63, 94, 0.2)";
+                }
+                if (pnl < -5) {
+                    bgColor = "rgba(244, 63, 94, 0.6)";
+                    borderColor = "rgba(244, 63, 94, 0.4)";
+                }
+
+                const showFullContent = item.w > 20 && item.h > 20;
+                const isTiny = item.w < 8 || item.h < 8;
 
                 return (
                     <motion.div
                         key={item.symbol}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.03 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.4, delay: i * 0.005 }}
+                        className="absolute h-full"
                         style={{
                             left: `${item.x}%`,
                             top: `${item.y}%`,
                             width: `${item.w}%`,
                             height: `${item.h}%`,
-                            position: 'absolute',
-                            padding: '1px'
+                            padding: '1px', // Professional tight tiling
                         }}
+                        onClick={() => handleNavigation(item.symbol)}
                     >
-                        <div className={cn(
-                            "w-full h-full rounded-lg border border-white/5 flex flex-col items-center justify-center transition-all hover:brightness-125 cursor-pointer overflow-hidden p-2 group",
-                            bgColor
-                        )}>
-                            <div className={cn(
-                                "font-black text-white leading-none tracking-tighter group-hover:scale-110 transition-transform",
-                                isSmall ? "text-[8px]" : "text-sm"
-                            )}>
-                                {item.symbol.replace(/\.(NS|BO)$/, '')}
-                            </div>
-                            {!isSmall && (
-                                <>
-                                    <div className="text-[10px] font-bold text-white/60 mt-1">
-                                        ₹{formatIndianNumber(item.marketValue)}
-                                    </div>
-                                    <div className={cn(
-                                        "text-[9px] font-black mt-0.5 px-1.5 py-0.5 rounded-md",
-                                        pnl >= 0 ? "text-emerald-400 bg-emerald-400/10" : "text-rose-400 bg-rose-400/10"
-                                    )}>
-                                        {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}%
-                                    </div>
-                                </>
+                        <motion.div 
+                            whileHover={{ 
+                                scale: 1.05,
+                                zIndex: 50,
+                                boxShadow: "0 20px 40px rgba(0,0,0,1)" // Darker shadow for sharp edges
+                            }}
+                            className={cn(
+                                "w-full h-full rounded-none border flex flex-col items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden group relative",
+                                isTiny ? "opacity-60" : "opacity-100" // Increased base visibility
                             )}
-                        </div>
+                            style={{
+                                backgroundColor: bgColor,
+                                borderColor: borderColor,
+                            }}
+                        >
+                            {/* Static Content */}
+                            <div className="flex flex-col items-center justify-center w-full px-1">
+                                <div className={cn(
+                                    "font-black text-white leading-none tracking-tighter truncate w-full text-center transition-all duration-300",
+                                    showFullContent ? "text-xs md:text-sm group-hover:text-base" : "text-[8px] md:text-[9px] group-hover:text-[11px]"
+                                )}>
+                                    {item.symbol.replace(/\.(NS|BO)$/, '')}
+                                </div>
+                                
+                                {(!showFullContent || isTiny) && (
+                                    <div className={cn(
+                                        "font-bold mt-1 tracking-tighter transition-all duration-300 truncate",
+                                        pnl >= 0 ? "text-emerald-400" : "text-rose-400",
+                                        "text-[7px] md:text-[8px] group-hover:text-[10px]"
+                                    )}>
+                                        {pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}%
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Expanded Content on Hover/Large */}
+                            <div className={cn(
+                                "flex flex-col items-center mt-1 transition-all duration-500 w-full overflow-hidden",
+                                showFullContent ? "opacity-100 h-auto" : "opacity-0 h-0 group-hover:opacity-100 group-hover:h-auto group-hover:mt-1.5"
+                            )}>
+                                <div className="text-[9px] font-bold text-white/70 mb-0.5 truncate w-full text-center px-2">
+                                    ₹{formatIndianNumber(item.marketValue)}
+                                </div>
+                                <div className={cn(
+                                    "text-[9px] font-black px-1.5 py-0.5 rounded-none border border-white/10 bg-black/40 whitespace-nowrap",
+                                    pnl >= 0 ? "text-emerald-400" : "text-rose-400"
+                                )}>
+                                    {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}%
+                                </div>
+                            </div>
+
+                            {/* Bloomberg-style High Contrast Overlay on Hover */}
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/20" />
+                        </motion.div>
                     </motion.div>
                 );
             })}

@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    // Explicitly bypass middleware for auth, API, and static routes
+    if (
+        pathname.startsWith('/api/') ||
+        pathname.startsWith('/auth/') ||
+        pathname.startsWith('/_next/') ||
+        pathname === '/favicon.ico'
+    ) {
+        return NextResponse.next();
+    }
+
     // Check for both the standard and secure NextAuth session cookies
     const secureCookie = request.cookies.get('__Secure-next-auth.session-token');
     const standardCookie = request.cookies.get('next-auth.session-token');
@@ -10,7 +22,7 @@ export function middleware(request: NextRequest) {
     if (!secureCookie && !standardCookie) {
         const loginUrl = new URL('/auth/login', request.url);
         // Save the original requested URL to redirect back after login
-        loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+        loginUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(loginUrl);
     }
 

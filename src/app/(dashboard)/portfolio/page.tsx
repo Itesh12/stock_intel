@@ -163,17 +163,17 @@ export default function PortfolioPage() {
                                     </div>
                                 </section>
 
-                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <div>
-                                            <h2 className="text-xl font-bold text-white tracking-tight">Portfolio Density Heatmap</h2>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Relative Weights & Performance Distribution</p>
+                                    <section className="glass-morphic-card rounded-none p-8 border-blue-500/10">
+                                        <div className="flex items-center justify-between mb-8">
+                                            <div>
+                                                <h2 className="text-xl font-bold text-white tracking-tight">Portfolio Density Heatmap</h2>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Relative Weights & Performance Distribution</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="h-[300px]">
-                                        <PortfolioHeatmap holdings={holdings} />
-                                    </div>
-                                </section>
+                                        <div className="h-[400px] md:h-[500px] lg:h-[600px] w-full aspect-square md:aspect-auto">
+                                            <PortfolioHeatmap holdings={holdings} />
+                                        </div>
+                                    </section>
 
                                 <section className="glass-morphic-card rounded-[32px] overflow-hidden">
                                     <div className="p-8 border-b border-white/5 flex items-center justify-between">

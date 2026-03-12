@@ -159,9 +159,9 @@ export default function DashboardLayout({
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden w-full bg-[#050505] relative flex flex-col">
                 <header className="h-24 sticky top-0 z-50 flex justify-center w-full px-4 md:px-8 lg:px-10 pointer-events-none">
-                    <div className="mt-4 w-full max-w-[1720px] h-16 bg-[#050505]/60 backdrop-blur-3xl border border-white/10 rounded-[28px] flex items-center px-4 md:px-6 shadow-2xl stealth-border-glow pointer-events-auto transition-all">
+                    <div className="mt-4 w-full max-w-[1720px] h-16 bg-[#050505]/60 backdrop-blur-3xl border border-white/10 rounded-[32px] flex items-center px-4 md:px-6 gap-6 md:gap-10 lg:gap-16 shadow-2xl stealth-border-glow pointer-events-auto transition-all">
                         {/* Left Pillar: Navigation & Branding */}
-                        <div className="flex items-center shrink-0 min-w-[180px]">
+                        <div className="flex items-center shrink-0 min-w-0 lg:min-w-[180px]">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
                                 className="lg:hidden flex h-11 w-11 items-center justify-center text-slate-400 hover:text-white bg-white/5 rounded-2xl border border-white/5 active:scale-95 transition-all"
@@ -180,7 +180,7 @@ export default function DashboardLayout({
                         </div>
 
                         {/* Center Pillar: Search (Flexible & Responsive) */}
-                        <div className="flex-1 flex justify-start px-8 h-full">
+                        <div className="flex-1 flex justify-center lg:justify-start h-full">
                             <div className="relative group/search w-full max-w-[800px] flex items-center h-full" ref={searchRef}>
                                 <div className="relative w-full flex items-center">
                                     <Search size={16} className="absolute left-4 text-slate-500 group-focus-within/search:text-blue-400 transition-colors pointer-events-none" />
