@@ -15,6 +15,11 @@ import TerminalFooter from '@/components/ui/terminal-footer';
 import Tooltip from '@/components/ui/tooltip';
 import { useSnackbar } from '@/components/ui/snackbar';
 import { CandleLoader } from '@/components/ui/candle-loader';
+import { 
+    ScatterChart, Scatter, XAxis, YAxis, ZAxis, 
+    Tooltip as RechartsTooltip, ResponsiveContainer, Cell, 
+    ReferenceLine, CartesianGrid
+} from 'recharts';
 
 interface MarketScanResult {
     symbol: string;
@@ -24,6 +29,10 @@ interface MarketScanResult {
     changePercent: number;
     marketCap: number;
     volume: number;
+    neuralAlphaScore: number;
+    sentimentFlow: string;
+    volatility: number;
+    efficiency: number;
 }
 
 const scanners = [
@@ -68,6 +77,7 @@ export default function MarketScanClient() {
     const [displayCount, setDisplayCount] = useState(25);
     const [selectedAuditStock, setSelectedAuditStock] = useState<MarketScanResult | null>(null);
     const [refreshingRows, setRefreshingRows] = useState<Record<string, boolean>>({});
+    const [viewMode, setViewMode] = useState<'GRID' | 'RADAR'>('GRID');
 
     const fetchScanData = React.useCallback(async (type: string, count: number = 50) => {
         setIsLoading(true);
@@ -248,7 +258,27 @@ export default function MarketScanClient() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                        <div className="flex p-1 bg-white/5 rounded-xl border border-white/10 mr-4">
+                            <button
+                                onClick={() => setViewMode('GRID')}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                                    viewMode === 'GRID' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                                )}
+                            >
+                                Institutional Grid
+                            </button>
+                            <button
+                                onClick={() => setViewMode('RADAR')}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                                    viewMode === 'RADAR' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                                )}
+                            >
+                                Quantum Radar
+                            </button>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                             {isLoading ? (
                                 <div className="scale-50 origin-left mr-2">
                                     <CandleLoader />
@@ -258,7 +288,7 @@ export default function MarketScanClient() {
                             )}
                             {isLoading ? "Fetching" : "Ready"}
                         </div>
-                        <div className="w-[1px] h-6 bg-white/5 mx-2"></div>
+                        <div className="hidden sm:block w-[1px] h-6 bg-white/5 mx-2"></div>
                         <Tooltip content="Live Network Sync Status: Active data ingestion from regional exchange nodes.">
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
                                 <span className="flex h-1.5 w-1.5 relative">
@@ -272,143 +302,242 @@ export default function MarketScanClient() {
                 </div>
 
                 <div className="overflow-x-auto relative z-10">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-white/5 bg-white/[0.01]">
-                                <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">
-                                    <Tooltip content="Symbol and company name of the equity being tracked." position="bottom">
-                                        <div className="flex items-center gap-2">
-                                            Institutional Asset
-                                            <Info size={10} className="text-slate-700" />
-                                        </div>
-                                    </Tooltip>
-                                </th>
-                                <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
-                                    <Tooltip content="Current real-time market price converted to local currency (INR)." position="bottom">
-                                        <div className="flex items-center justify-end gap-2 w-full">
-                                            Quote
-                                            <Info size={10} className="text-slate-700" />
-                                        </div>
-                                    </Tooltip>
-                                </th>
-                                <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
-                                    <Tooltip content="Percentage change from the previous day's close price." position="bottom">
-                                        <div className="flex items-center justify-end gap-2 w-full">
-                                            Performance
-                                            <Info size={10} className="text-slate-700" />
-                                        </div>
-                                    </Tooltip>
-                                </th>
-                                <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
-                                    <Tooltip content="Estimated market capitalization representing the total market value of the company." position="bottom">
-                                        <div className="flex items-center justify-end gap-2 w-full">
-                                            Liquidity
-                                            <Info size={10} className="text-slate-700" />
-                                        </div>
-                                    </Tooltip>
-                                </th>
-                                <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-center">
-                                    <Tooltip content="Direct exchange protocol verification status and security audit." position="bottom">
-                                        <div className="flex items-center justify-center gap-2">
-                                            Protocol
-                                            <Info size={10} className="text-slate-700" />
-                                        </div>
-                                    </Tooltip>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/[0.03]">
-                            {results.length > 0 ? (
-                                results.slice(0, displayCount).map((stock) => (
-                                    <tr
-                                        key={stock.symbol}
-                                        className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
-                                        onClick={() => window.location.href = `/stock/${stock.symbol}`}
-                                    >
-                                        <td className="py-6 px-8">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center font-bold text-white text-xs group-hover:border-blue-500/30 transition-colors">
-                                                    {stock.symbol.slice(0, 2)}
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{stock.symbol}</span>
-                                                    <span className="text-[10px] text-slate-500 font-medium truncate max-w-[150px] uppercase tracking-wider">{stock.name}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-6 px-8 text-right">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-white font-mono">{formatCurrency(stock.price, 'INR')}</span>
-                                                <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">INR Asset</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-6 px-8 text-right">
-                                            <div className="flex flex-col items-end">
-                                                <div className={cn(
-                                                    "flex items-center gap-1.5 font-bold font-mono text-sm",
-                                                    stock.change >= 0 ? "text-emerald-500" : "text-rose-500"
-                                                )}>
-                                                    {stock.change >= 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
-                                                    {stock.change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                                </div>
-                                                <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Session Drift</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 md:py-6 px-4 md:px-8 text-right">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-300 font-mono">{formatIndianNumber(stock.marketCap)}</span>
-                                                <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Market Cap</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 md:py-6 px-4 md:px-8 relative z-20">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <Tooltip content="Refresh Local Pulse Node">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setRefreshingRows(prev => ({ ...prev, [stock.symbol]: true }));
-                                                            setTimeout(() => {
-                                                                setRefreshingRows(prev => ({ ...prev, [stock.symbol]: false }));
-                                                                showSnackbar(`Synchronized pulse data for ${stock.symbol}.`, 'success');
-                                                            }, 1500);
-                                                        }}
-                                                        className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-500 transition-colors hover:bg-blue-500/5"
-                                                    >
-                                                        {refreshingRows[stock.symbol] ? (
-                                                            <div className="scale-[0.3]">
-                                                                <CandleLoader />
+                    <AnimatePresence mode="wait">
+                        {viewMode === 'GRID' ? (
+                            <motion.div
+                                key="grid"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className="w-full"
+                            >
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-white/5 bg-white/[0.01]">
+                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Institutional Asset</th>
+                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Quote</th>
+                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Performance</th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Liquidity</th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right text-blue-400/80">Neural Alpha</th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Sentiment Flow</th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-center">Protocol</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/[0.03]">
+                                        {results.length > 0 ? (
+                                            results.slice(0, displayCount).map((stock) => (
+                                                <tr
+                                                    key={stock.symbol}
+                                                    className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                                    onClick={() => window.location.href = `/stock/${stock.symbol}`}
+                                                >
+                                                    <td className="py-6 px-8">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center font-bold text-white text-xs group-hover:border-blue-500/30 transition-colors">
+                                                                {stock.symbol.slice(0, 2)}
                                                             </div>
-                                                        ) : (
-                                                            <CircuitBoard size={14} />
-                                                        )}
-                                                    </button>
-                                                </Tooltip>
-                                                <Tooltip content="Technical Protocol Audit">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setSelectedAuditStock(stock);
-                                                        }}
-                                                        className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-emerald-500 transition-colors hover:bg-emerald-500/5"
-                                                    >
-                                                        <Dna size={14} />
-                                                    </button>
-                                                </Tooltip>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                [1, 2, 3, 4, 5].map(i => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={5} className="py-6 px-4 md:px-8">
-                                            <div className="h-4 bg-white/5 rounded-lg w-full"></div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{stock.symbol}</span>
+                                                                <span className="text-[10px] text-slate-500 font-medium truncate max-w-[150px] uppercase tracking-wider">{stock.name}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-8 text-right">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold text-white font-mono">{formatCurrency(stock.price, 'INR')}</span>
+                                                            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">INR Asset</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-8 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <div className={cn(
+                                                                "flex items-center gap-1.5 font-bold font-mono text-sm",
+                                                                stock.change >= 0 ? "text-emerald-500" : "text-rose-500"
+                                                            )}>
+                                                                {stock.change >= 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
+                                                                {stock.change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Session Drift</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-8 text-right">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold text-slate-300 font-mono">{formatIndianNumber(stock.marketCap)}</span>
+                                                            <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Market Cap</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-8 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <div className="text-sm font-black text-blue-400 font-outfit tracking-tighter bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                                                {stock.neuralAlphaScore}
+                                                            </div>
+                                                            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">Alpha Factor</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-8 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <div className={cn(
+                                                                "text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded flex items-center gap-1.5",
+                                                                stock.change >= 0 ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                                                            )}>
+                                                                <div className={cn("w-1 h-1 rounded-full animate-pulse", stock.change >= 0 ? "bg-emerald-500" : "bg-rose-500")}></div>
+                                                                {stock.sentimentFlow}
+                                                            </div>
+                                                            <span className="text-[9px] text-slate-700 font-bold uppercase tracking-widest mt-1">Convergence</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-8 relative z-20">
+                                                        <div className="flex items-center justify-center gap-3">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setRefreshingRows(prev => ({ ...prev, [stock.symbol]: true }));
+                                                                    setTimeout(() => {
+                                                                        setRefreshingRows(prev => ({ ...prev, [stock.symbol]: false }));
+                                                                        showSnackbar(`Synchronized pulse data for ${stock.symbol}.`, 'success');
+                                                                    }, 1500);
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-500 transition-colors"
+                                                            >
+                                                                {refreshingRows[stock.symbol] ? (
+                                                                    <div className="scale-[0.3]"><CandleLoader /></div>
+                                                                ) : (
+                                                                    <CircuitBoard size={14} />
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedAuditStock(stock);
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-emerald-500 transition-colors"
+                                                            >
+                                                                <Dna size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            [1, 2, 3, 4, 5].map(i => (
+                                                <tr key={i} className="animate-pulse">
+                                                    <td colSpan={7} className="py-6 px-8">
+                                                        <div className="h-4 bg-white/5 rounded-lg w-full"></div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="radar"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.3 }}
+                                className="p-8 md:p-12 min-h-[600px] flex flex-col"
+                            >
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex flex-col gap-1">
+                                        <h3 className="text-xl font-bold text-white font-outfit uppercase tracking-tight flex items-center gap-3">
+                                            Quantum Alpha Radar 
+                                            <span className="text-[10px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Experimental Terminal</span>
+                                        </h3>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">X: Performance % | Y: Alpha Score | Size: Market Liquidity</p>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Strong Convergence</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Risk Outlier</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 w-full relative">
+                                    <ResponsiveContainer width="100%" height={500}>
+                                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                                            <XAxis 
+                                                type="number" 
+                                                dataKey="changePercent" 
+                                                name="Performance" 
+                                                unit="%" 
+                                                stroke="rgba(255,255,255,0.2)" 
+                                                fontSize={10}
+                                                tickFormatter={(v) => `${v > 0 ? '+' : ''}${v}`}
+                                            />
+                                            <YAxis 
+                                                type="number" 
+                                                dataKey="neuralAlphaScore" 
+                                                name="Alpha Score" 
+                                                stroke="rgba(255,255,255,0.2)" 
+                                                fontSize={10}
+                                                domain={[0, 100]}
+                                            />
+                                            <ZAxis type="number" dataKey="marketCap" range={[100, 2000]} />
+                                            <RechartsTooltip 
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        const data = payload[0].payload;
+                                                        return (
+                                                            <div className="bg-[#0A0A0B] border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-w-[240px]">
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-blue-400 font-bold text-sm tracking-tighter">{data.symbol}</span>
+                                                                        <span className="text-[8px] text-slate-500 uppercase font-black truncate max-w-[120px]">{data.name}</span>
+                                                                    </div>
+                                                                    <div className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black text-white">
+                                                                        {data.neuralAlphaScore} AQ
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center text-[10px]">
+                                                                        <span className="text-slate-500 font-bold uppercase">Performance</span>
+                                                                        <span className={cn("font-mono font-bold", data.changePercent >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                                                                            {data.changePercent.toFixed(2)}%
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-[10px]">
+                                                                        <span className="text-slate-500 font-bold uppercase">Sentiment</span>
+                                                                        <span className="text-blue-500 font-black italic">{data.sentimentFlow}</span>
+                                                                    </div>
+                                                                    <div className="pt-2 border-t border-white/5 text-[9px] text-slate-600 italic">
+                                                                        Neural analysis suggests {data.neuralAlphaScore > 75 ? 'extreme accumulation' : 'neutral flow'} at current price levels.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                                            <ReferenceLine x={0} stroke="rgba(255,255,255,0.1)" />
+                                            <ReferenceLine y={50} stroke="rgba(255,255,255,0.1)" />
+                                            <Scatter name="Stocks" data={results} onClick={(data) => window.location.href = `/stock/${data.symbol}`}>
+                                                {results.map((entry, index) => (
+                                                    <Cell 
+                                                        key={`cell-${index}`} 
+                                                        fill={entry.changePercent >= 0 ? 'rgba(16,185,129,0.5)' : 'rgba(244,63,94,0.5)'}
+                                                        stroke={entry.changePercent >= 0 ? '#10b981' : '#f43f5e'}
+                                                        strokeWidth={1}
+                                                        className="cursor-pointer transition-all hover:opacity-100"
+                                                        opacity={0.6}
+                                                    />
+                                                ))}
+                                            </Scatter>
+                                        </ScatterChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {results.length > displayCount && (
