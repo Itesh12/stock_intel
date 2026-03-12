@@ -1,6 +1,8 @@
 import { Infrastructure } from "../infrastructure/container";
 import { Strategy, StrategyRecommendation } from "../domain/strategy";
 import { v4 as uuidv4 } from "uuid";
+import { NotificationService } from "../application/notification-service";
+import { ScoringService } from "../application/scoring-service";
 
 export class CanslimScanner {
     constructor(private infra: Infrastructure) { }
@@ -106,6 +108,23 @@ export class CanslimScanner {
         // 4. Save to DB
         await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
 
+        // 5. Trigger Notifications for high-conviction matches (Score > 70)
+        const notificationService = new NotificationService(this.infra.notification);
+        // Using a system-wide user ID for global alerts or a placeholder
+        const SYSTEM_USER_ID = "SYSTEM"; 
+
+        for (const rec of topRecs) {
+            if (rec.score >= 70) {
+                await notificationService.notifySignal(SYSTEM_USER_ID, {
+                    symbol: rec.symbol,
+                    type: "PRICE_SURGE", // Using standard type from Signal interface
+                    strength: "HIGH",
+                    description: `New high-conviction CANSLIM match discovered for ${rec.symbol} with a score of ${rec.score}/100.`,
+                    timestamp: new Date()
+                });
+            }
+        }
+
         console.log(`[QuantScanner] Scan complete. Evaluated ${evaluatedCount} stocks. Found ${topRecs.length} matches.`);
         return topRecs;
     }
@@ -210,6 +229,22 @@ export class IntermarketScanner {
 
         const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, 10);
         await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
+
+        // Notify for high-conviction matches
+        const notificationService = new NotificationService(this.infra.notification);
+        const SYSTEM_USER_ID = "SYSTEM";
+
+        for (const rec of topRecs) {
+            if (rec.score >= 80) {
+                await notificationService.notifySignal(SYSTEM_USER_ID, {
+                    symbol: rec.symbol,
+                    type: "INSTITUTIONAL_BUY",
+                    strength: "HIGH",
+                    description: `Strategic breakout detected for ${rec.symbol}. Momentum score: ${rec.score}/100.`,
+                    timestamp: new Date()
+                });
+            }
+        }
 
         console.log(`[QuantScanner] Scan complete. Evaluated ${evaluatedCount} stocks. Found ${topRecs.length} matches.`);
         return topRecs;

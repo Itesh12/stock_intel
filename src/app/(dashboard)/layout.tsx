@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette } from "lucide-react";
+import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
 import { CandleLoader } from "@/components/ui/candle-loader";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
@@ -22,6 +23,7 @@ export default function DashboardLayout({
     const [indices, setIndices] = useState<any[]>([]);
     const [marketStatus, setMarketStatus] = useState<any>(null);
     const router = useRouter();
+    const pathname = usePathname();
     const searchRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -80,6 +82,11 @@ export default function DashboardLayout({
 
     const handleSearch = (val: string) => {
         setSearchQuery(val);
+    };
+
+    const getPageTitle = () => {
+        const path = pathname.split('/').filter(Boolean)[0] || 'dashboard';
+        return path.charAt(0).toUpperCase() + path.slice(1).replace('-', ' ');
     };
 
     return (
@@ -151,78 +158,112 @@ export default function DashboardLayout({
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden w-full bg-[#050505] relative flex flex-col">
-                <header className="h-24 sticky top-0 z-50 flex justify-center w-full px-4 md:px-8 lg:px-12 pointer-events-none">
-                    <div className="mt-4 w-full max-w-[1600px] h-16 bg-[#050505]/60 backdrop-blur-3xl border border-white/10 rounded-[28px] flex items-center px-4 md:px-6 shadow-2xl stealth-border-glow pointer-events-auto transition-all">
-                        {/* Left Pillar: Menu */}
-                        <div className="flex items-center shrink-0 min-w-[44px]">
+                <header className="h-24 sticky top-0 z-50 flex justify-center w-full px-4 md:px-8 lg:px-10 pointer-events-none">
+                    <div className="mt-4 w-full max-w-[1720px] h-16 bg-[#050505]/60 backdrop-blur-3xl border border-white/10 rounded-[28px] flex items-center px-4 md:px-6 shadow-2xl stealth-border-glow pointer-events-auto transition-all">
+                        {/* Left Pillar: Navigation & Branding */}
+                        <div className="flex items-center shrink-0 min-w-[180px]">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
                                 className="lg:hidden flex h-11 w-11 items-center justify-center text-slate-400 hover:text-white bg-white/5 rounded-2xl border border-white/5 active:scale-95 transition-all"
                             >
                                 <Menu size={18} />
                             </button>
+                            
+                            <div className="hidden lg:flex flex-col ml-1">
+                                <span className="text-[9px] font-black text-blue-500/60 uppercase tracking-[0.2em] leading-none mb-1">StockIntel / v5.0</span>
+                                <span className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                                    {getPageTitle()}
+                                    <div className="w-1 h-1 rounded-full bg-slate-700" />
+                                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Live Intel</span>
+                                </span>
+                            </div>
                         </div>
 
-                        {/* Center Pillar: Search (Flexible & Centered) */}
-                        <div className="flex-1 flex justify-center px-4 md:px-10">
-                            <div className="relative group/search w-full max-w-[520px]" ref={searchRef}>
-                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within/search:text-blue-400 transition-colors pointer-events-none" />
-                                <input
-                                    type="text"
-                                    placeholder="Search nodes..."
-                                    className="h-11 !py-0 !pl-11 !pr-10 !bg-white/[0.04] !border-white/5 focus:!border-blue-500/30 transition-all text-[13px] rounded-2xl w-full font-medium placeholder:text-slate-600 shadow-inner"
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value.toUpperCase())}
-                                />
-                                {isSearching && (
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 scale-[0.4] origin-right">
-                                        <CandleLoader />
+                        {/* Center Pillar: Search (Flexible & Responsive) */}
+                        <div className="flex-1 flex justify-start px-8 h-full">
+                            <div className="relative group/search w-full max-w-[800px] flex items-center h-full" ref={searchRef}>
+                                <div className="relative w-full flex items-center">
+                                    <Search size={16} className="absolute left-4 text-slate-500 group-focus-within/search:text-blue-400 transition-colors pointer-events-none" />
+                                    <input
+                                        type="text"
+                                        placeholder="Identify Stock Nodes, Sectors, or Intelligence Queries..."
+                                        autoComplete="off"
+                                        className="h-11 !py-0 !pl-11 !pr-20 !bg-white/[0.04] !border-white/10 focus:!border-blue-500/40 focus:!bg-white/[0.07] transition-all text-[13px] rounded-2xl w-full font-medium placeholder:text-slate-600 shadow-inner"
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value.toUpperCase())}
+                                    />
+                                    <div className="absolute right-4 flex items-center gap-2 pointer-events-none">
+                                        <div className="hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[10px] font-black text-slate-500 group-focus-within/search:opacity-0 transition-opacity uppercase tracking-widest">
+                                            <span className="text-[8px] opacity-60">CTRL</span> K
+                                        </div>
+                                        {isSearching && (
+                                            <div className="scale-[0.35] origin-right opacity-60">
+                                                <CandleLoader />
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
 
                                 {/* Search Results Dropdown */}
-                                {searchResults.length > 0 && (
-                                    <div className="absolute top-full left-0 w-full mt-2 bg-[#0c0c0e] border border-white/10 rounded-2xl shadow-2xl shadow-black p-2 z-[60] animate-in fade-in slide-in-from-top-2 duration-200 max-h-[480px] overflow-y-auto custom-scrollbar">
-                                        {searchResults.map((result, idx) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => {
-                                                    router.push(`/stock/${encodeURIComponent(result.symbol)}`);
-                                                    setSearchResults([]);
-                                                    setSearchQuery("");
-                                                }}
-                                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all text-left group"
-                                            >
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="text-[13px] font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight truncate">
-                                                            {(result.symbol || '').replace(/\.(NS|BO)$/, '')}
+                                <AnimatePresence>
+                                    {searchResults.length > 0 && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10, scale: 0.99 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.99 }}
+                                            className="absolute top-[calc(100%+12px)] left-0 w-full bg-[#0c0c0e]/98 backdrop-blur-3xl border border-white/15 rounded-[22px] shadow-2xl shadow-black/80 p-2 z-[60] overflow-hidden max-h-[480px] flex flex-col stealth-border-glow"
+                                        >
+                                            <div className="px-3 py-2 border-b border-white/5 mb-1 flex items-center justify-between">
+                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Intelligence Suggestions</span>
+                                                <span className="text-[8px] font-bold text-blue-500/50 uppercase">{searchResults.length} NODES</span>
+                                            </div>
+                                            <div className="overflow-y-auto custom-scrollbar space-y-1">
+                                                {searchResults.map((result, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            router.push(`/stock/${encodeURIComponent(result.symbol)}`);
+                                                            setSearchResults([]);
+                                                            setSearchQuery("");
+                                                        }}
+                                                        className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all text-left group"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="text-[14px] font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight truncate">
+                                                                    {(result.symbol || '').replace(/\.(NS|BO)$/, '')}
+                                                                </div>
+                                                                <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest group-hover:border-blue-500/30 group-hover:text-blue-400 transition-all">
+                                                                    {result.symbol?.endsWith('.NS') ? 'NSE' :
+                                                                        result.symbol?.endsWith('.BO') ? 'BSE' :
+                                                                            (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity mt-0.5">
+                                                                {result.name}
+                                                            </div>
                                                         </div>
-                                                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest">
-                                                            {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                                result.symbol?.endsWith('.BO') ? 'BSE' :
-                                                                    (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-[9px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity">
-                                                        {result.name}
-                                                    </div>
-                                                </div>
-                                                <div className="text-[10px] bg-white/5 px-2 py-1 rounded text-slate-600 font-bold uppercase tracking-widest group-hover:bg-blue-600/10 group-hover:text-blue-400">View Intel</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="text-[9px] px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-500 font-bold uppercase tracking-widest group-hover:bg-blue-600/10 group-hover:text-blue-400 group-hover:border-blue-500/20 transition-all flex items-center gap-2">
+                                                                Analyze <ArrowRight size={10} />
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
 
                         {/* Right Pillar: Indices & Actions */}
-                        <div className="flex items-center gap-4 shrink-0 justify-end min-w-[44px]">
+                        <div className="flex items-center gap-4 shrink-0 justify-end">
                             {/* Indian Market Indices */}
-                            <div className="hidden min-[1150px]:flex items-center gap-6 text-[11px] font-mono border-x border-white/5 px-6 h-8">
+                            <div className="hidden min-[1100px]:flex items-center gap-6 text-[11px] font-mono border-x border-white/5 px-6 h-8">
                                 {indices.length > 0 ? indices.map((idx, i) => (
                                     <div key={i} className="flex flex-col whitespace-nowrap">
-                                        <span className="text-slate-600 uppercase text-[9px] tracking-tighter leading-none mb-0.5">{idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}</span>
+                                        <span className="text-slate-400 uppercase text-[9px] tracking-tighter leading-none mb-0.5">{idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}</span>
                                         <span className={`${(idx.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold flex items-center gap-1 leading-none`}>
                                             {idx.price?.toLocaleString()}
                                             <span className="text-[9px] opacity-80 font-medium">
@@ -240,7 +281,7 @@ export default function DashboardLayout({
 
                             {/* Market Status Pulse */}
                             {marketStatus && (
-                                <div className="hidden min-[1400px]:flex flex-col items-center justify-center border-r border-white/5 pr-4 shrink-0">
+                                <div className="hidden min-[1200px]:flex flex-col items-center justify-center border-r border-white/5 pr-4 shrink-0">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${marketStatus.isOpen ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`} />
                                         <span className={`text-[9px] font-black tracking-widest uppercase ${marketStatus.isOpen ? 'text-emerald-500' : 'text-rose-500'}`}>

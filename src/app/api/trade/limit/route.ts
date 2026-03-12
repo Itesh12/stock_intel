@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { symbol, quantity, targetPrice, type } = await req.json();
+        const { symbol, quantity, targetPrice, type, stopLoss, takeProfit, strategyId } = await req.json();
 
         if (!symbol || !quantity || !targetPrice || !type) {
             return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         const infra = await getInfrastructure();
         const userId = (session.user as any).id;
 
-        // Check if user has enough cash for BUY order
+        // Check capital for BUY
         if (type === 'BUY') {
             const portfolios = await infra.portfolio.findByUserId(userId);
             const portfolio = portfolios[0];
@@ -29,35 +29,59 @@ export async function POST(req: NextRequest) {
             if (portfolio.cashBalance < requiredCash) {
                 return NextResponse.json({ error: "Insufficient virtual capital for this limit" }, { status: 400 });
             }
-        } else if (type === 'SELL') {
-            // Check if user has enough units to sell
-            const portfolios = await infra.portfolio.findByUserId(userId);
-            const portfolio = portfolios[0];
-            const holding = portfolio.holdings.find(h => h.symbol === symbol);
-
-            if (!holding || holding.quantity < quantity) {
-                return NextResponse.json({ error: "Insufficient units in portfolio" }, { status: 400 });
-            }
         }
 
+        // Primary order
+        const orderId = uuidv4();
         const order = {
-            id: uuidv4(),
+            id: orderId,
             userId,
             symbol,
             quantity,
             targetPrice,
-            type,
+            type: type as any,
             status: 'PENDING' as any,
-            timestamp: new Date()
+            timestamp: new Date(),
+            strategyId
         };
 
         await infra.limitOrder.save(order);
+
+        // Attached SL/TP
+        if (type === 'BUY') {
+            if (stopLoss) {
+                await infra.limitOrder.save({
+                    id: uuidv4(),
+                    userId,
+                    symbol,
+                    quantity,
+                    targetPrice: stopLoss,
+                    type: 'STOP_LOSS',
+                    status: 'PENDING',
+                    timestamp: new Date(),
+                    parentOrderId: orderId
+                });
+            }
+            if (takeProfit) {
+                await infra.limitOrder.save({
+                    id: uuidv4(),
+                    userId,
+                    symbol,
+                    quantity,
+                    targetPrice: takeProfit,
+                    type: 'TAKE_PROFIT',
+                    status: 'PENDING',
+                    timestamp: new Date(),
+                    parentOrderId: orderId
+                });
+            }
+        }
 
         return NextResponse.json({ success: true, order });
 
     } catch (err) {
         console.error("Limit order post failed", err);
-        return NextResponse.json({ error: "Interal server error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
 

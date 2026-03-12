@@ -6,7 +6,7 @@ import {
     BarChart3, Shield, Loader2, Landmark, Wallet, PieChart,
     ArrowUpRight, ArrowDownRight, Layers, Briefcase, GraduationCap,
     Clock, RefreshCcw, Search, ExternalLink, ChevronRight, Scale,
-    HelpCircle, Database, Server, Terminal, Gauge, ShoppingCart, Ban, Star, X, Newspaper
+    HelpCircle, Database, Server, Terminal, Gauge, ShoppingCart, Ban, Star, X, Newspaper, ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -15,6 +15,7 @@ import InteractiveChart from '@/components/charts/InteractiveChart';
 import { formatCurrency, formatIndianNumber, formatPercent, cn } from '../../../../lib/utils';
 import { CandleLoader } from '@/components/ui/candle-loader';
 import StockNewsSentiment from "@/components/stock/NewsSentiment";
+import StockIntelligenceMemo from "@/components/stock/IntelligenceMemo";
 import AlertManager from "@/components/alerts/AlertManager";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 
@@ -570,18 +571,20 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                 </div>
             </motion.div>
 
-            <section className="glass-morphic-card rounded-[32px] p-5 md:p-8 mt-6 border-blue-500/10">
-                <div className="flex items-center gap-3 mb-8">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
-                        <Newspaper size={20} />
+                <StockIntelligenceMemo symbol={symbol} />
+
+                <section className="glass-morphic-card rounded-[32px] p-5 md:p-8 mt-6 border-blue-500/10">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
+                            <Newspaper size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
-                    </div>
-                </div>
-                <StockNewsSentiment symbol={symbol} />
-            </section>
+                    <StockNewsSentiment symbol={symbol} />
+                </section>
 
             {/* 5. FUNCTIONAL METADATA FOOTER (FINAL POLISH) */}
             <motion.div variants={itemVariants} className="pt-12 mt-12 border-t border-white/5">
@@ -665,6 +668,8 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
     const [quantity, setQuantity] = useState(1);
     const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>('MARKET');
     const [limitPrice, setLimitPrice] = useState(currentPrice);
+    const [slPrice, setSlPrice] = useState<number | ''>('');
+    const [tpPrice, setTpPrice] = useState<number | ''>('');
     const [status, setStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' });
 
     const holding = portfolio?.holdings?.find((h: any) => h.symbol === symbol);
@@ -680,9 +685,15 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
         setStatus({ type: null, message: '' });
         try {
             const url = orderType === 'MARKET' ? '/api/trade' : '/api/trade/limit';
-            const body = orderType === 'MARKET'
+            const body: any = orderType === 'MARKET'
                 ? { symbol, quantity, type }
                 : { symbol, quantity, targetPrice: limitPrice, type };
+
+            // Attach SL/TP if provided for BUY orders
+            if (type === 'BUY') {
+                if (slPrice) body.stopLoss = slPrice;
+                if (tpPrice) body.takeProfit = tpPrice;
+            }
 
             const res = await fetch(url, {
                 method: 'POST',
@@ -698,6 +709,8 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                         : `${type} Limit Order placed at ₹${limitPrice}`
                 });
                 onTradeSuccess();
+                setSlPrice('');
+                setTpPrice('');
                 setTimeout(() => setStatus({ type: null, message: '' }), 3000);
             } else {
                 setStatus({ type: 'error', message: data.error || 'Execution failed' });
@@ -753,6 +766,34 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono font-bold focus:outline-none focus:border-blue-500 transition-all text-sm group-hover:border-white/20 disabled:opacity-50"
                         />
                     </div>
+                </div>
+            </div>
+
+            {/* STRATEGIC CONTROLS (SL/TP) */}
+            <div className="grid grid-cols-2 gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div className="flex flex-col gap-1">
+                    <label className="text-[8px] font-black text-rose-500/70 uppercase tracking-[0.2em] flex items-center gap-1">
+                        <ShieldAlert size={8} /> Stop Loss
+                    </label>
+                    <input
+                        type="number"
+                        placeholder="Price"
+                        value={slPrice}
+                        onChange={(e) => setSlPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                        className="bg-transparent border-none p-0 text-xs text-white font-mono focus:ring-0 placeholder:text-slate-800"
+                    />
+                </div>
+                <div className="flex flex-col gap-1 border-l border-white/5 pl-3">
+                    <label className="text-[8px] font-black text-emerald-500/70 uppercase tracking-[0.2em] flex items-center gap-1">
+                        <Target size={8} /> Take Profit
+                    </label>
+                    <input
+                        type="number"
+                        placeholder="Target"
+                        value={tpPrice}
+                        onChange={(e) => setTpPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                        className="bg-transparent border-none p-0 text-xs text-white font-mono focus:ring-0 placeholder:text-slate-800"
+                    />
                 </div>
             </div>
 

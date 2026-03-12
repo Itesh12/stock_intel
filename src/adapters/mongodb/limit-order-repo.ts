@@ -58,7 +58,9 @@ export class MongoLimitOrderRepository implements LimitOrderRepository {
             status: doc.status,
             timestamp: doc.timestamp,
             executedPrice: doc.executedPrice,
-            executedAt: doc.executedAt
+            executedAt: doc.executedAt,
+            strategyId: doc.strategyId,
+            parentOrderId: doc.parentOrderId
         };
     }
 }

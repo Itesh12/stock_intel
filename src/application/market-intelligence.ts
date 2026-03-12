@@ -3,7 +3,7 @@ import { StockRepository } from "../ports/stock-repository";
 
 export interface MarketSignal {
     symbol: string;
-    type: "VOLUME_BREAKOUT" | "PRICE_SURGE" | "REVERSED_TREND" | "INSTITUTIONAL_BUY";
+    type: "VOLUME_BREAKOUT" | "PRICE_SURGE" | "REVERSED_TREND" | "INSTITUTIONAL_BUY" | "ORDER_EXECUTED" | "ORDER_FAILED";
     strength: "LOW" | "MEDIUM" | "HIGH";
     description: string;
     timestamp: Date;

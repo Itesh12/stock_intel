@@ -1,22 +1,15 @@
 import { MarketSignal } from "./market-intelligence";
-
-export interface Notification {
-    id: string;
-    title: string;
-    message: string;
-    type: "SIGNAL" | "SYSTEM" | "PORTFOLIO";
-    severity: "INFO" | "WARNING" | "CRITICAL";
-    timestamp: Date;
-    read: boolean;
-}
+import { Notification, NotificationRepository } from "../ports/notification-repository";
+import { v4 as uuidv4 } from "uuid";
 
 export class NotificationService {
-    private notifications: Notification[] = [];
+    constructor(private notificationRepo: NotificationRepository) { }
 
-    public notifySignal(signal: MarketSignal) {
+    public async notifySignal(userId: string, signal: MarketSignal) {
         const notification: Notification = {
-            id: Math.random().toString(36).substr(2, 9),
-            title: `${signal.type}: ${signal.symbol}`,
+            id: uuidv4(),
+            userId,
+            title: `${signal.type.replace(/_/g, ' ')}: ${signal.symbol}`,
             message: signal.description,
             type: "SIGNAL",
             severity: signal.strength === "HIGH" ? "CRITICAL" : "INFO",
@@ -24,16 +17,49 @@ export class NotificationService {
             read: false
         };
 
-        this.notifications.unshift(notification);
+        await this.notificationRepo.save(notification);
         console.log(`[Notification] ${notification.title}: ${notification.message}`);
     }
 
-    public getUnread(): Notification[] {
-        return this.notifications.filter(n => !n.read);
+    public async notifySystem(userId: string, title: string, message: string, severity: "INFO" | "WARNING" | "CRITICAL" = "INFO") {
+        const notification: Notification = {
+            id: uuidv4(),
+            userId,
+            title,
+            message,
+            type: "SYSTEM",
+            severity,
+            timestamp: new Date(),
+            read: false
+        };
+
+        await this.notificationRepo.save(notification);
     }
 
-    public markAsRead(id: string) {
-        const n = this.notifications.find(notif => notif.id === id);
-        if (n) n.read = true;
+    public async notifyPortfolio(userId: string, title: string, message: string, severity: "INFO" | "WARNING" | "CRITICAL" = "WARNING") {
+        const notification: Notification = {
+            id: uuidv4(),
+            userId,
+            title,
+            message,
+            type: "PORTFOLIO",
+            severity,
+            timestamp: new Date(),
+            read: false
+        };
+
+        await this.notificationRepo.save(notification);
+    }
+
+    public async getForUser(userId: string, limit: number = 20): Promise<Notification[]> {
+        return await this.notificationRepo.findByUserId(userId, limit);
+    }
+
+    public async markRead(id: string, userId: string) {
+        await this.notificationRepo.markAsRead(id, userId);
+    }
+
+    public async markAllRead(userId: string) {
+        await this.notificationRepo.markAllAsRead(userId);
     }
 }

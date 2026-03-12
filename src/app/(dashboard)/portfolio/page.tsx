@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PortfolioHeatmap from "@/components/portfolio/Heatmap";
 import TraderJournal from "@/components/portfolio/TraderJournal";
+import BacktestSimulator from "@/components/portfolio/BacktestSimulator";
 
 export default function PortfolioPage() {
     const [portfolio, setPortfolio] = useState<any>(null);
@@ -14,6 +15,7 @@ export default function PortfolioPage() {
     const [limitOrders, setLimitOrders] = useState<any[]>([]);
     const [analytics, setAnalytics] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'live' | 'backtest'>('live');
 
     const fetchPortfolio = async () => {
         setIsLoading(true);
@@ -80,7 +82,28 @@ export default function PortfolioPage() {
                         <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Asset Management</span>
                     </div>
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight font-outfit">Portfolio Topology</h1>
-                    <p className="text-slate-500 mt-2 text-sm font-medium">Deep-dive into your holdings, risk metrics, and structural allocation.</p>
+                    <div className="flex items-center gap-6 mt-6">
+                        <button 
+                            onClick={() => setActiveTab('live')}
+                            className={cn(
+                                "text-[10px] font-black uppercase tracking-[0.3em] pb-2 transition-all relative",
+                                activeTab === 'live' ? "text-blue-500" : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            Live Registry
+                            {activeTab === 'live' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />}
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('backtest')}
+                            className={cn(
+                                "text-[10px] font-black uppercase tracking-[0.3em] pb-2 transition-all relative",
+                                activeTab === 'backtest' ? "text-indigo-500" : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            Strategy Replay
+                            {activeTab === 'backtest' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
+                        </button>
+                    </div>
                 </div>
 
                 {portfolio && (
@@ -93,378 +116,291 @@ export default function PortfolioPage() {
                 )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                <StatCard
-                    title="Net Asset Value"
-                    value={`₹${formatIndianNumber(portfolio?.totalValue || 0)}`}
-                    indicator={`${portfolio?.totalPLPercent?.toFixed(2) || 0}%`}
-                    subIndicator={`${(portfolio?.dayPnL || 0) >= 0 ? '+' : ''}${portfolio?.dayPnLPercent?.toFixed(2) || 0}% Today`}
-                    color={(portfolio?.totalPL || 0) >= 0 ? "emerald" : "blue"}
-                />
-                <StatCard
-                    title="Buying Power"
-                    value={`₹${formatIndianNumber(portfolio?.cashBalance || 0)}`}
-                    indicator="READY"
-                    color="emerald"
-                />
-                <StatCard title="Diversification" value={`${holdings.length} Nodes`} indicator="ACTIVE" color="blue" />
-                <StatCard
-                    title="Risk Intelligence"
-                    value={analytics?.sharpeRatio?.toString() || "0.00"}
-                    indicator="SHARPE"
-                    subIndicator={`DD: ${analytics?.maxDrawdown || 0}%`}
-                    color="blue"
-                />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-                <div className="lg:col-span-3 space-y-10">
-                    <section className="glass-morphic-card rounded-[32px] p-8 border-emerald-500/10 h-[400px]">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                            <div>
-                                <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Growth Matrix</h2>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Virtual Capital Trajectory (30D)</p>
-                            </div>
-                            <div className="flex flex-col items-start sm:items-end">
-                                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg">+{((portfolio?.totalValue / 1000000 - 1) * 100).toFixed(2)}% All-Time</span>
-                            </div>
-                        </div>
-                        <div className="h-[280px] w-full">
-                            <PerformanceCurve data={analytics?.history || []} />
-                        </div>
-                    </section>
-
-                    <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h2 className="text-xl font-bold text-white tracking-tight">Portfolio Density Heatmap</h2>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Relative Weights & Performance Distribution</p>
-                            </div>
-                        </div>
-                        <div className="h-[300px]">
-                            <PortfolioHeatmap holdings={holdings} />
-                        </div>
-                    </section>
-
-                    <section className="glass-morphic-card rounded-[32px] overflow-hidden">
-                        <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-white tracking-tight">Active Holdings</h2>
-                            <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Real-Time Sync</span>
-                            </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                            {holdings.length > 0 ? (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Position</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Entry Basis</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Current Node</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Market Valuation</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {holdings.map((holding: any) => (
-                                            <HoldingRow
-                                                key={holding.id}
-                                                holding={holding}
-                                                onTradeSuccess={fetchPortfolio}
-                                            />
-                                        ))}
-                                        {holdings.length > 0 && (
-                                            <tr className="bg-white/[0.02] border-t border-white/10 group hover:bg-white/[0.03] transition-colors">
-                                                <td colSpan={4} className="px-8 py-6 text-left">
-                                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-300 transition-colors">Total Active P/L</span>
-                                                </td>
-                                                <td className="px-8 py-6 text-right">
-                                                    <div className={cn(
-                                                        "text-base font-black font-outfit tracking-tight",
-                                                        isTotalPositive ? "text-emerald-400" : "text-rose-400"
-                                                    )}>
-                                                        {isTotalPositive ? '+' : '-'}₹{formatIndianNumber(Math.abs(totalUnrealizedPL))}
-                                                    </div>
-                                                    <div className="flex items-center justify-end gap-3 mt-0.5">
-                                                        <div className={cn(
-                                                            "text-[10px] font-bold",
-                                                            isTotalPositive ? "text-emerald-500" : "text-rose-500"
-                                                        )}>
-                                                            {isTotalPositive ? '+' : ''}{totalUnrealizedPLPercent.toFixed(2)}%
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-500 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                                                            <span className="text-emerald-500 flex items-center gap-0.5"><ArrowUp size={8} />{holdings.filter((h: any) => h.unrealizedPL >= 0).length}</span>
-                                                            <span className="text-white/20">|</span>
-                                                            <span className="text-rose-500 flex items-center gap-0.5"><ArrowDown size={8} />{holdings.filter((h: any) => h.unrealizedPL < 0).length}</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6"></td>
-                                            </tr>
-                                        )}
-                                        {holdings.length > 0 && (
-                                            <>
-                                                {(() => {
-                                                    const validHoldings = holdings.filter((h: any) => typeof h.unrealizedPLPercent === 'number');
-                                                    if (validHoldings.length === 0) return null;
-
-                                                    const sorted = [...validHoldings].sort((a: any, b: any) => b.unrealizedPLPercent - a.unrealizedPLPercent);
-                                                    const best = sorted[0];
-                                                    const worst = sorted[sorted.length - 1];
-
-                                                    return (
-                                                        <>
-                                                            {best && best.unrealizedPLPercent > 0 && (
-                                                                <tr className="bg-emerald-500/[0.02] border-t border-emerald-500/10 group hover:bg-emerald-500/[0.04] transition-colors">
-                                                                    <td colSpan={4} className="px-8 py-4 text-left">
-                                                                        <div className="flex items-center justify-start gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/70 group-hover:text-emerald-400 transition-colors">
-                                                                            <ArrowUpRight size={14} className="text-emerald-500" />
-                                                                            Top Performer ({best.symbol})
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-4 text-right">
-                                                                        <div className="text-sm font-black font-outfit tracking-tight text-emerald-400">
-                                                                            +₹{formatIndianNumber(Math.abs(best.unrealizedPL))}
-                                                                        </div>
-                                                                        <div className="text-[9px] font-bold mt-0.5 text-emerald-500">
-                                                                            +{best.unrealizedPLPercent.toFixed(2)}%
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-4"></td>
-                                                                </tr>
-                                                            )}
-                                                            {worst && worst.unrealizedPLPercent < 0 && (
-                                                                <tr className="bg-rose-500/[0.02] border-t border-rose-500/10 group hover:bg-rose-500/[0.04] transition-colors">
-                                                                    <td colSpan={4} className="px-8 py-4 text-left">
-                                                                        <div className="flex items-center justify-start gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-rose-500/70 group-hover:text-rose-400 transition-colors">
-                                                                            <ArrowDownRight size={14} className="text-rose-500" />
-                                                                            Max Drawdown ({worst.symbol})
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-4 text-right">
-                                                                        <div className="text-sm font-black font-outfit tracking-tight text-rose-400">
-                                                                            -₹{formatIndianNumber(Math.abs(worst.unrealizedPL))}
-                                                                        </div>
-                                                                        <div className="text-[9px] font-bold mt-0.5 text-rose-500">
-                                                                            {worst.unrealizedPLPercent.toFixed(2)}%
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-8 py-4"></td>
-                                                                </tr>
-                                                            )}
-                                                        </>
-                                                    );
-                                                })()}
-                                            </>
-                                        )}
-                                    </tbody>
-
-
-                                </table>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-20 text-center">
-                                    <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                                        <Database className="text-slate-600" size={32} />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-slate-400 font-outfit mb-2">Portfolio Empty</h3>
-                                    <p className="text-sm text-slate-600 max-w-sm">No active holdings detected. Your portfolio positions will appear here once trades are executed in the marketplace.</p>
-                                    <Link href="/market" className="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-sm transition-all">
-                                        Exploration Hub
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    {limitOrders.filter(o => o.status === 'PENDING').length > 0 && (
-                        <section className="glass-morphic-card rounded-[32px] overflow-hidden border-amber-500/10">
-                            <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Cpu size={20} className="text-amber-500" />
-                                    <h2 className="text-xl font-bold text-white tracking-tight">Open Intelligence Orders</h2>
-                                </div>
-                                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/5 px-3 py-1.5 rounded-lg border border-amber-500/20">Pending Trigger</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Type</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Target Strike</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Quantity</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Requirement</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Timestamp</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {limitOrders.filter(o => o.status === 'PENDING').map((order: any) => (
-                                            <tr key={order.id} className="hover:bg-amber-500/[0.02] transition-all group">
-                                                <td className="px-4 md:px-8 py-4 md:py-5">
-                                                    <span className={cn(
-                                                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
-                                                        order.type === 'BUY'
-                                                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                                            : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                                                    )}>
-                                                        {order.type} LIMIT
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5">
-                                                    <span className="font-bold text-white text-sm tracking-tight">{order.symbol}</span>
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-amber-500 font-mono text-sm tracking-tighter">
-                                                    ₹{order.targetPrice.toFixed(2)}
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-center text-slate-300 font-bold font-mono text-sm">
-                                                    {order.quantity}
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right font-bold text-white">
-                                                    ₹{formatIndianNumber(order.targetPrice * order.quantity)}
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right">
-                                                    <div className="flex items-center justify-end gap-3">
-                                                        <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
-                                                            {new Date(order.timestamp).toLocaleDateString()}
-                                                        </span>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (confirm('Cancel this intelligence order?')) {
-                                                                    const res = await fetch(`/api/trade/limit?id=${order.id}`, { method: 'DELETE' });
-                                                                    if (res.ok) fetchPortfolio();
-                                                                }
-                                                            }}
-                                                            className="p-1.5 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
-                                                        >
-                                                            <Ban size={12} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    )}
-
-                    <section className="glass-morphic-card rounded-[32px] overflow-hidden">
-                        <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <History size={20} className="text-slate-400" />
-                                <h2 className="text-xl font-bold text-white tracking-tight">Transaction Ledger</h2>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">{trades.length} Records</span>
-                        </div>
-                        <div className="overflow-x-auto">
-                            {trades.length > 0 ? (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Type</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Execution Price</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Quantity</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Total Flow</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Timestamp</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {trades.map((trade: any) => (
-                                            <tr key={trade.id} className="hover:bg-white/[0.03] transition-all group">
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-center">
-                                                    <span className={cn(
-                                                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
-                                                        trade.type === 'BUY'
-                                                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                                            : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                                                    )}>
-                                                        {trade.type === 'BUY' ? <ArrowDown size={10} /> : <ArrowUp size={10} />}
-                                                        {trade.type}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5">
-                                                    <span className="font-bold text-white text-sm tracking-tight">{trade.symbol}</span>
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-slate-400 font-mono text-sm tracking-tighter">
-                                                    ₹{trade.price.toFixed(2)}
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-center text-slate-300 font-bold font-mono text-sm">
-                                                    {trade.quantity}
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right font-bold text-white">
-                                                    ₹{formatIndianNumber(trade.totalValue)}
-                                                </td>
-                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-                                                    {new Date(trade.timestamp).toLocaleDateString()} {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="py-20 flex flex-col items-center justify-center opacity-40">
-                                    <History size={40} className="text-slate-600 mb-4" />
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">No historical transactions detected</span>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                </div>
-
-                <div className="space-y-10">
-                    <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10 mb-10">
-                        <FinanceManagement onDepositSuccess={fetchPortfolio} />
-                    </section>
-
-                    <section className="glass-morphic-card rounded-[32px] p-8 border-indigo-500/10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <ShieldAlert size={20} className="text-indigo-500" />
-                                <h2 className="text-lg font-bold text-white tracking-tight">Risk Intelligence</h2>
-                            </div>
-                            <ResetPortfolioButton onReset={fetchPortfolio} />
+            <AnimatePresence mode="wait">
+                {activeTab === 'live' ? (
+                    <motion.div 
+                        key="live"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-6 md:space-y-10"
+                    >
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                            <StatCard
+                                title="Net Asset Value"
+                                value={`₹${formatIndianNumber(portfolio?.totalValue || 0)}`}
+                                indicator={`${portfolio?.totalPLPercent?.toFixed(2) || 0}%`}
+                                subIndicator={`${(portfolio?.dayPnL || 0) >= 0 ? '+' : ''}${portfolio?.dayPnLPercent?.toFixed(2) || 0}% Today`}
+                                color={(portfolio?.totalPL || 0) >= 0 ? "emerald" : "blue"}
+                            />
+                            <StatCard
+                                title="Buying Power"
+                                value={`₹${formatIndianNumber(portfolio?.cashBalance || 0)}`}
+                                indicator="READY"
+                                color="emerald"
+                            />
+                            <StatCard title="Diversification" value={`${holdings.length} Nodes`} indicator="ACTIVE" color="blue" />
+                            <StatCard
+                                title="SIM Performance"
+                                value={portfolio?.winRate ? `${portfolio.winRate.toFixed(1)}%` : "0.0%"}
+                                indicator="WIN RATE"
+                                subIndicator={`PF: ${portfolio?.profitFactor?.toFixed(2) || "0.00"}`}
+                                color={portfolio?.profitFactor >= 2 ? "emerald" : "blue"}
+                            />
                         </div>
 
-                        <div className="space-y-8">
-                            <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
-                                <div className="flex justify-between items-end mb-4">
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Composite Risk Score</span>
-                                    <span className="text-2xl font-black text-emerald-400 font-mono leading-none tracking-tighter">24<span className="text-[10px] text-slate-600 ml-1">/100</span></span>
-                                </div>
-                                <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[24%] shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
-                                </div>
-                            </div>
-
-                            <div className="space-y-5">
-                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Sector Concentration</div>
-                                <div className="space-y-4">
-                                    {Object.entries(portfolio?.sectorExposure || {}).length > 0 ? (
-                                        Object.entries(portfolio.sectorExposure).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5).map(([sector, percent]: any, idx) => (
-                                            <ExposureBar
-                                                key={sector}
-                                                label={sector}
-                                                percent={Math.round(percent)}
-                                                color={idx === 0 ? 'blue' : idx === 1 ? 'indigo' : 'slate'}
-                                            />
-                                        ))
-                                    ) : (
-                                        <div className="py-10 text-center opacity-20">
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">No sector data</span>
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+                            <div className="lg:col-span-3 space-y-10">
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-emerald-500/10 h-[400px]">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                                        <div>
+                                            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Growth Matrix</h2>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Virtual Capital Trajectory (30D)</p>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                    <div className="h-[280px] w-full">
+                                        <PerformanceCurve data={analytics?.history || []} />
+                                    </div>
+                                </section>
+
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-white tracking-tight">Portfolio Density Heatmap</h2>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Relative Weights & Performance Distribution</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-[300px]">
+                                        <PortfolioHeatmap holdings={holdings} />
+                                    </div>
+                                </section>
+
+                                <section className="glass-morphic-card rounded-[32px] overflow-hidden">
+                                    <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                                        <h2 className="text-xl font-bold text-white tracking-tight">Active Holdings</h2>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Real-Time Sync</span>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        {holdings.length > 0 ? (
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Position</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Entry Basis</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Current Node</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Market Valuation</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {holdings.map((holding: any) => (
+                                                        <HoldingRow
+                                                            key={holding.id}
+                                                            holding={holding}
+                                                            onTradeSuccess={fetchPortfolio}
+                                                        />
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                                <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                                                    <Database className="text-slate-600" size={32} />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-slate-400 font-outfit mb-2">Portfolio Empty</h3>
+                                                <Link href="/market" className="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-sm transition-all">
+                                                    Exploration Hub
+                                                </Link>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+
+                                {limitOrders.filter(o => o.status === 'PENDING').length > 0 && (
+                                    <section className="glass-morphic-card rounded-[32px] overflow-hidden border-amber-500/10">
+                                        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <Cpu size={20} className="text-amber-500" />
+                                                <h2 className="text-xl font-bold text-white tracking-tight">Open Intelligence Orders</h2>
+                                            </div>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Type</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Target Strike</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Quantity</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Requirement</th>
+                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {limitOrders.filter(o => o.status === 'PENDING').map((order: any) => (
+                                                        <tr key={order.id} className="hover:bg-amber-500/[0.02] transition-all group">
+                                                            <td className="px-4 md:px-8 py-4 md:py-5">
+                                                                <span className={cn(
+                                                                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
+                                                                    order.type === 'BUY' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                                                                )}>
+                                                                    {order.type} LIMIT
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 md:px-8 py-4 md:py-5 font-bold text-white">{order.symbol}</td>
+                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-amber-500 font-mono italic">₹{order.targetPrice.toFixed(2)}</td>
+                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-center font-bold">{order.quantity}</td>
+                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-right font-bold">₹{formatIndianNumber(order.targetPrice * order.quantity)}</td>
+                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-right">
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (confirm('Cancel this intelligence order?')) {
+                                                                            const res = await fetch(`/api/trade/limit?id=${order.id}`, { method: 'DELETE' });
+                                                                            if (res.ok) fetchPortfolio();
+                                                                        }
+                                                                    }}
+                                                                    className="p-1.5 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 transition-all"
+                                                                >
+                                                                    <Ban size={12} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </section>
+                                )}
+
+                                <section className="glass-morphic-card rounded-[32px] overflow-hidden">
+                                    <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <History size={20} className="text-slate-400" />
+                                            <h2 className="text-xl font-bold text-white tracking-tight">Transaction Ledger</h2>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
+                                                    <th className="px-8 py-4">Type</th>
+                                                    <th className="px-8 py-4">Security</th>
+                                                    <th className="px-8 py-4">Price</th>
+                                                    <th className="px-8 py-4">Qty</th>
+                                                    <th className="px-8 py-4 text-right">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {trades.map((trade: any) => (
+                                                    <tr key={trade.id} className="hover:bg-white/[0.03] transition-all">
+                                                        <td className="px-8 py-4">
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border",
+                                                                trade.type === 'BUY' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                                                            )}>{trade.type}</span>
+                                                        </td>
+                                                        <td className="px-8 py-4 font-bold text-sm">{trade.symbol}</td>
+                                                        <td className="px-8 py-4 text-xs font-mono">₹{trade.price.toFixed(2)}</td>
+                                                        <td className="px-8 py-4 text-xs">{trade.quantity}</td>
+                                                        <td className="px-8 py-4 text-right font-bold text-sm">₹{formatIndianNumber(trade.totalValue)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <div className="space-y-10">
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
+                                    <FinanceManagement onDepositSuccess={fetchPortfolio} />
+                                </section>
+
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-indigo-500/10">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-3">
+                                            <ShieldAlert size={20} className="text-indigo-500" />
+                                            <h2 className="text-lg font-bold text-white tracking-tight">Risk Intelligence</h2>
+                                        </div>
+                                        <ResetPortfolioButton onReset={fetchPortfolio} />
+                                    </div>
+
+                                    <div className="space-y-8">
+                                        <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
+                                            <div className="flex justify-between items-end mb-4">
+                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Composite Risk Score</span>
+                                                <span className="text-2xl font-black text-emerald-400 font-mono leading-none tracking-tighter">24<span className="text-[10px] text-slate-600 ml-1">/100</span></span>
+                                            </div>
+                                            <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
+                                                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[24%]" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">SIM Performance Metrics</div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Profit Factor</div>
+                                                    <div className="text-lg font-black text-white font-mono">{portfolio?.profitFactor?.toFixed(2) || "0.00"}</div>
+                                                </div>
+                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Win Rate</div>
+                                                    <div className="text-lg font-black text-white font-mono">{portfolio?.winRate?.toFixed(1) || "0.0"}%</div>
+                                                </div>
+                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Avg Win</div>
+                                                    <div className="text-sm font-bold text-emerald-400 font-mono">₹{formatIndianNumber(portfolio?.avgWin || 0)}</div>
+                                                </div>
+                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Avg Loss</div>
+                                                    <div className="text-sm font-bold text-rose-400 font-mono">₹{formatIndianNumber(portfolio?.avgLoss || 0)}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-5">
+                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Sector Concentration</div>
+                                            <div className="space-y-4">
+                                                {Object.entries(portfolio?.sectorExposure || {}).length > 0 ? (
+                                                    Object.entries(portfolio.sectorExposure).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5).map(([sector, percent]: any, idx) => (
+                                                        <ExposureBar
+                                                            key={sector}
+                                                            label={sector}
+                                                            percent={Math.round(percent)}
+                                                            color={idx === 0 ? 'blue' : idx === 1 ? 'indigo' : 'slate'}
+                                                        />
+                                                    ))
+                                                ) : (
+                                                    <div className="py-10 text-center opacity-20">
+                                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">No sector data</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
+                                    <TraderJournal />
+                                </section>
                             </div>
                         </div>
-                    </section>
-
-                    <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
-                        <TraderJournal />
-                    </section>
-                </div>
-            </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="backtest"
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        className="min-h-[600px]"
+                    >
+                        <BacktestSimulator />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

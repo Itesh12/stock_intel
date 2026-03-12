@@ -55,4 +55,7 @@ export class PostgresPortfolioRepository implements PortfolioRepository {
             createdAt: new Date(row.created_at),
         };
     }
+    async executeTrade(portfolioId: string, symbol: string, quantity: number, price: number, type: 'BUY' | 'SELL'): Promise<void> {
+        throw new Error("executeTrade not implemented for Postgres yet");
+    }
 }

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { symbol, quantity, type } = await req.json();
+        const { symbol, quantity, type, stopLoss, takeProfit } = await req.json();
 
         if (!symbol || !quantity || !type || quantity <= 0) {
             return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
@@ -120,17 +120,47 @@ export async function POST(req: Request) {
         await infra.portfolio.save(portfolio);
 
         // Record trade in ledger
-        const totalValue = currentPrice * quantity;
+        const tradeId = uuidv4();
         await infra.trade.save({
-            id: uuidv4(),
+            id: tradeId,
             userId,
             symbol,
             quantity,
             price: currentPrice,
-            totalValue: totalValue,
+            totalValue: currentPrice * quantity,
             type: type as any,
             timestamp: new Date()
         });
+
+        // Save attached SL/TP orders if BUY
+        if (type === 'BUY') {
+            if (stopLoss) {
+                await infra.limitOrder.save({
+                    id: uuidv4(),
+                    userId,
+                    symbol,
+                    quantity,
+                    targetPrice: stopLoss,
+                    type: 'STOP_LOSS',
+                    status: 'PENDING',
+                    timestamp: new Date(),
+                    parentOrderId: tradeId
+                });
+            }
+            if (takeProfit) {
+                await infra.limitOrder.save({
+                    id: uuidv4(),
+                    userId,
+                    symbol,
+                    quantity,
+                    targetPrice: takeProfit,
+                    type: 'TAKE_PROFIT',
+                    status: 'PENDING',
+                    timestamp: new Date(),
+                    parentOrderId: tradeId
+                });
+            }
+        }
 
         return NextResponse.json({
             message: `Successfully executed ${type} order`,

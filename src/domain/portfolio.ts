@@ -26,6 +26,12 @@ export interface Portfolio {
     cashBalance: number;
     riskScore: number; // 0-100
     sectorExposure: Record<string, number>; // Sector -> Percentage
+    // Institutional SIM Metrics
+    profitFactor?: number;
+    winRate?: number;
+    avgWin?: number;
+    avgLoss?: number;
+    maxDrawdown?: number;
     updatedAt: Date;
     createdAt: Date;
 }
