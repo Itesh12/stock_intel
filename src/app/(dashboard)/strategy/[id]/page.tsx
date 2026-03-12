@@ -59,7 +59,7 @@ export default function StrategyDetailPage() {
     if (!strategy) return null;
 
     return (
-        <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1200px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
             {/* Header */}
             <div className="flex flex-col gap-6">
                 <Link href="/search" className="group flex items-center gap-2 text-slate-400 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider">
@@ -79,7 +79,7 @@ export default function StrategyDetailPage() {
                                 {strategy.trader}
                             </span>
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tighter font-outfit uppercase">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tighter font-outfit uppercase">
                             {strategy.name}
                         </h1>
                         <p className="text-slate-400 max-w-2xl text-xs leading-relaxed font-medium capitalize">
@@ -90,7 +90,7 @@ export default function StrategyDetailPage() {
             </div>
 
             {/* Core Objective Card */}
-            <div className="glass-morphic-card rounded-[32px] p-8 lg:p-10 border-white/5 relative overflow-hidden">
+            <div className="glass-morphic-card rounded-[32px] p-6 sm:p-8 lg:p-10 border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                     <Target size={150} />
                 </div>

@@ -8,6 +8,44 @@
   --color-foreground: var(--foreground);
 }
 
+@utility main-container {
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+@utility stealth-border-glow {
+  background: linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent 40%, transparent 60%, rgba(255,255,255,0.05));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
 /* ════════════════════════════════════════════════════════════
    BASE CSS VARIABLES — Default (Obsidian) theme
    All themes override these via JS injection on :root
@@ -144,16 +182,16 @@ body {
 
 @utility glass-card-premium {
   background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 32px;
   box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    border-color: rgba(37, 99, 235, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
     background: rgba(255, 255, 255, 0.04);
-    box-shadow: 0 50px 120px -30px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 50px 120px -30px rgba(59, 130, 246, 0.2);
   }
 }
 

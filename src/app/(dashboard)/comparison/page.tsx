@@ -130,20 +130,20 @@ export default function ComparisonPage() {
     const nameB = stockB?.replace(/\.(NS|BO)$/, '') || 'Stock B';
 
     return (
-        <div className="space-y-10 pb-20 max-w-7xl mx-auto py-8 px-6">
+        <div className="space-y-8 md:space-y-12 pb-20 py-4 md:py-8">
             <div className="text-center">
                 <div className="inline-flex items-center gap-3 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
                     <Scale size={14} className="text-blue-400" />
                     <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Side-by-Side Intelligence</span>
                 </div>
-                <h1 className="text-5xl font-black text-white tracking-tighter mb-4">Stock <span className="text-blue-500">Duel</span></h1>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-4">Stock <span className="text-blue-500">Duel</span></h1>
                 <p className="text-slate-500 font-medium text-sm max-w-lg mx-auto">
                     Compare fundamentals, technicals, and historical performance between two stocks in a head-to-head showdown.
                 </p>
             </div>
 
             {/* Search Bar */}
-            <div className="flex flex-col md:flex-row items-center gap-4 max-w-xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center gap-4 w-full">
                 <div className="flex-1 w-full">
                     <StockSearchInput placeholder="Search Stock A..." selected={stockA} onSelect={sym => { setStockA(sym); setDataA(null); }} />
                 </div>
@@ -169,16 +169,16 @@ export default function ComparisonPage() {
                         className="space-y-8"
                     >
                         {/* Price Headline */}
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             {[{ name: nameA, data: dataA, color: 'blue' }, { name: nameB, data: dataB, color: 'violet' }].map(({ name, data, color }) => (
-                                <div key={name} className="bg-white/[0.03] border border-white/5 rounded-3xl p-8 text-center">
+                                <div key={name} className="bg-white/[0.03] border border-white/5 rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden group">
                                     <div className={cn(
                                         "text-[10px] font-black mb-3 px-3 py-1 rounded-full inline-block uppercase tracking-widest border",
                                         color === 'blue' ? "text-blue-400 bg-blue-400/10 border-blue-400/20" : "text-violet-400 bg-violet-400/10 border-violet-400/20"
                                     )}>
                                         {name}
                                     </div>
-                                    <div className="text-4xl font-black text-white tracking-tighter mb-2">₹{data.price?.toFixed(2)}</div>
+                                    <div className="text-3xl sm:text-4xl font-black text-white tracking-tighter mb-2">₹{data.price?.toFixed(2)}</div>
                                     <div className={cn("text-sm font-black", (data.changePercent ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400")}>
                                         {(data.changePercent ?? 0) >= 0 ? "+" : ""}{data.changePercent?.toFixed(2)}%
                                         {(data.changePercent ?? 0) >= 0 ? <TrendingUp size={14} className="inline ml-1.5 mb-0.5" /> : <TrendingDown size={14} className="inline ml-1.5 mb-0.5" />}
@@ -189,7 +189,7 @@ export default function ComparisonPage() {
 
                         {/* Overlaid Chart */}
                         {mergedChartData.length > 0 && (
-                            <div className="bg-white/[0.03] border border-white/5 rounded-3xl p-8">
+                            <div className="bg-white/[0.03] border border-white/5 rounded-3xl p-5 md:p-8">
                                 <div className="flex items-center justify-between mb-6">
                                     <div>
                                         <h2 className="text-lg font-black text-white tracking-tight">3-Month Performance</h2>
@@ -219,7 +219,7 @@ export default function ComparisonPage() {
                                 <h2 className="text-lg font-black text-white tracking-tight">Fundamental Comparison</h2>
                             </div>
                             <div className="divide-y divide-white/5">
-                                <div className="grid grid-cols-3 gap-4 px-6 py-3 bg-white/[0.02]">
+                                <div className="grid grid-cols-3 gap-2 sm:gap-4 px-4 sm:px-6 py-3 bg-white/[0.02]">
                                     <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Metric</div>
                                     <div className={cn("text-[9px] font-black text-blue-400 uppercase tracking-widest text-center")}>{nameA}</div>
                                     <div className={cn("text-[9px] font-black text-violet-400 uppercase tracking-widest text-center")}>{nameB}</div>
@@ -230,7 +230,7 @@ export default function ComparisonPage() {
                                     const aIsWinner = vA !== undefined && vB !== undefined && vA > vB;
                                     const bIsWinner = vA !== undefined && vB !== undefined && vB > vA;
                                     return (
-                                        <div key={m.key} className="grid grid-cols-3 gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors">
+                                        <div key={m.key} className="grid grid-cols-3 gap-2 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-white/[0.02] transition-colors">
                                             <div className="text-xs font-bold text-slate-400">{m.label}</div>
                                             <div className={cn("text-xs font-black text-center", aIsWinner ? "text-blue-400" : "text-white")}>
                                                 {m.format(vA)}

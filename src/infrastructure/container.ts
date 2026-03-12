@@ -21,6 +21,8 @@ import { MongoLimitOrderRepository } from "../adapters/mongodb/limit-order-repo"
 import { MongoStrategyRepository } from "../adapters/mongodb/strategy-repo";
 import { MongoJournalRepository } from "../adapters/mongodb/journal-repo";
 import { MongoAlertRepository } from "../adapters/mongodb/alert-repo";
+import { NotificationRepository } from "../ports/notification-repository";
+import { MongoNotificationRepository } from "../adapters/mongodb/notification-repo";
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -42,6 +44,7 @@ export interface Infrastructure {
     strategy: StrategyRepository;
     journal: MongoJournalRepository;
     alert: MongoAlertRepository;
+    notification: NotificationRepository;
     market: MarketDataPort;
 }
 
@@ -63,6 +66,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let strategyRepo: StrategyRepository;
     let journalRepo: MongoJournalRepository;
     let alertRepo: MongoAlertRepository;
+    let notificationRepo: NotificationRepository;
 
     // Use Yahoo Finance as primary for free real-time support (NSE/BSE)
     // Finnhub can be used if API key is provided for US stocks
@@ -83,6 +87,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         strategyRepo = new MongoStrategyRepository(db);
         journalRepo = new MongoJournalRepository(db);
         alertRepo = new MongoAlertRepository(db);
+        notificationRepo = new MongoNotificationRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -96,6 +101,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         strategyRepo = new MongoStrategyRepository({} as any);
         journalRepo = new MongoJournalRepository({} as any);
         alertRepo = new MongoAlertRepository({} as any);
+        notificationRepo = new MongoNotificationRepository({} as any);
     }
 
     cachedInfra = {
@@ -109,6 +115,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         strategy: strategyRepo,
         journal: journalRepo,
         alert: alertRepo,
+        notification: notificationRepo,
         market: marketAdapter,
     };
 

@@ -119,20 +119,20 @@ export default function BacktestingPage() {
     };
 
     return (
-        <div className="space-y-10 pb-20 max-w-7xl mx-auto py-8 px-6">
+        <div className="space-y-8 md:space-y-12 pb-20 py-4 md:py-8">
             <div className="text-center">
                 <div className="inline-flex items-center gap-3 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full mb-6">
                     <FlaskConical size={14} className="text-violet-400" />
                     <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest">Strategy Lab</span>
                 </div>
-                <h1 className="text-5xl font-black text-white tracking-tighter mb-4">Back<span className="text-violet-500">testing</span></h1>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-4">Back<span className="text-violet-500">testing</span></h1>
                 <p className="text-slate-500 font-medium text-sm max-w-lg mx-auto">
                     Test trading strategies on historical data. Simulate performance before risking real capital.
                 </p>
             </div>
 
             {/* Config Panel */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 {/* Stock Selector */}
                 <div className="relative">
                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">Stock Symbol</label>
@@ -198,7 +198,7 @@ export default function BacktestingPage() {
             </div>
 
             {/* Strategy Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
                 {STRATEGIES.map(s => (
                     <button
                         key={s.id}
@@ -241,7 +241,7 @@ export default function BacktestingPage() {
                         </div>
 
                         {/* Equity Curve */}
-                        <div className="bg-white/[0.03] border border-white/5 rounded-3xl p-8">
+                        <div className="bg-white/[0.03] border border-white/5 rounded-3xl p-5 md:p-8">
                             <h2 className="text-lg font-black text-white tracking-tight mb-6">Equity Curve</h2>
                             <ResponsiveContainer width="100%" height={280}>
                                 <AreaChart data={result.equity.filter((_: any, i: number) => i % 3 === 0)}>
@@ -271,7 +271,7 @@ export default function BacktestingPage() {
                             </div>
                             <div className="divide-y divide-white/5">
                                 {result.trades.map((t: any, i: number) => (
-                                    <div key={i} className="grid grid-cols-4 px-6 py-4 hover:bg-white/[0.02] transition-colors">
+                                    <div key={i} className="grid grid-cols-4 gap-2 px-4 sm:px-6 py-4 hover:bg-white/[0.02] transition-colors">
                                         <div className="text-[11px] font-bold text-slate-400">{t.date}</div>
                                         <div className={cn("text-xs font-black", t.type === 'BUY' ? "text-emerald-400" : "text-rose-400")}>
                                             {t.type === 'BUY' ? <TrendingUp size={12} className="inline mr-1" /> : <TrendingDown size={12} className="inline mr-1" />}

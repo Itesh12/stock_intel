@@ -72,14 +72,14 @@ export default function PortfolioPage() {
     const isTotalPositive = totalUnrealizedPL >= 0;
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
             <div className="flex items-end justify-between border-b border-white/5 pb-8">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Briefcase size={14} className="text-blue-500" />
                         <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Asset Management</span>
                     </div>
-                    <h1 className="text-4xl font-bold text-white tracking-tight font-outfit">Portfolio Topology</h1>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight font-outfit">Portfolio Topology</h1>
                     <p className="text-slate-500 mt-2 text-sm font-medium">Deep-dive into your holdings, risk metrics, and structural allocation.</p>
                 </div>
 
@@ -93,7 +93,7 @@ export default function PortfolioPage() {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <StatCard
                     title="Net Asset Value"
                     value={`₹${formatIndianNumber(portfolio?.totalValue || 0)}`}
@@ -120,12 +120,12 @@ export default function PortfolioPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
                 <div className="lg:col-span-3 space-y-10">
                     <section className="glass-morphic-card rounded-[32px] p-8 border-emerald-500/10 h-[400px]">
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                             <div>
-                                <h2 className="text-xl font-bold text-white tracking-tight">Growth Matrix</h2>
+                                <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Growth Matrix</h2>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Virtual Capital Trajectory (30D)</p>
                             </div>
-                            <div className="flex flex-col items-end">
+                            <div className="flex flex-col items-start sm:items-end">
                                 <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg">+{((portfolio?.totalValue / 1000000 - 1) * 100).toFixed(2)}% All-Time</span>
                             </div>
                         </div>
@@ -158,12 +158,12 @@ export default function PortfolioPage() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                            <th className="px-8 py-5 font-bold">Security</th>
-                                            <th className="px-8 py-5 font-bold">Position</th>
-                                            <th className="px-8 py-5 font-bold">Entry Basis</th>
-                                            <th className="px-8 py-5 font-bold">Current Node</th>
-                                            <th className="px-8 py-5 font-bold text-right">Market Valuation</th>
-                                            <th className="px-8 py-5 font-bold text-right">Actions</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Position</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Entry Basis</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Current Node</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Market Valuation</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
@@ -290,18 +290,18 @@ export default function PortfolioPage() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                            <th className="px-8 py-5 font-bold">Type</th>
-                                            <th className="px-8 py-5 font-bold">Security</th>
-                                            <th className="px-8 py-5 font-bold">Target Strike</th>
-                                            <th className="px-8 py-5 font-bold text-center">Quantity</th>
-                                            <th className="px-8 py-5 font-bold text-right">Requirement</th>
-                                            <th className="px-8 py-5 font-bold text-right">Timestamp</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Type</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Target Strike</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Quantity</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Requirement</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Timestamp</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {limitOrders.filter(o => o.status === 'PENDING').map((order: any) => (
                                             <tr key={order.id} className="hover:bg-amber-500/[0.02] transition-all group">
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
                                                     <span className={cn(
                                                         "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
                                                         order.type === 'BUY'
@@ -311,19 +311,19 @@ export default function PortfolioPage() {
                                                         {order.type} LIMIT
                                                     </span>
                                                 </td>
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
                                                     <span className="font-bold text-white text-sm tracking-tight">{order.symbol}</span>
                                                 </td>
-                                                <td className="px-8 py-5 text-amber-500 font-mono text-sm tracking-tighter">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-amber-500 font-mono text-sm tracking-tighter">
                                                     ₹{order.targetPrice.toFixed(2)}
                                                 </td>
-                                                <td className="px-8 py-5 text-center text-slate-300 font-bold font-mono text-sm">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-center text-slate-300 font-bold font-mono text-sm">
                                                     {order.quantity}
                                                 </td>
-                                                <td className="px-8 py-5 text-right font-bold text-white">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right font-bold text-white">
                                                     ₹{formatIndianNumber(order.targetPrice * order.quantity)}
                                                 </td>
-                                                <td className="px-8 py-5 text-right">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right">
                                                     <div className="flex items-center justify-end gap-3">
                                                         <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
                                                             {new Date(order.timestamp).toLocaleDateString()}
@@ -362,18 +362,18 @@ export default function PortfolioPage() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                            <th className="px-8 py-5 font-bold text-center">Type</th>
-                                            <th className="px-8 py-5 font-bold">Security</th>
-                                            <th className="px-8 py-5 font-bold">Execution Price</th>
-                                            <th className="px-8 py-5 font-bold text-center">Quantity</th>
-                                            <th className="px-8 py-5 font-bold text-right">Total Flow</th>
-                                            <th className="px-8 py-5 font-bold text-right">Timestamp</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Type</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Execution Price</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Quantity</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Total Flow</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Timestamp</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {trades.map((trade: any) => (
                                             <tr key={trade.id} className="hover:bg-white/[0.03] transition-all group">
-                                                <td className="px-8 py-5 text-center">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-center">
                                                     <span className={cn(
                                                         "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
                                                         trade.type === 'BUY'
@@ -384,19 +384,19 @@ export default function PortfolioPage() {
                                                         {trade.type}
                                                     </span>
                                                 </td>
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 md:px-8 py-4 md:py-5">
                                                     <span className="font-bold text-white text-sm tracking-tight">{trade.symbol}</span>
                                                 </td>
-                                                <td className="px-8 py-5 text-slate-400 font-mono text-sm tracking-tighter">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-slate-400 font-mono text-sm tracking-tighter">
                                                     ₹{trade.price.toFixed(2)}
                                                 </td>
-                                                <td className="px-8 py-5 text-center text-slate-300 font-bold font-mono text-sm">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-center text-slate-300 font-bold font-mono text-sm">
                                                     {trade.quantity}
                                                 </td>
-                                                <td className="px-8 py-5 text-right font-bold text-white">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right font-bold text-white">
                                                     ₹{formatIndianNumber(trade.totalValue)}
                                                 </td>
-                                                <td className="px-8 py-5 text-right text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                                                <td className="px-4 md:px-8 py-4 md:py-5 text-right text-[10px] text-slate-600 font-bold uppercase tracking-widest">
                                                     {new Date(trade.timestamp).toLocaleDateString()} {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </td>
                                             </tr>
@@ -576,7 +576,7 @@ function HoldingRow({ holding, onTradeSuccess }: any) {
 
     return (
         <tr className="hover:bg-white/[0.03] transition-all group border-b border-white/[0.02]">
-            <td className="px-8 py-6">
+            <td className="px-4 md:px-8 py-4 md:py-6">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center font-bold text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">{symbol[0]}</div>
                     <Link href={`/stock/${symbol}`} className="cursor-pointer">
@@ -585,9 +585,9 @@ function HoldingRow({ holding, onTradeSuccess }: any) {
                     </Link>
                 </div>
             </td>
-            <td className="px-8 py-6 text-sm font-bold text-slate-300 font-mono tracking-tighter">{qty}</td>
-            <td className="px-8 py-6 text-sm text-slate-600 font-medium">₹{avg.toFixed(2)}</td>
-            <td className="px-8 py-6 text-sm text-slate-300 font-bold font-mono tracking-tighter">
+            <td className="px-4 md:px-8 py-4 md:py-6 text-sm font-bold text-slate-300 font-mono tracking-tighter">{qty}</td>
+            <td className="px-4 md:px-8 py-4 md:py-6 text-sm text-slate-600 font-medium">₹{avg.toFixed(2)}</td>
+            <td className="px-4 md:px-8 py-4 md:py-6 text-sm text-slate-300 font-bold font-mono tracking-tighter">
                 <div>₹{cur.toFixed(2)}</div>
                 {holding.dayChange !== undefined && (
                     <div className={`text-[9px] font-bold ${holding.dayChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -595,7 +595,7 @@ function HoldingRow({ holding, onTradeSuccess }: any) {
                     </div>
                 )}
             </td>
-            <td className="px-8 py-6 text-base text-white font-black text-right font-outfit tracking-tight">
+            <td className="px-4 md:px-8 py-4 md:py-6 text-base text-white font-black text-right font-outfit tracking-tight">
                 <div>₹{formatIndianNumber(val)}</div>
                 {holding.unrealizedPL !== undefined && (
                     <div className={`text-[10px] font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -603,7 +603,7 @@ function HoldingRow({ holding, onTradeSuccess }: any) {
                     </div>
                 )}
             </td>
-            <td className="px-8 py-6 text-right relative">
+            <td className="px-4 md:px-8 py-4 md:py-6 text-right relative">
                 <div className="flex items-center justify-end gap-2">
                     <Link
                         href={`/stock/${symbol}`}

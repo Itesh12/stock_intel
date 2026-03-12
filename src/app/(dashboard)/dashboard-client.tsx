@@ -329,7 +329,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
                         {watchlistData.map((item) => (
                             <Link key={item.symbol} href={`/stock/${item.symbol}`}>
-                                <div className="glass-card p-5 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
+                                <div className="glass-card p-6 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
@@ -423,7 +423,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
 
             {/* SECTION 3: INDIAN SECTOR ALPHA (Definitive Grid Alignment) */}
             <div className="pt-8 md:pt-16 border-t border-white/5">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 items-stretch">
                     {/* Headers Row */}
                     <div className="lg:col-span-2 flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
@@ -452,7 +452,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         ))}
                     </div>
 
-                    <div className="lg:col-span-2 glass-card px-5 sm:px-10 pt-5 sm:pt-8 pb-8 sm:pb-10 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[320px] sm:min-h-[460px]">
+                    <div className="lg:col-span-1 glass-card p-6 md:p-8 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[320px] sm:min-h-[460px]">
                         <p className="text-[10px] text-slate-500 mb-8 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
                         <div className="space-y-8">
                             {moneyFlows.map((flow, i) => (
@@ -526,7 +526,7 @@ function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: a
     return (
         <motion.div
             whileHover={{ y: -4, scale: 1.02 }}
-            className="glass-card p-4 flex flex-col gap-2 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
+            className="glass-card p-5 md:p-6 flex flex-col gap-2 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
         >
             <div className="flex items-center gap-1.5 opacity-50 mb-1">
                 {icon || <Globe size={12} className="text-slate-500" />}
@@ -563,7 +563,7 @@ function DataPointCard({ label, mainValue, subValue, status, icon }: { label: st
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
-            className="glass-card p-7 flex flex-col justify-between h-44 relative overflow-hidden group cursor-default"
+            className="glass-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group cursor-default"
         >
             <div className="absolute top-0 right-0 p-8 -mr-10 -mt-10 opacity-[0.03] group-hover:opacity-[0.2] transition-all duration-500 group-hover:scale-110">
                 {icon}

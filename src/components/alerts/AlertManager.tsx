@@ -106,7 +106,7 @@ export default function AlertManager({ symbol, currentPrice }: { symbol: string;
                         className="overflow-hidden"
                     >
                         <div className="bg-amber-400/5 border border-amber-400/10 rounded-2xl p-4 space-y-3">
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
                                 <div className="flex gap-2 flex-1">
                                     {(['ABOVE', 'BELOW'] as const).map(cond => (
                                         <button
@@ -130,7 +130,7 @@ export default function AlertManager({ symbol, currentPrice }: { symbol: string;
                                     placeholder={`₹ Target`}
                                     value={newAlert.targetPrice}
                                     onChange={e => setNewAlert(p => ({ ...p, targetPrice: e.target.value }))}
-                                    className="w-28 bg-black/20 border border-white/5 rounded-xl px-3 py-2 text-sm font-bold text-white text-center focus:outline-none focus:border-amber-400 transition-all"
+                                    className="w-full sm:w-28 bg-black/20 border border-white/5 rounded-xl px-3 py-2 text-sm font-bold text-white text-center focus:outline-none focus:border-amber-400 transition-all"
                                 />
                             </div>
                             <div className="text-[9px] text-slate-500 font-bold">
@@ -163,7 +163,7 @@ export default function AlertManager({ symbol, currentPrice }: { symbol: string;
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 className={cn(
-                                    "flex items-center justify-between p-3 rounded-xl border transition-all group",
+                                    "flex items-center justify-between p-5 md:p-6 rounded-2xl border transition-all group shadow-lg shadow-amber-900/10",
                                     triggered ? "bg-amber-400/10 border-amber-400/20" : "bg-white/[0.03] border-white/5"
                                 )}
                             >

@@ -192,7 +192,7 @@ export default function MarketScanClient() {
     }
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-1000">
+        <div className="space-y-6 md:space-y-10 animate-in fade-in duration-1000 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
             {/* Control Matrix */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {scanners.map((scanner) => (
@@ -200,7 +200,7 @@ export default function MarketScanClient() {
                         key={scanner.id}
                         onClick={() => setActiveScanner(scanner)}
                         className={cn(
-                            "flex flex-col p-6 rounded-3xl border transition-all text-left group gap-3 relative w-full",
+                            "flex flex-col p-5 sm:p-6 rounded-3xl border transition-all text-left group gap-3 relative w-full",
                             activeScanner.id === scanner.id
                                 ? "bg-blue-600/10 border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
                                 : "bg-white/[0.02] border-white/5 hover:border-white/10"
@@ -236,14 +236,14 @@ export default function MarketScanClient() {
             <div className="bg-[#0A0A0B] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl relative">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(59,130,246,0.03),transparent_40%)]"></div>
 
-                <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 flex items-center justify-center text-blue-500">
+                <div className="p-5 md:p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-blue-600/20 flex items-center justify-center text-blue-500 shrink-0">
                             <BarChart3 size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white font-outfit uppercase tracking-tight">{activeScanner.label}</h2>
-                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em] mt-0.5">Live Market Scan Result</p>
+                            <h2 className="text-lg md:text-xl font-bold text-white font-outfit uppercase tracking-tight">{activeScanner.label}</h2>
+                            <p className="text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em] mt-0.5">Live Market Scan Result</p>
                         </div>
                     </div>
 
@@ -275,7 +275,7 @@ export default function MarketScanClient() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-white/5 bg-white/[0.01]">
-                                <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">
+                                <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">
                                     <Tooltip content="Symbol and company name of the equity being tracked." position="bottom">
                                         <div className="flex items-center gap-2">
                                             Institutional Asset
@@ -283,7 +283,7 @@ export default function MarketScanClient() {
                                         </div>
                                     </Tooltip>
                                 </th>
-                                <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
+                                <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
                                     <Tooltip content="Current real-time market price converted to local currency (INR)." position="bottom">
                                         <div className="flex items-center justify-end gap-2 w-full">
                                             Quote
@@ -291,7 +291,7 @@ export default function MarketScanClient() {
                                         </div>
                                     </Tooltip>
                                 </th>
-                                <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
+                                <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
                                     <Tooltip content="Percentage change from the previous day's close price." position="bottom">
                                         <div className="flex items-center justify-end gap-2 w-full">
                                             Performance
@@ -354,13 +354,13 @@ export default function MarketScanClient() {
                                                 <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Session Drift</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8 text-right">
+                                        <td className="py-4 md:py-6 px-4 md:px-8 text-right">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-slate-300 font-mono">{formatIndianNumber(stock.marketCap)}</span>
                                                 <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Market Cap</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 px-8 relative z-20">
+                                        <td className="py-4 md:py-6 px-4 md:px-8 relative z-20">
                                             <div className="flex items-center justify-center gap-3">
                                                 <Tooltip content="Refresh Local Pulse Node">
                                                     <button
@@ -401,7 +401,7 @@ export default function MarketScanClient() {
                             ) : (
                                 [1, 2, 3, 4, 5].map(i => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan={5} className="py-8 px-8">
+                                        <td colSpan={5} className="py-6 px-4 md:px-8">
                                             <div className="h-4 bg-white/5 rounded-lg w-full"></div>
                                         </td>
                                     </tr>
@@ -422,8 +422,6 @@ export default function MarketScanClient() {
                     </div>
                 )}
             </div>
-
-            <TerminalFooter />
 
             <AnimatePresence>
                 {selectedAuditStock && (

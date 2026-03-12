@@ -13,7 +13,6 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import Tooltip from '@/components/ui/tooltip';
 import InteractiveChart from '@/components/charts/InteractiveChart';
 import { formatCurrency, formatIndianNumber, formatPercent, cn } from '../../../../lib/utils';
-import TerminalFooter from '@/components/ui/terminal-footer';
 import { CandleLoader } from '@/components/ui/candle-loader';
 import StockNewsSentiment from "@/components/stock/NewsSentiment";
 import AlertManager from "@/components/alerts/AlertManager";
@@ -196,14 +195,14 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="space-y-8 pb-12 max-w-[1600px] mx-auto px-6 py-6"
+            className="space-y-6 md:space-y-10 animate-in fade-in duration-700 py-2 md:py-4 pb-20"
         >
             {/* 1. HEADER SECTION (BENTO HEADER) */}
             <motion.div variants={itemVariants} className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-2 text-slate-400 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider">
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        Dashboard
+                        Dashboards
                     </Link>
                     <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-tight">
@@ -218,7 +217,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
                     <div className="lg:col-span-8 flex flex-col gap-2">
                         <div className="flex flex-wrap items-center gap-4">
-                            <h1 className="text-4xl lg:text-5xl font-bold text-white font-outfit tracking-tight leading-none">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-outfit tracking-tight leading-none">
                                 {priceData.name || symbol}
                             </h1>
                             <div className="flex items-center gap-2">
@@ -249,19 +248,22 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     ) : (
                                         <Star size={16} fill="none" />
                                     )}
-                                    <span className="text-xs font-bold uppercase tracking-wider relative overflow-hidden h-4 w-28 flex flex-col items-center justify-center">
+                                    <span className="text-xs font-bold uppercase tracking-wider relative overflow-hidden h-4 w-12 sm:w-28 flex flex-col items-center justify-center">
                                         {isWatched ? (
                                             <>
                                                 <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
-                                                    Watched
+                                                    <span className="hidden sm:inline">Watched</span>
+                                                    <span className="sm:hidden">Wtd</span>
                                                 </span>
                                                 <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 translate-y-full group-hover:translate-y-0">
-                                                    Unwatch
+                                                    <span className="hidden sm:inline">Unwatch</span>
+                                                    <span className="sm:hidden">Unw</span>
                                                 </span>
                                             </>
                                         ) : (
                                             <span className="absolute inset-0 flex items-center justify-center w-full">
-                                                Add to Watchlist
+                                                <span className="hidden sm:inline">Add to Watchlist</span>
+                                                <span className="sm:hidden">Watch</span>
                                             </span>
                                         )}
                                     </span>
@@ -276,7 +278,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     </div>
 
                     <div className="lg:col-span-4 flex flex-col lg:items-end gap-1">
-                        <div className="text-5xl font-bold text-white font-outfit tracking-tighter leading-none">
+                        <div className="text-4xl sm:text-5xl font-bold text-white font-outfit tracking-tighter leading-none">
                             {formatCurrency(current)}
                         </div>
                         <div className={`flex items-center gap-2 font-bold text-lg ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -293,8 +295,8 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Trajectory Card */}
                 <motion.div variants={itemVariants} className="lg:col-span-8 xl:col-span-9 bg-[#0A0A0B] border border-white/5 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
-                    <div className="p-6 md:p-8 flex flex-col flex-1">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="p-5 md:p-8 flex flex-col flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
                                     <BarChart3 size={18} className="text-blue-400" />
@@ -304,7 +306,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-0.5">Price & Volume Matrix</p>
                                 </div>
                             </div>
-                            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+                            <div className="flex flex-wrap bg-white/5 p-1 rounded-xl border border-white/5 w-fit">
                                 {timeframes.map((tf) => (
                                     <button
                                         key={tf.value}
@@ -351,7 +353,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         </div>
 
                         {/* RANGE DRILLDOWN */}
-                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-16 pt-8 border-t border-white/5">
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 pt-8 border-t border-white/5">
                             {/* Day Range */}
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end">
@@ -568,6 +570,19 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                 </div>
             </motion.div>
 
+            <section className="glass-morphic-card rounded-[32px] p-5 md:p-8 mt-6 border-blue-500/10">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
+                        <Newspaper size={20} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
+                    </div>
+                </div>
+                <StockNewsSentiment symbol={symbol} />
+            </section>
+
             {/* 5. FUNCTIONAL METADATA FOOTER (FINAL POLISH) */}
             <motion.div variants={itemVariants} className="pt-12 mt-12 border-t border-white/5">
                 <div className="flex flex-col lg:flex-row justify-between gap-12 items-start">
@@ -580,7 +595,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                 <span className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">Terminal Architecture</span>
                             </div>
                         </div>
-                        <p className="text-[10px] font-bold text-slate-600 leading-relaxed uppercase tracking-[0.2em] opacity-80">
+                        <p className="text-[10px] font-bold text-slate-600 leading-relaxed uppercase tracking-[0.2em] opacity-80 mt-2">
                             Professional Analytics Environment<br />
                             <span className="text-slate-800 font-mono">Build 2.4.0-STABLE / RT-SYNC</span>
                         </p>
@@ -641,21 +656,6 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         </div>
                     </div>
                 </div>
-
-                <section className="glass-morphic-card rounded-[32px] p-8 mt-10 border-blue-500/10">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
-                            <Newspaper size={20} />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
-                        </div>
-                    </div>
-                    <StockNewsSentiment symbol={symbol} />
-                </section>
-
-                <TerminalFooter />
             </motion.div>
         </motion.div>
     );

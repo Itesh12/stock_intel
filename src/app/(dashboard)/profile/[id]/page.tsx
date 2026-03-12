@@ -50,14 +50,14 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     const isPositive = profile.growthPercent >= 0;
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1200px] mx-auto px-6 py-6 pb-20">
+        <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1200px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
             {/* Profile Hero */}
-            <div className="relative glass-morphic-card rounded-[40px] p-10 overflow-hidden border-white/10">
+            <div className="relative glass-morphic-card rounded-[32px] md:rounded-[40px] p-6 sm:p-10 overflow-hidden border-white/10">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] -mr-48 -mt-48"></div>
 
-                <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
+                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 relative z-10">
                     <div className="relative">
-                        <div className="w-32 h-32 rounded-[40px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-blue-500/40 border-4 border-white/10">
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[32px] sm:rounded-[40px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl sm:text-4xl font-black text-white shadow-2xl shadow-blue-500/40 border-4 border-white/10">
                             {profile.name[0]}
                         </div>
                         <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-[#0A0A0B] border border-white/10 flex items-center justify-center shadow-lg">
@@ -67,7 +67,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
                     <div className="flex-1 text-center md:text-left space-y-4">
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                            <h1 className="text-4xl font-black text-white tracking-tighter uppercase font-outfit">{profile.name}</h1>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tighter uppercase font-outfit">{profile.name}</h1>
                             <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Verified Trader</span>
                         </div>
 
@@ -87,7 +87,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                     <div className="flex flex-col items-center md:items-end gap-1">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Growth Index</span>
                         <div className={cn(
-                            "text-5xl font-black font-outfit tracking-tighter",
+                            "text-3xl sm:text-4xl md:text-5xl font-black font-outfit tracking-tighter",
                             isPositive ? "text-emerald-400" : "text-rose-400"
                         )}>
                             {isPositive ? '+' : ''}{profile.growthPercent.toFixed(2)}%
@@ -149,7 +149,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                 const pnlPositive = holding.unrealizedPL >= 0;
                                 return (
                                     <tr key={i} className="hover:bg-white/[0.03] transition-all border-b border-white/[0.02] last:border-0 group">
-                                        <td className="px-8 py-5">
+                                        <td className="px-4 sm:px-8 py-4 md:py-5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold text-blue-400 border border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all">{holding.symbol[0]}</div>
                                                 <div>
@@ -158,7 +158,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5">
+                                        <td className="px-4 sm:px-8 py-4 md:py-5">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{holding.sector || "Other"}</span>
                                         </td>
                                         <td className="px-8 py-5 text-right font-mono text-xs font-medium text-slate-400">
@@ -167,7 +167,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                         <td className="px-8 py-5 text-right font-mono text-xs font-bold text-white">
                                             ₹{formatIndianNumber(holding.currentPrice)}
                                         </td>
-                                        <td className="px-8 py-5 text-right">
+                                        <td className="px-4 sm:px-8 py-4 md:py-5 text-right">
                                             <div className={cn(
                                                 "font-mono text-xs font-bold leading-none mb-1",
                                                 pnlPositive ? "text-emerald-400" : "text-rose-400"
@@ -181,7 +181,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                                 {pnlPositive ? '+' : ''}{holding.unrealizedPLPercent.toFixed(2)}%
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5 text-right">
+                                        <td className="px-4 sm:px-8 py-4 md:py-5 text-right">
                                             <div className="flex flex-col items-end gap-1.5">
                                                 <span className="font-mono text-[10px] font-bold text-slate-400">{holding.weight.toFixed(2)}%</span>
                                                 <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">

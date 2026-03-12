@@ -14,15 +14,14 @@ export default function ThemeSwitcher() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest",
+                    "flex h-11 w-11 items-center justify-center rounded-2xl transition-all relative group border",
                     isOpen
                         ? "bg-white/10 border-white/20 text-white"
-                        : "bg-white/[0.03] border-white/5 text-slate-400 hover:text-white hover:border-white/10"
+                        : "bg-white/5 border-white/5 text-slate-400 hover:text-white"
                 )}
                 title="Theme Engine"
             >
-                <Palette size={15} />
-                <span className="hidden sm:inline">Theme</span>
+                <Palette size={18} />
             </button>
 
             <AnimatePresence>

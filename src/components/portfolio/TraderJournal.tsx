@@ -86,8 +86,8 @@ export default function TraderJournal() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 mb-8 shadow-2xl">
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 border border-white/10 rounded-3xl p-5 md:p-6 space-y-4 mb-8 shadow-2xl">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Symbol (Optional)</label>
                                     <input
@@ -142,7 +142,7 @@ export default function TraderJournal() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.05 }}
-                            className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 hover:bg-white/[0.05] transition-all group relative"
+                            className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.05] transition-all group relative"
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">

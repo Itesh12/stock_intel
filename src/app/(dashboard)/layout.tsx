@@ -7,6 +7,8 @@ import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, Trend
 import { UserNav } from "@/components/user-nav";
 import { CandleLoader } from "@/components/ui/candle-loader";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
+import TerminalFooter from "@/components/ui/terminal-footer";
+import { NotificationsPopover } from "@/components/ui/notifications-popover";
 
 export default function DashboardLayout({
     children,
@@ -149,21 +151,26 @@ export default function DashboardLayout({
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden w-full bg-[#050505] relative flex flex-col">
-                <header className="h-16 md:h-24 border-b border-white/5 px-3 md:px-6 lg:px-10 sticky top-0 bg-[#050505]/98 backdrop-blur-3xl z-50 flex justify-center w-full">
-                    <div className="w-full max-w-[1600px] flex items-center justify-between">
-                        <div className="flex items-center gap-6">
+                <header className="h-24 sticky top-0 z-50 flex justify-center w-full px-4 md:px-8 lg:px-12 pointer-events-none">
+                    <div className="mt-4 w-full max-w-[1600px] h-16 bg-[#050505]/60 backdrop-blur-3xl border border-white/10 rounded-[28px] flex items-center px-4 md:px-6 shadow-2xl stealth-border-glow pointer-events-auto transition-all">
+                        {/* Left Pillar: Menu */}
+                        <div className="flex items-center shrink-0 min-w-[44px]">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="lg:hidden p-3 text-slate-400 hover:text-white bg-white/5 rounded-xl border border-white/5 active:scale-95 transition-all"
+                                className="lg:hidden flex h-11 w-11 items-center justify-center text-slate-400 hover:text-white bg-white/5 rounded-2xl border border-white/5 active:scale-95 transition-all"
                             >
-                                <Menu size={20} />
+                                <Menu size={18} />
                             </button>
-                            <div className="relative group/search w-[200px] sm:w-[280px] lg:w-[420px]" ref={searchRef}>
-                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within/search:text-blue-500 transition-colors pointer-events-none" />
+                        </div>
+
+                        {/* Center Pillar: Search (Flexible & Centered) */}
+                        <div className="flex-1 flex justify-center px-4 md:px-10">
+                            <div className="relative group/search w-full max-w-[520px]" ref={searchRef}>
+                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within/search:text-blue-400 transition-colors pointer-events-none" />
                                 <input
                                     type="text"
-                                    placeholder="Search symbols (e.g. RELIANCE)..."
-                                    className="input-field !py-2.5 !pl-12 !pr-10 !bg-white/[0.03] !border-white/5 focus:!border-blue-500/50 transition-all text-sm"
+                                    placeholder="Search nodes..."
+                                    className="h-11 !py-0 !pl-11 !pr-10 !bg-white/[0.04] !border-white/5 focus:!border-blue-500/30 transition-all text-[13px] rounded-2xl w-full font-medium placeholder:text-slate-600 shadow-inner"
                                     value={searchQuery}
                                     onChange={(e) => handleSearch(e.target.value.toUpperCase())}
                                 />
@@ -209,55 +216,55 @@ export default function DashboardLayout({
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 lg:gap-8">
+                        {/* Right Pillar: Indices & Actions */}
+                        <div className="flex items-center gap-4 shrink-0 justify-end min-w-[44px]">
                             {/* Indian Market Indices */}
-                            <div className="hidden md:flex items-center gap-6 lg:gap-8 text-[11px] font-mono border-x border-white/5 px-6 lg:px-8 h-8">
+                            <div className="hidden min-[1150px]:flex items-center gap-6 text-[11px] font-mono border-x border-white/5 px-6 h-8">
                                 {indices.length > 0 ? indices.map((idx, i) => (
-                                    <div key={i} className="flex flex-col">
-                                        <span className="text-slate-600 uppercase text-[9px] tracking-tighter">{idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}</span>
-                                        <span className={`${(idx.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold flex items-center gap-1`}>
+                                    <div key={i} className="flex flex-col whitespace-nowrap">
+                                        <span className="text-slate-600 uppercase text-[9px] tracking-tighter leading-none mb-0.5">{idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}</span>
+                                        <span className={`${(idx.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold flex items-center gap-1 leading-none`}>
                                             {idx.price?.toLocaleString()}
-                                            <span className="text-[9px] ml-1 opacity-80">
+                                            <span className="text-[9px] opacity-80 font-medium">
                                                 {(idx.changePercent ?? 0) >= 0 ? '+' : ''}{idx.changePercent?.toFixed(2)}%
                                             </span>
                                         </span>
                                     </div>
                                 )) : (
-                                    <div className="flex items-center gap-2 text-slate-600 animate-pulse">
+                                    <div className="flex items-center gap-2 text-slate-600 animate-pulse whitespace-nowrap">
                                         <Activity size={12} />
-                                        <span>Syncing Global Stream...</span>
+                                        <span>Syncing Stream...</span>
                                     </div>
                                 )}
                             </div>
 
                             {/* Market Status Pulse */}
                             {marketStatus && (
-                                <div className="hidden xl:flex flex-col items-center justify-center border-r border-white/5 pr-8">
-                                    <div className="flex items-center gap-2 mb-1">
+                                <div className="hidden min-[1400px]:flex flex-col items-center justify-center border-r border-white/5 pr-4 shrink-0">
+                                    <div className="flex items-center gap-2">
                                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${marketStatus.isOpen ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`} />
-                                        <span className={`text-[10px] font-black tracking-widest uppercase ${marketStatus.isOpen ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                        <span className={`text-[9px] font-black tracking-widest uppercase ${marketStatus.isOpen ? 'text-emerald-500' : 'text-rose-500'}`}>
                                             NSE/BSE {marketStatus.label}
                                         </span>
                                     </div>
-                                    <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter tabular-nums">
-                                        {marketStatus.nextAction}
-                                    </span>
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-1.5 lg:gap-3">
+                            <div className="flex items-center gap-3">
                                 <ThemeSwitcher />
-                                <button className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all relative group">
-                                    <Bell size={18} />
-                                    <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-blue-500 rounded-full border border-[#050505] group-hover:scale-110 transition-transform"></span>
-                                </button>
+                                <NotificationsPopover />
                             </div>
                         </div>
                     </div>
                 </header>
 
-                <div className="flex-1 px-3 sm:px-6 lg:px-10 pt-5 lg:pt-8 pb-10 max-w-[1600px] mx-auto w-full">
-                    {children}
+                <div className="flex-1 px-4 md:px-8 lg:px-12 pt-6 lg:pt-10 pb-16 max-w-[1600px] mx-auto w-full flex flex-col justify-between">
+                    <div className="flex-1">
+                        {children}
+                    </div>
+                    <div className="mt-32 pt-16 border-t border-white/5">
+                        <TerminalFooter />
+                    </div>
                 </div>
             </main>
         </div>

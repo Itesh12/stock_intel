@@ -20,9 +20,9 @@ export default function TerminalFooter() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="mt-24 border-t border-white/5 pt-16 pb-12 bg-black/20"
+            className="w-full"
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-12">
                 {/* Brand Column */}
                 <div className="lg:col-span-4 space-y-8">
                     <div className="flex items-center gap-4">
@@ -60,7 +60,7 @@ export default function TerminalFooter() {
                 </div>
 
                 {/* Status Column */}
-                <div className="lg:col-span-4 flex flex-col items-end justify-between py-1">
+                <div className="lg:col-span-4 flex flex-col items-center md:items-end md:justify-between py-1 gap-6 md:gap-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-400 hover:border-blue-500/30 transition-all cursor-pointer">
                             <Globe size={16} />
@@ -69,8 +69,8 @@ export default function TerminalFooter() {
                             <RefreshCcw size={16} />
                         </div>
                     </div>
-                    <div className="text-right space-y-1.5">
-                        <div className="flex items-center justify-end gap-2 text-[10px] font-black text-slate-200 uppercase tracking-[0.3em]">
+                    <div className="text-center md:text-right space-y-1.5">
+                        <div className="flex items-center justify-center md:justify-end gap-2 text-[10px] font-black text-slate-200 uppercase tracking-[0.3em]">
                             Registry Tracking Active
                         </div>
                         <div className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">

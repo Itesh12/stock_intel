@@ -37,7 +37,7 @@ export default function StockNewsSentiment({ symbol }: { symbol: string }) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="md:col-span-2 space-y-4 max-h-[400px] md:max-h-[500px] overflow-y-auto pr-1 md:pr-2 custom-scrollbar">
                     {data.news.map((item: any, idx: number) => (
                         <motion.a
                             key={item.uuid || idx}
@@ -47,7 +47,7 @@ export default function StockNewsSentiment({ symbol }: { symbol: string }) {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.1 }}
-                            className="bg-white/[0.03] border border-white/5 p-5 rounded-2xl block hover:bg-white/[0.07] transition-all group"
+                            className="bg-white/[0.03] border border-white/5 p-4 sm:p-5 rounded-2xl block hover:bg-white/[0.07] transition-all group"
                         >
                             <div className="flex justify-between items-start mb-2">
                                 <span className={cn(
@@ -71,7 +71,7 @@ export default function StockNewsSentiment({ symbol }: { symbol: string }) {
                 </div>
 
                 <div className="space-y-6">
-                    <div className="glass-morphic-card rounded-3xl p-6 border-blue-500/10">
+                    <div className="glass-morphic-card rounded-3xl p-5 md:p-6 border-blue-500/10">
                         <div className="flex items-center gap-2 mb-6">
                             <TrendingUp size={16} className="text-blue-400" />
                             <h2 className="text-[11px] font-black text-white uppercase tracking-widest">Alpha Sentiment</h2>
