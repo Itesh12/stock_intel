@@ -35,8 +35,35 @@ export class IntelligenceService {
     ) { }
 
     public async generateDeepDive(symbol: string): Promise<IntelligenceMemo | null> {
-        const stock = await this.infra.stock.findBySymbol(symbol);
-        if (!stock) return null;
+        let stock = await this.infra.stock.findBySymbol(symbol);
+        
+        // FIND-OR-FETCH: If missing from DB, fetch from Market Adapter and save
+        if (!stock) {
+            console.info(`[StockIntel] Intelligence cache miss for ${symbol}. Fetching from Market Adapter...`);
+            const fetched = await this.infra.market.getStockPrice(symbol);
+            
+            if (!fetched || !fetched.name || fetched.price === 0) {
+                return null;
+            }
+
+            // Map and Save to DB
+            const newStock: Stock = {
+                id: crypto.randomUUID(),
+                symbol: fetched.symbol!,
+                name: fetched.name!,
+                sector: fetched.sector || 'General',
+                marketCap: fetched.marketCap || 0,
+                price: fetched.price || 0,
+                change: fetched.change || 0,
+                changePercent: fetched.changePercent || 0,
+                lastUpdated: new Date(),
+                createdAt: new Date(),
+                ...fetched
+            } as Stock;
+
+            await this.infra.stock.save(newStock);
+            stock = newStock;
+        }
 
         const score = this.scoringService.calculateScore(stock, {});
 
