@@ -73,6 +73,14 @@ const METRIC_CATEGORIES: MetricCategory[] = [
         ]
     },
     {
+        name: "Battle Performance",
+        metrics: [
+            { label: "Period Return", key: "changePercent", format: (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, higherIsBetter: true },
+            { label: "Range High", key: "high", format: (v: number) => `₹${formatIndianNumber(v || 0)}`, higherIsBetter: true },
+            { label: "Range Low", key: "low", format: (v: number) => `₹${formatIndianNumber(v || 0)}`, lowerIsBetter: true },
+        ]
+    },
+    {
         name: "Ownership & Trend",
         metrics: [
             { label: "Insider Ownership", key: "insiderOwnership", format: (v: number) => v ? `${(v * 100).toFixed(2)}%` : "--" },
@@ -289,8 +297,8 @@ export default function ComparisonPage() {
         setIsLoading(true);
         try {
             const [perfA, perfB, hA, hB] = await Promise.all([
-                fetch(`/api/stock/performance?symbol=${symA}`).then(r => r.json()),
-                fetch(`/api/stock/performance?symbol=${symB}`).then(r => r.json()),
+                fetch(`/api/stock/performance?symbol=${symA}&period=${period}`).then(r => r.json()),
+                fetch(`/api/stock/performance?symbol=${symB}&period=${period}`).then(r => r.json()),
                 fetch(`/api/stock/history?symbol=${symA}&period=${period}`).then(r => r.json()),
                 fetch(`/api/stock/history?symbol=${symB}&period=${period}`).then(r => r.json()),
             ]);
