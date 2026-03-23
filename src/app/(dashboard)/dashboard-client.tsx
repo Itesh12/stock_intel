@@ -204,8 +204,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             )}
 
             {/* Intel Hero & Regime Header */}
-            <div className="flex flex-col gap-8 pb-4 border-b border-white/5">
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+            <div className="flex flex-col gap-4 md:gap-6 pb-4 border-b border-white/5">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 md:gap-6">
                     <div className="space-y-4">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
                             <Hexagon size={12} className="text-blue-400 fill-blue-400/20" />
@@ -376,8 +376,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </section>
 
             {/* SECTION 2: MACRO MONITOR */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                <section className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Coins className="text-amber-400" size={20} />
                         Gold & Commodities
@@ -393,7 +393,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     </div>
                 </section>
 
-                <section className="space-y-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Banknote className="text-emerald-400" size={20} />
                         Currency Rates
@@ -412,7 +412,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     </div>
                 </section>
 
-                <section className="space-y-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Timer className="text-purple-400" size={20} />
                         US Yield Curve
@@ -431,8 +431,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* SECTION 3: INDIAN SECTOR ALPHA (Definitive Grid Alignment) */}
-            <div className="pt-8 md:pt-16 border-t border-white/5">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 items-stretch">
+            <div className="pt-4 md:pt-6 border-t border-white/5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 items-start">
                     {/* Headers Row */}
                     <div className="lg:col-span-2 flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
@@ -497,7 +497,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* Core Health Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-2">
                 <DataPointCard
                     label="Market Participation"
                     mainValue={`${breadthPercent.toFixed(0)}%`}
