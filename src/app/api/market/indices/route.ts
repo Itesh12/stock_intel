@@ -4,7 +4,7 @@ import { getInfrastructure } from '@/infrastructure/container';
 export async function GET() {
     try {
         const infra = await getInfrastructure();
-        const indices = ["^NSEI", "^BSESN"];
+        const indices = ["^NSEI", "^BSESN", "^INDIAVIX"];
         const data = await Promise.all(
             indices.map(symbol => infra.market.getStockPrice(symbol))
         );

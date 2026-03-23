@@ -78,7 +78,7 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
                 dayLow: data.regularMarketDayLow || summaryDetail.dayLow || data.regularMarketPrice || data.bid || 0,
                 fiftyTwoWeekHigh: data.fiftyTwoWeekHigh || summaryDetail.fiftyTwoWeekHigh || data.regularMarketPrice || 0,
                 fiftyTwoWeekLow: data.fiftyTwoWeekLow || summaryDetail.fiftyTwoWeekLow || data.regularMarketPrice || 0,
-                currency: data.currency || (symbol.endsWith('.NS') || symbol.endsWith('.BO') ? 'INR' : 'USD'),
+                currency: data.currency || (symbol.endsWith('.NS') ? 'INR' : 'USD'),
                 sector: data.sector || data.industry || null,
 
                 // New Fundamentals
@@ -410,10 +410,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
                 .filter((quote: any) =>
                     quote && quote.symbol && (
                         quote.symbol.endsWith('.NS') ||
-                        quote.symbol.endsWith('.BO') ||
                         quote.currency === 'INR' ||
-                        quote.fullExchangeName?.includes('NSE') ||
-                        quote.fullExchangeName?.includes('BSE')
+                        quote.fullExchangeName?.includes('NSE')
                     )
                 )
                 .slice(0, count)

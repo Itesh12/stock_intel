@@ -14,18 +14,12 @@ export async function GET(request: Request) {
         const results = await infra.market.searchStocks(query);
 
         // STRICT INDIAN MARKETS & FUTURES FILTERING
-        // Only allow .NS (NSE), .BO (BSE), .F (Futures), and =F (Commodity Futures)
         const filteredResults = results.filter((s: any) => {
             const sym = (s.symbol || '').toUpperCase();
-
-            // Exclude Mutual Funds (starting with 0P)
-            if (sym.startsWith('0P')) return false;
-
             const isNSE = sym.endsWith('.NS');
-            const isBSE = sym.endsWith('.BO');
             const isFuture = sym.endsWith('.F') || sym.includes('=F');
 
-            return isNSE || isBSE || isFuture;
+            return isNSE || isFuture;
         });
 
         // Limit results to 15 suggestions for a "deeper" experience while staying focused

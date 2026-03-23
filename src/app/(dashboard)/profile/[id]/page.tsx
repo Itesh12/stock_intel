@@ -154,7 +154,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold text-blue-400 border border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all">{holding.symbol[0]}</div>
                                                 <div>
                                                     <div className="font-bold text-white tracking-tight uppercase leading-none mb-1 group-hover:text-blue-400 transition-colors">{holding.symbol.replace(/\.(NS|BO)$/, '')}</div>
-                                                    <div className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{holding.symbol.endsWith('.NS') ? 'NSE' : 'BSE'}</div>
+                                                    <div className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{holding.symbol.endsWith('.NS') ? 'NSE' : 'EQUITY'}</div>
                                                 </div>
                                             </div>
                                         </td>

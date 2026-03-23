@@ -17,17 +17,8 @@ export async function GET(request: Request) {
     const infra = await getInfrastructure();
 
     const symbols = [
-        // Indian Core
         "^NSEI", "^BSESN", "^INDIAVIX",
-        "^NSEBANK", "^CNXIT", "^CNXENERGY", "^CNXFMCG", "^CNXPHARMA", "^CNXMETAL",
-        // Global Indices
-        "^GSPC", "^IXIC", "^DJI", "^GDAXI", "^FCHI", "^N225", "^FTSE",
-        // Commodities
-        "GC=F", "SI=F", "CL=F",
-        // Currencies
-        "USDINR=X", "EURINR=X", "GBPINR=X", "JPYINR=X", "AUDINR=X", "CHFINR=X",
-        // Yields
-        "^IRX", "^FVX", "^TNX", "^TYX"
+        "^NSEBANK", "^CNXIT", "^CNXENERGY", "^CNXFMCG", "^CNXPHARMA", "^CNXMETAL"
     ];
 
     try {

@@ -17,7 +17,7 @@ export default async function Dashboard() {
 
     const symbols = [
         // Indian Core
-        "^NSEI", "^BSESN", "^INDIAVIX",
+        "^NSEI", "^INDIAVIX",
         "^NSEBANK", "^CNXIT", "^CNXENERGY", "^CNXFMCG", "^CNXPHARMA", "^CNXMETAL",
         // Global Indices
         "^GSPC", "^IXIC", "^DJI", "^GDAXI", "^FCHI", "^N225", "^FTSE",

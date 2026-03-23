@@ -114,7 +114,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             alert("Watchlist limit reached. You can only track up to 20 stocks.");
             return;
         }
-        
+
         setIsAdding(true);
         try {
             const res = await fetch('/api/watchlist', {
@@ -201,7 +201,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                             <Hexagon size={12} className="text-blue-400 fill-blue-400/20" />
                             <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">Market Insights</span>
                         </div>
-                                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
                             Market <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Overview</span>
                         </h1>
                     </div>
@@ -309,8 +309,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                                     </div>
                                                     <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest">
                                                         {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                            result.symbol?.endsWith('.BO') ? 'BSE' :
-                                                                (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQ')}
+                                                            (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQ')}
                                                     </span>
                                                 </div>
                                                 <div className="text-[9px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity">
@@ -327,34 +326,34 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 {watchlistData.length > 0 ? (
                     <div className="max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
-                        {watchlistData.map((item) => (
-                            <Link key={item.symbol} href={`/stock/${item.symbol}`}>
-                                <div className="glass-card p-6 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
-                                                {item.symbol.replace(/\.(NS|BO)$/, '')}
-                                            </span>
-                                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-bold uppercase tracking-widest">
-                                                {item.symbol.endsWith('.NS') ? 'NSE' : 'BSE'}
+                            {watchlistData.map((item) => (
+                                <Link key={item.symbol} href={`/stock/${item.symbol}`}>
+                                    <div className="glass-card p-6 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
+                                                    {item.symbol.replace(/\.(NS|BO)$/, '')}
+                                                </span>
+                                                <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-bold uppercase tracking-widest">
+                                                    {item.symbol.endsWith('.NS') ? 'NSE' : 'EQUITY'}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 truncate max-w-[120px]">
+                                                {item.label || "Equity Node"}
                                             </span>
                                         </div>
-                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 truncate max-w-[120px]">
-                                            {item.label || "Equity Node"}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-base font-black text-white font-mono tracking-tighter">
-                                            ₹{formatIndianNumber(item.currentPrice)}
-                                        </span>
-                                        <div className={`flex items-center gap-1 text-[10px] font-bold ${item.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                            {item.changePercent >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                                            {Math.abs(item.changePercent).toFixed(2)}%
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-base font-black text-white font-mono tracking-tighter">
+                                                ₹{formatIndianNumber(item.currentPrice)}
+                                            </span>
+                                            <div className={`flex items-center gap-1 text-[10px] font-bold ${item.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {item.changePercent >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                                {Math.abs(item.changePercent).toFixed(2)}%
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            ))}
                         </div>
                     </div>
                 ) : (

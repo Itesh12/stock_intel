@@ -47,8 +47,8 @@ export default function StockIntelligenceMemo({ symbol }: { symbol: string }) {
                     animate={{ opacity: 1, y: 0 }}
                     className={cn(
                         "md:col-span-12 lg:col-span-8 p-6 rounded-3xl border flex flex-col justify-between gap-6",
-                        memo.recommendation.action === "BUY" ? "bg-emerald-500/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5" :
-                        memo.recommendation.action === "SELL" ? "bg-rose-500/5 border-rose-500/20 shadow-lg shadow-rose-500/5" :
+                        memo.recommendation?.action === "BUY" ? "bg-emerald-500/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5" :
+                        memo.recommendation?.action === "SELL" ? "bg-rose-500/5 border-rose-500/20 shadow-lg shadow-rose-500/5" :
                         "bg-blue-500/5 border-blue-500/20 shadow-lg shadow-blue-500/5"
                     )}
                 >
@@ -56,14 +56,14 @@ export default function StockIntelligenceMemo({ symbol }: { symbol: string }) {
                         <div className="space-y-4 max-w-2xl">
                             <span className={cn(
                                 "px-3 py-1 rounded-full text-[10px] font-black tracking-[0.2em] uppercase border",
-                                memo.recommendation.action === "BUY" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
-                                memo.recommendation.action === "SELL" ? "bg-rose-500/10 border-rose-500/20 text-rose-400" :
+                                memo.recommendation?.action === "BUY" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                                memo.recommendation?.action === "SELL" ? "bg-rose-500/10 border-rose-500/20 text-rose-400" :
                                 "bg-blue-500/10 border-blue-500/20 text-blue-400"
                             )}>
-                                AI ACTION: {memo.recommendation.action}
+                                AI ACTION: {memo.recommendation?.action || "HOLD"}
                             </span>
                             <h3 className="text-2xl font-black text-white tracking-tighter leading-tight italic">
-                                "{memo.recommendation.rationale}"
+                                "{memo.recommendation?.rationale || "Analyzing market data..."}"
                             </h3>
                         </div>
                         <div className="text-right">

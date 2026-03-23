@@ -229,12 +229,11 @@ export default function DashboardLayout({
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 <div className="text-[14px] font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight truncate">
-                                                                    {(result.symbol || '').replace(/\.(NS|BO)$/, '')}
+                                                                    {(result.symbol || '').replace(/\.NS$/, '')}
                                                                 </div>
                                                                 <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest group-hover:border-blue-500/30 group-hover:text-blue-400 transition-all">
                                                                     {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                                        result.symbol?.endsWith('.BO') ? 'BSE' :
-                                                                            (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
+                                                                        (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
                                                                 </span>
                                                             </div>
                                                             <div className="text-[10px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity mt-0.5">
@@ -259,9 +258,11 @@ export default function DashboardLayout({
                         <div className="flex items-center gap-4 shrink-0 justify-end">
                             {/* Indian Market Indices */}
                             <div className="hidden min-[1100px]:flex items-center gap-6 text-[11px] font-mono border-x border-white/5 px-6 h-8">
-                                {indices.length > 0 ? indices.map((idx, i) => (
+                                {indices.length > 0 ? indices.filter(idx => idx.symbol === '^NSEI' || idx.symbol === '^BSESN').map((idx, i) => (
                                     <div key={i} className="flex flex-col whitespace-nowrap">
-                                        <span className="text-slate-400 uppercase text-[9px] tracking-tighter leading-none mb-0.5">{idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}</span>
+                                        <span className="text-slate-400 uppercase text-[9px] tracking-tighter leading-none mb-0.5">
+                                            {idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}
+                                        </span>
                                         <span className={`${(idx.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold flex items-center gap-1 leading-none`}>
                                             {idx.price?.toLocaleString()}
                                             <span className="text-[9px] opacity-80 font-medium">
@@ -283,7 +284,7 @@ export default function DashboardLayout({
                                     <div className="flex items-center gap-2">
                                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${marketStatus.isOpen ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`} />
                                         <span className={`text-[9px] font-black tracking-widest uppercase ${marketStatus.isOpen ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                            NSE/BSE {marketStatus.label}
+                                            NSE {marketStatus.label}
                                         </span>
                                     </div>
                                 </div>
