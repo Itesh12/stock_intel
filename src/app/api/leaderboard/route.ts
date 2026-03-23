@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInfrastructure } from "@/infrastructure/container";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         const infra = await getInfrastructure();
