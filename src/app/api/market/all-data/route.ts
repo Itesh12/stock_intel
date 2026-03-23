@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const symbols = [
         // Indian Core
-        "^NSEI", "^INDIAVIX",
+        "^NSEI", "^BSESN", "^INDIAVIX",
         "^NSEBANK", "^CNXIT", "^CNXENERGY", "^CNXFMCG", "^CNXPHARMA", "^CNXMETAL",
         // Global Indices
         "^GSPC", "^IXIC", "^DJI", "^GDAXI", "^FCHI", "^N225", "^FTSE",

@@ -164,19 +164,23 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
         };
     });
 
-    const advances = sectors.filter(s => s.changePercent > 0).length;
-    const declines = sectors.filter(s => s.changePercent <= 0).length;
-    const breadth = declines > 0 ? (advances / declines).toFixed(2) : advances.toString();
+    const advances = sectors.filter(s => (s.changePercent || 0) > 0).length;
+    const declines = sectors.filter(s => (s.changePercent || 0) < 0).length;
+    const breadthRatio = (advances + declines) > 0 ? advances / (advances + declines) : 0.5;
+    const breadth = breadthRatio.toFixed(2);
     const avgSectorChange = sectors.reduce((acc, s) => acc + (s.changePercent || 0), 0) / sectors.length;
     const sentimentScore = Math.min(Math.max(Math.round(50 + (avgSectorChange * 15)), 10), 98);
     const vixValue = vix.currentPrice || 12.5;
-    const healthIndex = Math.min(Math.max(Math.round(((100 - sentimentScore) * 0.2) + (sentimentScore * 0.8) + (20 - vixValue)), 20), 99);
+    
+    // Improved Health Index: Using VIX 15 as baseline, with softer impact
+    const vixImpact = (15 - vixValue) * 1.5;
+    const healthIndex = Math.min(Math.max(Math.round(((100 - sentimentScore) * 0.1) + (sentimentScore * 0.9) + vixImpact), 5), 99);
 
     let regime: 'EXPANSION' | 'DISTRIBUTION' | 'CAPITULATION' | 'COMPRESSION' = 'COMPRESSION';
-    if (parseFloat(breadth) > 1.2 && vixValue < 15) regime = 'EXPANSION';
-    else if (nifty.changePercent > 0 && parseFloat(breadth) < 0.8) regime = 'DISTRIBUTION';
-    else if (vixValue > 22 && parseFloat(breadth) < 0.5) regime = 'CAPITULATION';
-    else if (vixValue < 13 && Math.abs(avgSectorChange) < 0.3) regime = 'COMPRESSION';
+    if (breadthRatio > 0.6 && vixValue < 18) regime = 'EXPANSION';
+    else if ((nifty.changePercent || 0) > 0 && breadthRatio < 0.45) regime = 'DISTRIBUTION';
+    else if (vixValue > 25 && breadthRatio < 0.35) regime = 'CAPITULATION';
+    else if (vixValue < 14 && Math.abs(avgSectorChange) < 0.4) regime = 'COMPRESSION';
 
     const isDivergent = (nifty.changePercent > 0.1 && parseFloat(breadth) < 0.7) || (nifty.changePercent < -0.1 && parseFloat(breadth) > 1.3);
     const moneyFlows = [...sectors].sort((a, b) => b.momentum - a.momentum).slice(0, 3);
@@ -439,8 +443,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">MARKET ACTIVITY</span>
                     </div>
 
-                    {/* Content Row - Guaranteed Horizontal Alignment */}
-                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Content Row - Compact Grid */}
+                    <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
                         {sectors.map((sector, i) => (
                             <SectorItem
                                 key={i}
@@ -451,18 +455,18 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         ))}
                     </div>
 
-                    <div className="lg:col-span-1 glass-card p-6 md:p-8 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[320px] sm:min-h-[460px]">
-                        <p className="text-[10px] text-slate-500 mb-8 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
-                        <div className="space-y-8">
+                    <div className="lg:col-span-1 glass-card p-4 md:p-6 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[300px]">
+                        <p className="text-[9px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
+                        <div className="space-y-6">
                             {moneyFlows.map((flow, i) => (
-                                <div key={i} className="flex flex-col gap-3">
+                                <div key={i} className="flex flex-col gap-2">
                                     <div className="flex justify-between items-end">
-                                        <span className="text-sm font-bold text-white uppercase tracking-wider">{flow.label}</span>
-                                        <span className={`text-[10px] font-black ${flow.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">{flow.label}</span>
+                                        <span className={`text-[9px] font-black ${flow.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             FLUX: {flow.momentum.toFixed(2)}
                                         </span>
                                     </div>
-                                    <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                                         <div
                                             className={`h-full transition-all duration-1000 ${flow.changePercent > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                             style={{ width: `${Math.min(Math.abs(flow.momentum * 50), 100)}%` }}
@@ -471,14 +475,14 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-auto pt-10">
-                            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Zap size={14} className="text-indigo-400" />
-                                    <span className="text-[10px] font-black text-indigo-400 uppercase">Quick Summary</span>
+                        <div className="mt-auto pt-6">
+                            <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <Zap size={12} className="text-indigo-400" />
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase">Quick Summary</span>
                                 </div>
-                                <p className="text-xs text-slate-400 leading-relaxed italic">
-                                    Focus concentrated in <b>{moneyFlows[0]?.label}</b> over the {timeframe} window.
+                                <p className="text-[10px] text-slate-400 leading-relaxed italic">
+                                    Focus concentrated in <b>{moneyFlows[0]?.label}</b>.
                                 </p>
                             </div>
                         </div>
@@ -562,15 +566,15 @@ function DataPointCard({ label, mainValue, subValue, status, icon }: { label: st
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
-            className="glass-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group cursor-default"
+            className="glass-card p-4 md:p-5 flex flex-col justify-between h-36 relative overflow-hidden group cursor-default"
         >
-            <div className="absolute top-0 right-0 p-8 -mr-10 -mt-10 opacity-[0.03] group-hover:opacity-[0.2] transition-all duration-500 group-hover:scale-110">
+            <div className="absolute top-0 right-0 p-6 -mr-8 -mt-8 opacity-[0.03] group-hover:opacity-[0.15] transition-all duration-500 group-hover:scale-110">
                 {icon}
             </div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
             <div className="flex flex-col">
-                <span className="text-4xl font-black text-white font-outfit mb-1 group-hover:text-blue-400 transition-colors">{mainValue}</span>
-                <div className={`text-[10px] font-bold uppercase tracking-tight ${status === 'positive' ? 'text-emerald-400' : status === 'negative' ? 'text-rose-400' : 'text-slate-400'}`}>
+                <span className="text-3xl font-black text-white font-outfit mb-1 group-hover:text-blue-400 transition-colors">{mainValue}</span>
+                <div className={`text-[9px] font-bold uppercase tracking-tight ${status === 'positive' ? 'text-emerald-400' : status === 'negative' ? 'text-rose-400' : 'text-slate-400'}`}>
                     {subValue}
                 </div>
             </div>
@@ -580,13 +584,13 @@ function DataPointCard({ label, mainValue, subValue, status, icon }: { label: st
 
 function SectorItem({ label, value, status }: { label: string; value: string; status: 'up' | 'down' }) {
     return (
-        <div className="flex items-center justify-between p-6 rounded-2xl bg-white/[0.02] border border-white/5">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</span>
-            <div className="flex items-center gap-4">
-                <span className="text-xl font-black text-white font-outfit">{value}</span>
+        <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight truncate mr-2">{label}</span>
+            <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-white font-outfit">{value}</span>
                 {status === 'up' ?
-                    <ArrowUpRight size={20} className="text-emerald-400" /> :
-                    <ArrowDownRight size={20} className="text-rose-400" />
+                    <ArrowUpRight size={14} className="text-emerald-400" /> :
+                    <ArrowDownRight size={14} className="text-rose-400" />
                 }
             </div>
         </div>
