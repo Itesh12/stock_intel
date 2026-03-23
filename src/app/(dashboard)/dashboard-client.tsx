@@ -461,11 +461,11 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         ))}
                     </div>
 
-                    <div className="lg:col-span-1 glass-card p-4 md:p-6 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[300px]">
-                        <p className="text-[9px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
-                        <div className="space-y-6">
+                    <div className="lg:col-span-1 glass-card p-4 md:p-5 flex flex-col relative overflow-hidden group border-indigo-500/10">
+                        <p className="text-[9px] text-slate-500 mb-3 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
+                        <div className="space-y-3">
                             {moneyFlows.map((flow, i) => (
-                                <div key={i} className="flex flex-col gap-2">
+                                <div key={i} className="flex flex-col gap-1.5">
                                     <div className="flex justify-between items-end">
                                         <span className="text-[11px] font-bold text-white uppercase tracking-wider">{flow.label}</span>
                                         <span className={`text-[9px] font-black ${flow.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -481,7 +481,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-auto pt-6">
+                        <div className="mt-auto pt-4">
                             <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <Zap size={12} className="text-indigo-400" />
