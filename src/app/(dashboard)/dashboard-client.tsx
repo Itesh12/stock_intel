@@ -450,7 +450,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     </div>
 
                     {/* Content Row - Compact Grid */}
-                    <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
+                    <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3 content-start auto-rows-max">
                         {sectors.map((sector, i) => (
                             <SectorItem
                                 key={i}
