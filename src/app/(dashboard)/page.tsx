@@ -16,9 +16,20 @@ export default async function Dashboard() {
     const infrastructure = await getInfrastructure();
 
     const symbols = [
-        // Indian Core
-        "^NSEI", "^INDIAVIX",
+        // Core Indices
+        "^NSEI", "^BSESN", "^INDIAVIX",
         "^NSEBANK", "^CNXIT", "^CNXENERGY", "^CNXFMCG", "^CNXPHARMA", "^CNXMETAL",
+        // Nifty 50 Constituents (Sample/Top)
+        "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "BHARTIARTL.NS",
+        "SBIN.NS", "INFY.NS", "LICI.NS", "ITC.NS", "HINDUNILVR.NS",
+        "LT.NS", "BAJFINANCE.NS", "MARUTI.NS", "SUNPHARMA.NS", "TITAN.NS",
+        "AXISBANK.NS", "ADANIENT.NS", "ULTRACEMCO.NS", "TATASTEEL.NS", "NTPC.NS",
+        "KOTAKBANK.NS", "M&M.NS", "POWERGRID.NS", "TATAMOTORS.NS", "ASIANPAINT.NS",
+        "COALINDIA.NS", "ADANIPORTS.NS", "JSWSTEEL.NS", "HINDALCO.NS", "GRASIM.NS",
+        "LTIM.NS", "SBILIFE.NS", "BPCL.NS", "DRREDDY.NS", "CIPLA.NS",
+        "BAJAJ-AUTO.NS", "TATACONSUM.NS", "BRITANNIA.NS", "INDUSINDBK.NS", "EICHERMOT.NS",
+        "APOLLOHOSP.NS", "SHRIRAMFIN.NS", "ONGC.NS", "HEROMOTOCO.NS", "DIVISLAB.NS",
+        "BAJAJFINSV.NS", "NESTLEIND.NS", "TECHM.NS", "WIPRO.NS", "HDFCLIFE.NS",
         // Global Indices
         "^GSPC", "^IXIC", "^DJI", "^GDAXI", "^FCHI", "^N225", "^FTSE",
         // Commodities

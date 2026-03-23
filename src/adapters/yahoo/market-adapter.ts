@@ -30,18 +30,30 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
     async getStockPrice(symbol: string): Promise<Partial<Stock>> {
         const cacheKey = `price_${symbol}`;
         try {
-            // Use quoteSummary to get deep fundamental data
+            // Catch errors individually to prevent Promise.all from failing completely
             const [quoteRes, summaryRes] = await Promise.all([
-                this.withRetry(() => yahooFinance.quote(symbol, undefined, { validateResult: false }), symbol),
+                this.withRetry(() => yahooFinance.quote(symbol, undefined, { validateResult: false }), symbol)
+                    .catch(e => { console.warn(`[StockIntel] Quote fetch failed for ${symbol}: ${e.message}`); return null; }),
                 this.withRetry(() => yahooFinance.quoteSummary(symbol, {
                     modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
                 }, { validateResult: false }), symbol)
+                    .catch(e => { console.warn(`[StockIntel] Summary fetch failed for ${symbol}: ${e.message}`); return null; })
             ]);
 
             if (!quoteRes || (Array.isArray(quoteRes) && quoteRes.length === 0)) {
                 const fallback = CacheUtils.getFallback(cacheKey);
-                if (fallback) return fallback;
-                throw new Error(`Yahoo Finance returned no data for ${symbol}`);
+                if (fallback) {
+                    return fallback;
+                }
+                console.warn(`[StockIntel] Yahoo Finance returned no data for ${symbol}`);
+                return {
+                    symbol,
+                    name: symbol,
+                    price: 0,
+                    change: 0,
+                    changePercent: 0,
+                    lastUpdated: new Date()
+                };
             }
 
             const data = Array.isArray(quoteRes) ? quoteRes[0] : (quoteRes as any);
@@ -307,8 +319,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             };
             CacheUtils.set(cacheKey, resultObj);
             return resultObj;
-        } catch (error) {
-            console.error(`Error calculating performance for ${symbol}:`, error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error calculating performance for ${symbol}: ${error.message}`);
             const fallback = CacheUtils.getFallback(cacheKey);
             return fallback || { symbol, change: 0, changePercent: 0, currentPrice: 0, volume: stock.volume };
         }

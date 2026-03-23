@@ -5,7 +5,7 @@ import {
     TrendingUp, Activity, Zap, Shield,
     ArrowUpRight, ArrowDownRight, AlertCircle,
     Globe, Gauge, Hexagon, Coins, Landmark, Repeat,
-    Banknote, Timer, Loader2, Star, Plus
+    Banknote, Timer, Loader2, Star, Plus, Info
 } from "lucide-react";
 import Link from "next/link";
 import { formatIndianNumber } from "@/lib/utils";
@@ -164,25 +164,31 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
         };
     });
 
-    const advances = sectors.filter(s => (s.changePercent || 0) > 0).length;
-    const declines = sectors.filter(s => (s.changePercent || 0) < 0).length;
-    const breadthRatio = (advances + declines) > 0 ? advances / (advances + declines) : 0.5;
-    const breadth = breadthRatio.toFixed(2);
-    const avgSectorChange = sectors.reduce((acc, s) => acc + (s.changePercent || 0), 0) / sectors.length;
-    const sentimentScore = Math.min(Math.max(Math.round(50 + (avgSectorChange * 15)), 10), 98);
-    const vixValue = vix.currentPrice || 12.5;
+    // Granular Market Breadth (using all 50+ stocks from data)
+    const stockData = marketData.filter(m => m.symbol.endsWith('.NS'));
+    const advances = stockData.filter(s => (s.changePercent || 0) > 0).length;
+    const declines = stockData.filter(s => (s.changePercent || 0) < 0).length;
     
-    // Improved Health Index: Using VIX 15 as baseline, with softer impact
-    const vixImpact = (15 - vixValue) * 1.5;
-    const healthIndex = Math.min(Math.max(Math.round(((100 - sentimentScore) * 0.1) + (sentimentScore * 0.9) + vixImpact), 5), 99);
-
+    // Breadth as percentage of advancing stocks (Real market-wide view)
+    const activeSample = advances + declines;
+    const breadthPercent = activeSample > 0 ? (advances / activeSample) * 100 : 50;
+    const breadthLabel = breadthPercent > 60 ? "STRONG BREADTH" : breadthPercent < 40 ? "WEAK BREADTH" : "NEUTRAL BREADTH";
+    
+    const avgSectorChange = sectors.reduce((acc, s) => acc + (s.changePercent || 0), 0) / (sectors.length || 1);
+    const sentimentScore = Math.min(Math.max(Math.round(50 + (avgSectorChange * 15)), 15), 95);
+    
+    const vixValue = vix.currentPrice || 12.5;
+    // Normalized VIX impact: 16 is calm, 22+ is panic.
+    const vixEffect = (16 - vixValue) * 1.2; 
+    const healthIndex = Math.min(Math.max(Math.round(((100 - sentimentScore) * 0.1) + (sentimentScore * 0.9) + vixEffect), 15), 99);
+    
     let regime: 'EXPANSION' | 'DISTRIBUTION' | 'CAPITULATION' | 'COMPRESSION' = 'COMPRESSION';
-    if (breadthRatio > 0.6 && vixValue < 18) regime = 'EXPANSION';
-    else if ((nifty.changePercent || 0) > 0 && breadthRatio < 0.45) regime = 'DISTRIBUTION';
-    else if (vixValue > 25 && breadthRatio < 0.35) regime = 'CAPITULATION';
+    if (breadthPercent > 60 && vixValue < 18) regime = 'EXPANSION';
+    else if ((nifty.changePercent || 0) > 0 && breadthPercent < 45) regime = 'DISTRIBUTION';
+    else if (vixValue > 25 && breadthPercent < 35) regime = 'CAPITULATION';
     else if (vixValue < 14 && Math.abs(avgSectorChange) < 0.4) regime = 'COMPRESSION';
 
-    const isDivergent = (nifty.changePercent > 0.1 && parseFloat(breadth) < 0.7) || (nifty.changePercent < -0.1 && parseFloat(breadth) > 1.3);
+    const isDivergent = ((nifty.changePercent || 0) > 0.1 && breadthPercent < 45) || ((nifty.changePercent || 0) < -0.1 && breadthPercent > 55);
     const moneyFlows = [...sectors].sort((a, b) => b.momentum - a.momentum).slice(0, 3);
 
     return (
@@ -494,32 +500,58 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <DataPointCard
                     label="Market Participation"
-                    mainValue={breadth}
-                    subValue={`${advances} Gainers / ${declines} Losers`}
-                    status={parseFloat(breadth) >= 1 ? "positive" : "negative"}
+                    mainValue={`${breadthPercent.toFixed(0)}%`}
+                    subValue={breadthLabel}
+                    description={`Percentage of Nifty 50 constituents currently advancing (${advances}/${activeSample} stocks).`}
+                    status={breadthPercent > 60 ? "positive" : breadthPercent < 40 ? "negative" : "neutral"}
                     icon={<Activity className="text-blue-400" size={24} />}
                 />
                 <DataPointCard
                     label="Market Volatility"
                     mainValue={vixValue.toFixed(2)}
-                    subValue="Volatility Pulse"
-                    status={vixValue < 15 ? "positive" : vixValue > 20 ? "negative" : "neutral"}
+                    subValue={vixValue > 22 ? "HIGH PANIC" : vixValue > 18 ? "VOLATILE" : "CALM"}
+                    description="India VIX index. Levels above 20 indicate high market uncertainty and potential panic."
+                    status={vixValue > 22 ? "negative" : vixValue > 18 ? "neutral" : "positive"}
                     icon={<Gauge className="text-purple-400" size={24} />}
                 />
                 <DataPointCard
                     label="Market Confidence"
                     mainValue={`${sentimentScore}%`}
-                    subValue="Reliability"
-                    status={sentimentScore > 60 ? "positive" : sentimentScore < 40 ? "negative" : "neutral"}
+                    subValue={sentimentScore > 70 ? "OPTIMISTIC" : sentimentScore < 30 ? "PESSIMISTIC" : "NEUTRAL"}
+                    description="Aggregated sentiment across all major sectors. High scores indicate broad buying interest."
+                    status={sentimentScore > 70 ? "positive" : sentimentScore < 30 ? "negative" : "neutral"}
                     icon={<TrendingUp className="text-emerald-400" size={24} />}
                 />
                 <DataPointCard
                     label="System Status"
                     mainValue={`${healthIndex}%`}
-                    subValue="System Ready"
-                    status={healthIndex > 70 ? "positive" : healthIndex > 40 ? "neutral" : "negative"}
-                    icon={<Shield className="text-indigo-400" size={24} />}
+                    subValue={healthIndex > 60 ? "STABLE" : healthIndex < 30 ? "CRITICAL" : "CAUTION"}
+                    description="Overall system health combining participation, sentiment, and volatility metrics."
+                    status={healthIndex > 60 ? "positive" : healthIndex < 30 ? "negative" : "neutral"}
+                    icon={<Shield size={24} className="text-indigo-400" />}
                 />
+            </div>
+
+            {/* Data Insights Breakdown */}
+            <div className="rounded-3xl border border-white/5 bg-white/5 p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                    <Info size={16} className="text-blue-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">How these scores are calculated</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-[11px] leading-relaxed text-zinc-400">
+                    <div className="space-y-2">
+                        <p className="font-bold text-zinc-200">Participation (Breadth)</p>
+                        <p>Calculated by tracking the price action of the **Nifty 50** constituents. Ideally, high participation (&gt;60%) indicates a healthy, sustainable trend.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-bold text-zinc-200">Confidence (Sentiment)</p>
+                        <p>A weighted average of the 6 major sector indices. It measures how broad the buying interest is across different industries.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-bold text-zinc-200">System Health (Overall)</p>
+                        <p>Our proprietary index that balances Participation and Confidence against Volatility (VIX). High VIX (&gt;22) significantly reduces health.</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -562,7 +594,14 @@ function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: a
     );
 }
 
-function DataPointCard({ label, mainValue, subValue, status, icon }: { label: string; mainValue: string; subValue: string; status: 'positive' | 'negative' | 'neutral'; icon: React.ReactNode }) {
+const DataPointCard: React.FC<{ 
+    label: string, 
+    mainValue: string, 
+    subValue: string, 
+    status: 'positive' | 'negative' | 'neutral', 
+    icon: React.ReactNode, 
+    description?: string 
+}> = ({ label, mainValue, subValue, status, icon, description }) => {
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
@@ -578,9 +617,15 @@ function DataPointCard({ label, mainValue, subValue, status, icon }: { label: st
                     {subValue}
                 </div>
             </div>
+            
+            {description && (
+                <div className="absolute inset-0 bg-slate-900/95 p-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 text-center border border-white/10 rounded-3xl">
+                    <p className="text-[10px] leading-relaxed text-slate-300 font-medium">{description}</p>
+                </div>
+            )}
         </motion.div>
     );
-}
+};
 
 function SectorItem({ label, value, status }: { label: string; value: string; status: 'up' | 'down' }) {
     return (
