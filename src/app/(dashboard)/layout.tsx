@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
 import { CandleLoader } from "@/components/ui/candle-loader";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
-import TerminalFooter from "@/components/ui/terminal-footer";
 import { NotificationsPopover } from "@/components/ui/notifications-popover";
 
 export default function DashboardLayout({
@@ -301,9 +300,6 @@ export default function DashboardLayout({
                 <div className="flex-1 px-4 md:px-8 lg:px-12 pt-6 lg:pt-10 pb-16 max-w-[1600px] mx-auto w-full flex flex-col justify-between">
                     <div className="flex-1">
                         {children}
-                    </div>
-                    <div className="mt-32 pt-16 border-t border-white/5">
-                        <TerminalFooter />
                     </div>
                 </div>
             </main>

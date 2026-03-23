@@ -11,7 +11,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatIndianNumber, cn } from '../../../lib/utils';
 import Link from 'next/link';
-import TerminalFooter from '@/components/ui/terminal-footer';
 import Tooltip from '@/components/ui/tooltip';
 import { useSnackbar } from '@/components/ui/snackbar';
 import { CandleLoader } from '@/components/ui/candle-loader';
