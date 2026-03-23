@@ -250,6 +250,46 @@ export default function BacktestingPage() {
         }
     }, [symbol, strategy, params, period]);
 
+    // Handle dynamic defaults for custom strategy indicators
+    useEffect(() => {
+        if (strategy === 'custom' && params.indicator) {
+            const defaults: Record<string, { value: number, sellValue: number }> = {
+                rsi: { value: 30, sellValue: 70 },
+                change: { value: -2, sellValue: 5 },
+                gap: { value: -1, sellValue: 1 },
+                volatility: { value: 1, sellValue: 10 },
+                volume: { value: 1000000, sellValue: 5000000 },
+                price: { value: 100, sellValue: 120 },
+                macd: { value: 0, sellValue: 0 },
+                signal: { value: 0, sellValue: 0 },
+                hist: { value: 0, sellValue: 0 },
+                upper: { value: 0, sellValue: 0 },
+                lower: { value: 0, sellValue: 0 },
+                avgVol: { value: 1000000, sellValue: 5000000 },
+                sma20: { value: 0, sellValue: 0 },
+                sma50: { value: 0, sellValue: 0 },
+                sma100: { value: 0, sellValue: 0 },
+                sma200: { value: 0, sellValue: 0 },
+                ema20: { value: 0, sellValue: 0 },
+                ema50: { value: 0, sellValue: 0 },
+                high20: { value: 0, sellValue: 0 },
+                low20: { value: 0, sellValue: 0 },
+                high252: { value: 0, sellValue: 0 },
+                low252: { value: 0, sellValue: 0 }
+            };
+
+            const newDefaults = defaults[params.indicator];
+            if (newDefaults) {
+                // To avoid breaking manual tweaks, we check if the values are substantially different or if it's a fresh swap
+                // But for now, user requested it *update*, so we force update on indicator change
+                setParams(prev => {
+                    if (prev.value === newDefaults.value && prev.sellValue === newDefaults.sellValue) return prev;
+                    return { ...prev, value: newDefaults.value, sellValue: newDefaults.sellValue };
+                });
+            }
+        }
+    }, [params.indicator]);
+
     const handleSearch = async (q: string) => {
         setSearchQuery(q);
         if (q.length < 2) { setSearchResults([]); return; }
@@ -401,24 +441,33 @@ export default function BacktestingPage() {
                             {STRATEGIES.find(s => s.id === strategy)?.params?.filter(p => !p.condition || p.condition(params)).map(p => (
                                 <div key={p.key} className="space-y-2">
                                     <label className="text-[9px] font-bold text-slate-500 ml-1">{p.label}</label>
-                                    {p.type === "select" ? (
-                                        <select
-                                            value={params[p.key] || p.default}
-                                            onChange={e => setParams(prev => ({ ...prev, [p.key]: e.target.value }))}
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all cursor-pointer"
-                                        >
-                                            {p.options?.map(opt => (
-                                                <option key={opt} value={opt} className="bg-[#111]">{opt.toUpperCase()}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type="number"
-                                            value={params[p.key] || p.default}
-                                            onChange={e => setParams(prev => ({ ...prev, [p.key]: parseInt(e.target.value) || 0 }))}
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all"
-                                        />
-                                    )}
+                                    <div className="relative">
+                                        {p.type === "select" ? (
+                                            <select
+                                                value={params[p.key] || p.default}
+                                                onChange={e => setParams(prev => ({ ...prev, [p.key]: e.target.value }))}
+                                                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all cursor-pointer appearance-none"
+                                            >
+                                                {p.options?.map(opt => (
+                                                    <option key={opt} value={opt} className="bg-[#111]">{opt.toUpperCase()}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="number"
+                                                    value={params[p.key] || p.default}
+                                                    onChange={e => setParams(prev => ({ ...prev, [p.key]: parseFloat(e.target.value) || 0 }))}
+                                                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all"
+                                                />
+                                                <span className="absolute right-3 text-[9px] text-slate-500 pointer-events-none">
+                                                    {params.indicator === 'rsi' ? 'pts' : 
+                                                     params.indicator === 'change' || params.indicator === 'gap' ? '%' : 
+                                                     params.indicator === 'volume' ? 'qty' : ''}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
