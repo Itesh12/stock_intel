@@ -31,19 +31,20 @@ export async function GET(req: NextRequest) {
         const leaderboard = await Promise.all(portfolios.map(async (p) => {
             const user = await infra.user.findById(p.userId);
             
-            // Calculate current market value
+            // Calculate current market value with robust fallback
             const currentMarketValue = p.holdings.reduce((sum, h) => {
-                const currentPrice = priceMap[h.symbol] || h.currentPrice || 0;
-                return sum + (h.quantity * currentPrice);
+                const livePrice = priceMap[h.symbol];
+                const finalPrice = (livePrice && livePrice > 0) ? livePrice : (h.currentPrice || 0);
+                return sum + (h.quantity * finalPrice);
             }, 0);
 
-            const totalValue = p.cashBalance + currentMarketValue;
-            const growth = ((totalValue - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+            const totalEquity = p.cashBalance + currentMarketValue;
+            const growth = ((totalEquity - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
 
             return {
                 userId: p.userId,
                 name: user?.name || "Anonymous Alpha",
-                totalValue: totalValue,
+                totalValue: totalEquity,
                 growthPercent: growth,
                 tradeCount: 0,
                 rank: 0

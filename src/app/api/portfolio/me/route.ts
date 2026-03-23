@@ -31,10 +31,6 @@ export async function GET() {
             const monitor = new (require("@/application/trade-monitor-service").TradeMonitorService)(infra);
             await monitor.monitorAll();
             
-            // Re-fetch if execution happened (optional, but cleaner)
-            const updatedPortfolios = await infra.portfolio.findByUserId(userId);
-            portfolio = updatedPortfolios[0];
-
             return NextResponse.json(portfolio);
         }
 

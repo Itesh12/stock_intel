@@ -32,7 +32,7 @@ export interface Portfolio {
     avgWin?: number;
     avgLoss?: number;
     maxDrawdown?: number;
-    performanceHistory?: { date: string, value: number }[];
+    performanceHistory?: { date: string, nav: number }[];
     updatedAt: Date;
     createdAt: Date;
 }

@@ -26,15 +26,20 @@ export class PortfolioAnalyzer {
 
         // 1. Update each holding with current prices and compute values
         for (const holding of holdings) {
-            const stock = await this.stockRepo.findBySymbol(holding.symbol);
-            if (stock) {
-                holding.currentPrice = stock.price;
-                holding.sector = stock.sector;
+            try {
+                const stock = await this.marketData.getStockPrice(holding.symbol);
+                if (stock.price && stock.price > 0) {
+                    holding.currentPrice = stock.price;
+                }
+            } catch (err) {
+                console.warn(`Real-time price fetch failed for ${holding.symbol}:`, err);
             }
 
             holding.marketValue = holding.quantity * holding.currentPrice;
             holding.unrealizedPL = holding.marketValue - (holding.quantity * holding.averagePrice);
-            holding.unrealizedPLPercent = (holding.unrealizedPL / (holding.quantity * holding.averagePrice)) * 100;
+            holding.unrealizedPLPercent = (holding.quantity * holding.averagePrice) > 0 
+                ? (holding.unrealizedPL / (holding.quantity * holding.averagePrice)) * 100 
+                : 0;
 
             totalValue += holding.marketValue;
             totalPL += holding.unrealizedPL;
@@ -54,8 +59,11 @@ export class PortfolioAnalyzer {
         if (maxSectorExp > 40) riskScore += 30; // High concentration risk
         if (maxSectorExp > 60) riskScore += 30; // Very high concentration risk
 
+        const INITIAL_BALANCE = 1000000;
+        const currentEquity = totalValue + (portfolio.cashBalance || 0);
+        const totalPLPercent = ((currentEquity - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+        const absolutePL = currentEquity - INITIAL_BALANCE;
         const finalRiskScore = Math.min(riskScore, 100);
-        const totalPLPercent = totalValue > 0 ? (totalPL / (totalValue - totalPL)) * 100 : 0;
 
         // 4. Trigger Health Notifications
         if (portfolio.userId) {
@@ -122,30 +130,56 @@ export class PortfolioAnalyzer {
         }
 
         // 6. Generate Performance History (30-day Trajectory)
-        const performanceHistory: { date: string, value: number }[] = [];
+        const performanceHistory: { date: string, nav: number }[] = [];
         try {
             if (holdings.length > 0) {
-                const historyPromises = holdings.map(h => this.marketData.getHistoricalData(h.symbol, '30d'));
-                const histories = await Promise.all(historyPromises);
-                
                 const dateMap: Record<string, number> = {};
                 
-                histories.forEach((history: any[], idx: number) => {
-                    if (!history) return;
-                    const qty = holdings[idx].quantity;
-                    history.forEach((point: any) => {
-                        const date = new Date(point.date).toISOString().split('T')[0];
-                        // Start with cash balance as baseline
-                        if (!dateMap[date]) dateMap[date] = portfolio.cashBalance;
-                        dateMap[date] += (point.close || point.price || 0) * qty;
-                    });
-                });
+                // Fetch in parallel but handle errors per-symbol
+                await Promise.all(holdings.map(async (h) => {
+                    try {
+                        const history = await this.marketData.getHistoricalData(h.symbol, '1mo');
+                        if (history && history.length > 0) {
+                            history.forEach((point: any) => {
+                                const date = new Date(point.date).toISOString().split('T')[0];
+                                dateMap[date] = (dateMap[date] || portfolio.cashBalance || 0) + ((point.close || point.price || 0) * h.quantity);
+                            });
+                        }
+                    } catch (err) {
+                        console.warn(`Failed to fetch history for ${h.symbol}:`, err);
+                    }
+                }));
                 
-                Object.entries(dateMap).forEach(([date, value]) => {
-                    performanceHistory.push({ date, value });
+                Object.entries(dateMap).forEach(([date, nav]) => {
+                    performanceHistory.push({ date, nav });
                 });
                 
                 performanceHistory.sort((a, b) => a.date.localeCompare(b.date));
+                
+                // Final Synchronization Pass: 
+                // Ensure the VERY LAST point precisely matches the total live value (Header Sync)
+                if (performanceHistory.length > 0) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const lastIdx = performanceHistory.length - 1;
+                    const lastPoint = performanceHistory[lastIdx];
+                    
+                    // If the last point is today, override it with the live total value
+                    // If it's not today, add today with the live total value
+                    if (lastPoint.date === today) {
+                        performanceHistory[lastIdx].nav = totalValue + (portfolio.cashBalance || 0);
+                    } else {
+                        performanceHistory.push({ date: today, nav: totalValue + (portfolio.cashBalance || 0) });
+                    }
+                }
+                
+                // Final Check: If we have zero or one point but have holdings, ensure we have a baseline
+                if (performanceHistory.length < 2 && performanceHistory.length > 0) {
+                    const existing = performanceHistory[0];
+                    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                    if (existing.date === new Date().toISOString().split('T')[0]) {
+                        performanceHistory.unshift({ date: yesterday, nav: existing.nav });
+                    }
+                }
             }
         } catch (err) {
             console.error("Error generating performance history:", err);
@@ -154,8 +188,8 @@ export class PortfolioAnalyzer {
         return {
             ...portfolio,
             holdings,
-            totalValue,
-            totalPL,
+            totalValue: currentEquity,
+            totalPL: absolutePL,
             totalPLPercent,
             sectorExposure,
             riskScore: finalRiskScore,

@@ -30,7 +30,6 @@ import {
     PieChart, 
     Pie, 
     Cell, 
-    Tooltip as ReTooltip,
     AreaChart,
     Area,
     XAxis,
@@ -248,7 +247,7 @@ export default function PortfolioPage() {
                                         </div>
                                     </div>
                                     <div className="h-[280px] w-full">
-                                        <PerformanceCurve data={analytics?.history || []} />
+                                        <PerformanceCurve data={portfolio?.performanceHistory || []} />
                                     </div>
                                 </section>
 
@@ -900,53 +899,36 @@ function ConcentrationChart({ data, colors }: { data: any[]; colors: string[] })
 function PerformanceCurve({ data }: { data: any[] }) {
     if (!data || data.length < 2) {
         return (
-            <div className="flex flex-col items-center justify-center h-full opacity-20 gap-4">
+            <div className="flex flex-col items-center justify-center h-[280px] opacity-30 gap-4 bg-slate-900/10 rounded-3xl border border-white/5">
                 <TrendingUp size={48} className="text-slate-500" strokeWidth={1} />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">Collecting Market Patterns</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Awaiting Signal</span>
             </div>
         );
     }
     
     return (
-        <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-                <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                <XAxis 
-                    dataKey="date" 
-                    hide 
-                />
-                <YAxis 
-                    hide 
-                    domain={['auto', 'auto']}
-                />
-                <Tooltip 
-                    contentStyle={{ 
-                        backgroundColor: '#0a0a0c', 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '16px',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-                        padding: '12px'
-                    }}
-                    itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
-                    labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 'bold' }}
-                    formatter={(value: any) => [`₹${formatIndianNumber(Math.round(Number(value) || 0))}`, 'Portfolio Value']}
-                />
-                <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#10b981" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorValue)" 
-                    animationDuration={2000}
-                />
-            </AreaChart>
-        </ResponsiveContainer>
+        <div className="w-full h-[280px] relative">
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                <AreaChart data={data} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" hide />
+                    <YAxis hide domain={['dataMin - 10000', 'dataMax + 10000']} />
+                    <Tooltip 
+                        contentStyle={{ backgroundColor: '#0a0a0c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
+                        itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
+                        formatter={(value: any) => [`₹${formatIndianNumber(Math.round(Number(value)))}`, 'Value']}
+                    />
+                    <Area 
+                        type="monotone" 
+                        dataKey="nav" 
+                        stroke="#10b981" 
+                        strokeWidth={6}
+                        fill="#10b981"
+                        fillOpacity={0.2}
+                        animationDuration={0}
+                    />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
     );
 }
