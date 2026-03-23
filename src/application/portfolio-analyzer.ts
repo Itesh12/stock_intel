@@ -4,6 +4,7 @@ import { NotificationService } from "./notification-service";
 import { NotificationRepository } from "../ports/notification-repository";
 import { TradeRepository } from "../ports/trade-repository";
 import { Trade } from "../domain/trade";
+import { MarketDataPort } from "../ports/market-data-port";
 
 export class PortfolioAnalyzer {
     private notificationService: NotificationService;
@@ -11,7 +12,8 @@ export class PortfolioAnalyzer {
     constructor(
         private stockRepo: StockRepository,
         private notificationRepo: NotificationRepository,
-        private tradeRepo: TradeRepository
+        private tradeRepo: TradeRepository,
+        private marketData: MarketDataPort
     ) { 
         this.notificationService = new NotificationService(this.notificationRepo);
     }
@@ -119,6 +121,36 @@ export class PortfolioAnalyzer {
             }
         }
 
+        // 6. Generate Performance History (30-day Trajectory)
+        const performanceHistory: { date: string, value: number }[] = [];
+        try {
+            if (holdings.length > 0) {
+                const historyPromises = holdings.map(h => this.marketData.getHistoricalData(h.symbol, '30d'));
+                const histories = await Promise.all(historyPromises);
+                
+                const dateMap: Record<string, number> = {};
+                
+                histories.forEach((history: any[], idx: number) => {
+                    if (!history) return;
+                    const qty = holdings[idx].quantity;
+                    history.forEach((point: any) => {
+                        const date = new Date(point.date).toISOString().split('T')[0];
+                        // Start with cash balance as baseline
+                        if (!dateMap[date]) dateMap[date] = portfolio.cashBalance;
+                        dateMap[date] += (point.close || point.price || 0) * qty;
+                    });
+                });
+                
+                Object.entries(dateMap).forEach(([date, value]) => {
+                    performanceHistory.push({ date, value });
+                });
+                
+                performanceHistory.sort((a, b) => a.date.localeCompare(b.date));
+            }
+        } catch (err) {
+            console.error("Error generating performance history:", err);
+        }
+
         return {
             ...portfolio,
             holdings,
@@ -127,6 +159,7 @@ export class PortfolioAnalyzer {
             totalPLPercent,
             sectorExposure,
             riskScore: finalRiskScore,
+            performanceHistory,
             updatedAt: new Date(),
         };
     }

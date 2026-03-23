@@ -22,7 +22,8 @@ export async function GET() {
             const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
                 infra.stock, 
                 infra.notification, 
-                infra.trade
+                infra.trade,
+                infra.market
             );
             portfolio = await analyzer.analyze(portfolio);
 
