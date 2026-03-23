@@ -5,10 +5,10 @@ export default function NewsIntelligencePage() {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-glow"></span>
-                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.2em]">Semantic Stream</span>
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.2em]">Live News Feed</span>
                     </div>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight font-outfit">News Intelligence</h1>
-                    <p className="text-slate-500 mt-2 text-sm font-medium">Real-time sentiment analysis and high-impact event indexing.</p>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight font-outfit">Market News</h1>
+                    <p className="text-slate-500 mt-2 text-sm font-medium">Real-time news mood and tracking major events.</p>
                 </div>
             </div>
 
@@ -19,9 +19,9 @@ export default function NewsIntelligencePage() {
                         <span className="text-4xl text-white">📡</span>
                     </div>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-4 font-outfit">Scanning Global Channels...</h2>
+                <h2 className="text-2xl font-bold text-white mb-4 font-outfit">Loading News...</h2>
                 <p className="text-slate-500 max-w-md mx-auto text-sm leading-relaxed">
-                    The platform is currently listening for high-impact financial events and regulatory shifts. Ensure your institutional API keys are active to enable deep-stream processing.
+                    Getting the latest financial news and market updates. This feature will be available once the news feed is fully connected.
                 </p>
             </div>
         </div>

@@ -188,7 +188,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 <div className="absolute inset-x-0 -top-8 flex justify-center z-50 pointer-events-none">
                     <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-blue-600 shadow-2xl shadow-blue-600/50 border border-blue-400/20 animate-in slide-in-from-top-4">
                         <CandleLoader />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Intel Syncing</span>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Getting Data</span>
                     </div>
                 </div>
             )}
@@ -199,10 +199,10 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     <div className="space-y-4">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
                             <Hexagon size={12} className="text-blue-400 fill-blue-400/20" />
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">Global Intel v5.0 SPA</span>
+                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">Market Insights</span>
                         </div>
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
-                            Strategic <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Market Vision</span>
+                                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
+                            Market <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Overview</span>
                         </h1>
                     </div>
 
@@ -220,7 +220,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                             'text-blue-400'
                                     } animate-pulse`} />
                                 <div className="flex flex-col">
-                                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mb-0.5">Market Regime</span>
+                                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mb-0.5">Market Trend</span>
                                     <h3 className="text-lg font-black text-white tracking-tighter leading-none">{regime}</h3>
                                 </div>
                             </div>
@@ -244,7 +244,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Globe className="text-blue-400" size={20} />
-                        Global Equity Monitor
+                        Global Markets
                     </h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -267,7 +267,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     <div className="flex items-center gap-4">
                         <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                             <Star className="text-amber-400" size={20} fill="currentColor" />
-                            Watchlist Monitor
+                            My Watchlist
                             {isWatchlistLoading && <Loader2 size={14} className="animate-spin text-slate-500" />}
                         </h2>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 border border-white/5 px-2 py-1 rounded-md">
@@ -371,7 +371,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 <section className="space-y-6">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Coins className="text-amber-400" size={20} />
-                        Hard Assets
+                        Gold & Commodities
                     </h2>
                     <div className="grid grid-cols-1 gap-4">
                         {[
@@ -387,7 +387,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 <section className="space-y-6">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Banknote className="text-emerald-400" size={20} />
-                        Currency Monitor
+                        Currency Rates
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[
@@ -428,16 +428,16 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     <div className="lg:col-span-2 flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
                             <Landmark className="text-blue-400" size={24} />
-                            Sector Drift Tracking
+                            Industry Trends
                         </h2>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">NSE SECTORAL INDICES</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Indian Industries</span>
                     </div>
                     <div className="flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
                             <Zap className="text-indigo-400" size={24} />
-                            Money Flow Hub
+                            Top Gaining Industries
                         </h2>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">FLUX RANKING</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">MARKET ACTIVITY</span>
                     </div>
 
                     {/* Content Row - Guaranteed Horizontal Alignment */}
@@ -476,7 +476,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                             <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Zap size={14} className="text-indigo-400" />
-                                    <span className="text-[10px] font-black text-indigo-400 uppercase">Intelligence Summary</span>
+                                    <span className="text-[10px] font-black text-indigo-400 uppercase">Quick Summary</span>
                                 </div>
                                 <p className="text-xs text-slate-400 leading-relaxed italic">
                                     Focus concentrated in <b>{moneyFlows[0]?.label}</b> over the {timeframe} window.
@@ -490,30 +490,30 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             {/* Core Health Grid */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <DataPointCard
-                    label="Market Breadth"
+                    label="Market Participation"
                     mainValue={breadth}
-                    subValue={`${advances} Adv / ${declines} Dec`}
+                    subValue={`${advances} Gainers / ${declines} Losers`}
                     status={parseFloat(breadth) >= 1 ? "positive" : "negative"}
                     icon={<Activity className="text-blue-400" size={24} />}
                 />
                 <DataPointCard
-                    label="INDIA VIX"
+                    label="Market Volatility"
                     mainValue={vixValue.toFixed(2)}
                     subValue="Volatility Pulse"
                     status={vixValue < 15 ? "positive" : vixValue > 20 ? "negative" : "neutral"}
                     icon={<Gauge className="text-purple-400" size={24} />}
                 />
                 <DataPointCard
-                    label="Bullish Sentiment"
+                    label="Market Confidence"
                     mainValue={`${sentimentScore}%`}
-                    subValue="System Confidence"
+                    subValue="Reliability"
                     status={sentimentScore > 60 ? "positive" : sentimentScore < 40 ? "negative" : "neutral"}
                     icon={<TrendingUp className="text-emerald-400" size={24} />}
                 />
                 <DataPointCard
-                    label="Intelligence Health"
+                    label="System Status"
                     mainValue={`${healthIndex}%`}
-                    subValue="Data Integrity"
+                    subValue="System Ready"
                     status={healthIndex > 70 ? "positive" : healthIndex > 40 ? "neutral" : "negative"}
                     icon={<Shield className="text-indigo-400" size={24} />}
                 />
@@ -546,11 +546,11 @@ function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: a
             {data.low !== undefined && data.high !== undefined && (
                 <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
                     <div className="flex flex-col">
-                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Session Low</span>
+                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Today's Low</span>
                         <span className="text-[10px] font-black text-slate-400 leading-none">{data.low?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Session High</span>
+                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Today's High</span>
                         <span className="text-[10px] font-black text-slate-400 leading-none">{data.high?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>

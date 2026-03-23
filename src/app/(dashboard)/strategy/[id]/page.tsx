@@ -51,7 +51,7 @@ export default function StrategyDetailPage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                 <Loader2 size={48} className="text-blue-500 animate-spin opacity-20" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Calibrating Neural Weights</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Loading Strategy</span>
             </div>
         );
     }
@@ -71,7 +71,7 @@ export default function StrategyDetailPage() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
                             <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                                Quant Model v1.0
+                                Trading Model v1.0
                             </span>
                             <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -97,7 +97,7 @@ export default function StrategyDetailPage() {
                 <div className="relative z-10 max-w-2xl">
                     <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-3">
                         <Activity size={16} />
-                        Strategy Objective
+                        What this strategy does
                     </h3>
                     <p className="text-lg lg:text-xl font-bold text-white font-outfit leading-relaxed">
                         {strategy.objective}
@@ -109,7 +109,7 @@ export default function StrategyDetailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Workflow Column */}
                 <div className="lg:col-span-8 space-y-6">
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Structural Logic Workflow</h3>
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mb-4">How it Works</h3>
                     <div className="space-y-4">
                         {strategy.steps.map((step: any, idx: number) => (
                             <div key={step.id} className="glass-morphic-card rounded-3xl p-6 border-white/5 hover:border-white/10 transition-all group">
@@ -166,7 +166,7 @@ export default function StrategyDetailPage() {
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-black text-emerald-500 uppercase tracking-[0.3em] flex items-center gap-3">
                                 <Zap size={18} />
-                                Alpha Matches
+                                Top Stock Matches
                             </h3>
                             <button
                                 onClick={handleScan}
@@ -174,12 +174,12 @@ export default function StrategyDetailPage() {
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                             >
                                 {isScanning ? <Loader2 size={10} className="animate-spin" /> : <Activity size={10} />}
-                                {isScanning ? "Scanning..." : "Deploy Scouts"}
+                                {isScanning ? "Scanning..." : "Find Stocks"}
                             </button>
                         </div>
                         <div className="glass-morphic-card rounded-[32px] overflow-hidden border-emerald-500/10 min-h-[200px] flex flex-col">
                             <div className="p-6 bg-emerald-500/5 border-b border-white/5">
-                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Active Candidates</span>
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Recommended Stocks</span>
                             </div>
                             <div className="divide-y divide-white/5 flex-1">
                                 {strategy.recommendations && strategy.recommendations.length > 0 ? (
@@ -205,8 +205,8 @@ export default function StrategyDetailPage() {
                                             <Target size={20} className="text-emerald-500/50" />
                                         </div>
                                         <div>
-                                            <div className="text-[10px] font-bold text-white uppercase tracking-widest">No Matches Detected</div>
-                                            <p className="text-[9px] font-medium text-slate-500 mt-1 uppercase tracking-wider">Quant filters out of range.</p>
+                                            <div className="text-[10px] font-bold text-white uppercase tracking-widest">No Stocks Found</div>
+                                            <p className="text-[9px] font-medium text-slate-500 mt-1 uppercase tracking-wider">No stocks currently meet this strategy's rules.</p>
                                         </div>
                                         <button
                                             onClick={handleScan}
@@ -224,7 +224,7 @@ export default function StrategyDetailPage() {
                     <div className="space-y-4">
                         <h3 className="text-sm font-black text-rose-500 uppercase tracking-[0.3em] flex items-center gap-3">
                             <ShieldCheck size={18} />
-                            Risk Directives
+                            Safety Rules
                         </h3>
                         <div className="glass-morphic-card rounded-[32px] p-6 border-rose-500/10 space-y-4 bg-rose-500/5">
                             {strategy.riskManagement.map((rule: string, idx: number) => (
@@ -243,10 +243,10 @@ export default function StrategyDetailPage() {
                         <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
                             <ShoppingCart size={24} />
                         </div>
-                        <h4 className="text-lg font-bold text-white font-outfit uppercase">Build Portfolio</h4>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Deploy capital across these candidates.</p>
+                        <h4 className="text-lg font-bold text-white font-outfit uppercase">Start Investing</h4>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Invest money in these recommended stocks.</p>
                         <Link href="/market" className="w-full mt-2 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-blue-600/20 active:scale-95">
-                            Terminal
+                            Go to Market
                         </Link>
                     </div>
                 </div>

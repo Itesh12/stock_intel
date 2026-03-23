@@ -49,9 +49,7 @@ export default function LeaderboardPage() {
                         size={24}
                     />
                 </div>
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">
-                    Aggregating Alpha Data
-                </span>
+                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Loading Rankings</span>
             </div>
         );
     }
@@ -63,37 +61,29 @@ export default function LeaderboardPage() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-10">
                 <div className="space-y-4">
                     <div className="flex items-center gap-2.5">
-                        <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-                            Global Arena
-                        </div>
+                        <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">Rankings</div>
                         <div className="h-1 w-1 rounded-full bg-slate-700"></div>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                             <Users size={12} /> {leaderboard.length} Active Traders
                         </span>
                     </div>
-
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tighter font-outfit">
-                        Apex Rankings
-                    </h1>
-
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tighter font-outfit">Top Players</h1>
                     <p className="text-slate-500 text-sm font-medium max-w-xl">
-                        The definitive arena for virtual alpha. Ranks are determined by
-                        historical portfolio ROI from the initial 10L capital injection.
+                        The definitive arena for virtual trading. Ranks are determined by past profit from the initial 10L capital.
                     </p>
                 </div>
 
-                <div className="relative group">
-                    <Search
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors"
-                        size={16}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Search Elite Traders..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-all w-full md:w-64"
-                    />
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search Top Players..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-all w-full md:w-64"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -110,21 +100,11 @@ export default function LeaderboardPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-[0.2em] border-b border-white/5">
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-center w-20">
-                                    Rank
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">
-                                    Trader Hierarchy
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">
-                                    Structural NAV
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right">
-                                    Growth Index
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right w-32">
-                                    Status
-                                </th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-center w-20">Rank</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Player</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Total Portfolio Value</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right">Profit Percentage</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right w-32">Status</th>
                             </tr>
                         </thead>
 
@@ -177,10 +157,11 @@ function PodiumCard({ trader, position }: { trader: any; position: number }) {
                     </div>
                 </div>
 
-                <Link href={`/profile/${trader.userId}`}>
-                    <h3 className="text-xl font-bold text-white uppercase">
-                        {trader.name}
-                    </h3>
+                <Link href={`/profile/${trader.userId}`} className="space-y-1 relative z-10 block group/link">
+                    <h3 className="text-xl font-bold text-white font-outfit tracking-tight group-hover/link:text-blue-400 transition-colors uppercase">{trader.name}</h3>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <UserIcon size={12} className="text-blue-500" /> Top Trader
+                    </div>
                 </Link>
 
                 <div className="flex justify-between text-sm">
@@ -222,11 +203,9 @@ function LeaderboardRow({ trader }: { trader: any }) {
                     </div>
 
                     <div>
-                        <div className="font-bold text-white uppercase">
-                            {trader.name}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                            TRADER_NODE_{trader.userId.slice(0, 4)}
+                        <div className="font-bold text-white text-base tracking-tight leading-none mb-1 group-hover/rowlink:text-blue-400 transition-colors uppercase">{trader.name}</div>
+                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <div className="w-1 h-1 rounded-full bg-slate-700"></div> PLAYER_{trader.userId.slice(0, 4)}
                         </div>
                     </div>
                 </Link>

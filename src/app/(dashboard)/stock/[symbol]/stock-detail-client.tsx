@@ -186,7 +186,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <CandleLoader />
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Initializing Adaptive Interface</span>
+                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Loading Stock Details</span>
             </div>
         );
     }
@@ -274,7 +274,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         <div className="flex items-center gap-4 text-slate-500 text-xs font-medium uppercase tracking-wider">
                             <span className="flex items-center gap-1.5"><Globe size={14} className="text-blue-500/70" /> India</span>
                             <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-                            <span className="flex items-center gap-1.5"><Activity size={14} className="text-blue-500/70" /> Alpha Priority: <span className="text-blue-400">94.2</span></span>
+                            <span className="flex items-center gap-1.5"><Activity size={14} className="text-blue-500/70" /> Rank: <span className="text-blue-400">94.2</span></span>
                         </div>
                     </div>
 
@@ -303,8 +303,8 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     <BarChart3 size={18} className="text-blue-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm font-bold text-white uppercase tracking-wider">Trajectory Analysis</h2>
-                                    <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-0.5">Price & Volume Matrix</p>
+                                    <h2 className="text-sm font-bold text-white uppercase tracking-wider">Price History</h2>
+                                    <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-0.5">Price & Trading Activity</p>
                                 </div>
                             </div>
                             <div className="flex flex-wrap bg-white/5 p-1 rounded-xl border border-white/5 w-fit">
@@ -335,7 +335,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     >
                                         <div className="flex flex-col items-center gap-4">
                                             <CandleLoader />
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Refreshing Telemetry</span>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Updating Data</span>
                                         </div>
                                     </motion.div>
                                 )}
@@ -348,7 +348,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center opacity-20">
                                     <Activity size={48} className="text-slate-500 mb-4 animate-pulse" />
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Telemetry Initializing</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Loading Data</span>
                                 </div>
                             )}
                         </div>
@@ -359,11 +359,11 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Day Range</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Today's Range</span>
                                         <span className="text-xl font-bold text-white font-outfit tracking-tight">{formatCurrency(current, 0)}</span>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-[10px] font-bold text-blue-500/80 uppercase tracking-widest bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/10">Intraday Pulse</span>
+                                        <span className="text-[10px] font-bold text-blue-500/80 uppercase tracking-widest bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/10">Today's Activity</span>
                                     </div>
                                 </div>
 
@@ -394,11 +394,11 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">52W Spectrum</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Yearly Range</span>
                                         <span className="text-xl font-bold text-white font-outfit tracking-tight">{rangePercent.toFixed(1)}% <span className="text-xs text-slate-500">Range</span></span>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10">Annual Cycle</span>
+                                        <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10">Yearly View</span>
                                     </div>
                                 </div>
 
@@ -432,7 +432,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     <div className="bg-[#0A0A0B] border border-white/5 rounded-3xl p-6 flex-1 shadow-2xl">
                         <div className="flex items-center gap-1.5 mb-6 text-slate-300 font-bold uppercase tracking-widest text-[11px]">
                             <Gauge size={14} className="text-blue-500" />
-                            Core Asset Metrics
+                            Key Numbers
                         </div>
                         <div className="space-y-1">
                             <BentoRow icon={<Landmark size={14} />} label="Market Cap" value={`₹${formatIndianNumber(priceData.marketCap || 0)}`} tooltip="Aggregate market value of a company's outstanding shares of stock." />
@@ -446,15 +446,15 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     <div className="bg-[#0A0A0B] border border-white/5 rounded-3xl p-6 shadow-2xl">
                         <div className="flex items-center gap-1.5 mb-6 text-slate-300 font-bold uppercase tracking-widest text-[11px]">
                             <Layers size={14} className="text-blue-500" />
-                            Capital Structure
+                            Who Owns the Company
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-white/5 border border-white/5 p-4 rounded-2xl flex flex-col gap-1">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Institution</span>
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Big Investors</span>
                                 <span className="text-xl font-bold text-white font-outfit">{formatPercent(priceData.institutionOwnership)}</span>
                             </div>
                             <div className="bg-white/5 border border-white/5 p-4 rounded-2xl flex flex-col gap-1">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Insider</span>
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Company Owners</span>
                                 <span className="text-xl font-bold text-white font-outfit">{formatPercent(priceData.insiderOwnership)}</span>
                             </div>
                         </div>
@@ -465,7 +465,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-slate-300 font-bold uppercase tracking-widest text-[11px]">
                                 <Terminal size={14} className="text-blue-500" />
-                                Order Execution
+                                Buy & Sell
                             </div>
                             {portfolio && (
                                 <div className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg border border-emerald-400/20">
@@ -492,40 +492,40 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
             {/* 3. BENTO DATA MATRIX (NO GAPS, PERFECT ALIGNMENT) */}
             <div className="space-y-6">
                 <div className="flex items-center gap-4 px-2">
-                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap">Integrated Analytics Matrix</h2>
+                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap">Detailed Analysis</h2>
                     <div className="h-px w-full bg-white/5"></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     {/* Valuation Hub */}
-                    <BentoBox title="Valuation Intel" icon={<Layers className="text-amber-500" />} color="amber">
+                    <BentoBox title="Company Value" icon={<Layers className="text-amber-500" />} color="amber">
                         <MetricRow label="Forward P/E" value={priceData.forwardPe?.toFixed(2) || "--"} tooltip="Price-to-Earnings ratio based on forecasted earnings." />
                         <MetricRow label="P/S Ratio" value={priceData.priceToSales?.toFixed(2) || "--"} tooltip="Price-to-Sales ratio compares stock price to company revenue." />
-                        <MetricRow label="EV / Revenue" value={priceData.enterpriseToRevenue?.toFixed(2) || "--"} />
-                        <MetricRow label="EV / EBITDA" value={priceData.enterpriseToEbitda?.toFixed(2) || "--"} />
+                        <MetricRow label="EV / Sales" value={priceData.enterpriseToRevenue?.toFixed(2) || "--"} />
+                        <MetricRow label="EV / Profit" value={priceData.enterpriseToEbitda?.toFixed(2) || "--"} />
                         <MetricRow label="Book Value" value={`₹${priceData.bookValue?.toFixed(2) || "--"}`} />
                     </BentoBox>
 
                     {/* Health Hub */}
-                    <BentoBox title="Financial Health" icon={<Shield className="text-blue-500" />} color="blue">
+                    <BentoBox title="Company Money" icon={<Shield className="text-blue-500" />} color="blue">
                         <MetricRow label="Debt / Equity" value={priceData.debtToEquity?.toFixed(2) || "--"} />
-                        <MetricRow label="Current Ratio" value={priceData.currentRatio?.toFixed(2) || "--"} tooltip="Liquidity ratio measuring company's ability to pay short-term obligations." />
+                        <MetricRow label="Bills Ratio" value={priceData.currentRatio?.toFixed(2) || "--"} tooltip="Liquidity ratio measuring company's ability to pay short-term obligations." />
                         <MetricRow label="Quick Ratio" value={priceData.quickRatio?.toFixed(2) || "--"} />
                         <MetricRow label="Total Cash" value={`₹${formatIndianNumber(priceData.totalCash)}`} />
                         <MetricRow label="Total Debt" value={`₹${formatIndianNumber(priceData.totalDebt)}`} />
                     </BentoBox>
 
                     {/* Profitability Hub */}
-                    <BentoBox title="Profitability Matrix" icon={<TrendingUp className="text-emerald-500" />} color="emerald">
+                    <BentoBox title="Profit Score" icon={<TrendingUp className="text-emerald-500" />} color="emerald">
                         <MetricRow label="Return on Equity" value={formatPercent(priceData.roe)} />
                         <MetricRow label="Return on Assets" value={formatPercent(priceData.roa)} />
                         <MetricRow label="Gross Margin" value={formatPercent(priceData.grossMargins)} />
                         <MetricRow label="Operating Margin" value={formatPercent(priceData.operatingMargins)} />
-                        <MetricRow label="Free Cash Flow" value={`₹${formatIndianNumber(priceData.freeCashflow)}`} />
+                        <MetricRow label="Money Left Over" value={`₹${formatIndianNumber(priceData.freeCashflow)}`} />
                     </BentoBox>
 
                     {/* Growth & Structure */}
-                    <BentoBox title="Growth Vector" icon={<Zap className="text-rose-500" />} color="rose">
+                    <BentoBox title="Growth" icon={<Zap className="text-rose-500" />} color="rose">
                         <MetricRow label="Revenue Growth" value={formatPercent(priceData.revenueGrowth)} isPositive={(priceData.revenueGrowth || 0) > 0} />
                         <MetricRow label="Earnings Growth" value={formatPercent(priceData.earningsGrowth)} isPositive={(priceData.earningsGrowth || 0) > 0} />
                         <MetricRow label="Dividend Yield" value={formatPercent(priceData.dividendYield)} />
@@ -542,14 +542,14 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     <div className="lg:col-span-7 space-y-4">
                         <div className="flex items-center gap-2 group-hover:text-blue-400 transition-colors">
                             <Landmark size={20} className="text-blue-500" />
-                            <span className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.4em]">Enterprise Valuation</span>
+                            <span className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.4em]">Total Business Value</span>
                         </div>
                         <div className="flex flex-col gap-1">
                             <div className="text-3xl md:text-5xl lg:text-6xl font-bold text-white font-outfit tracking-tighter leading-none">
                                 ₹{formatIndianNumber(priceData.enterpriseValue || 0)}
                             </div>
                             <p className="text-xs font-medium text-slate-500 mt-2 leading-relaxed max-w-xl opacity-80">
-                                Comprehensive valuation assessment incorporating total equity, gross debt, and liquid cash reserves.
+                                The total value of the company, including its debt and cash.
                             </p>
                         </div>
                     </div>
@@ -557,13 +557,13 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     <div className="lg:col-span-5 grid grid-cols-2 gap-8 lg:border-l lg:border-white/10 lg:pl-12">
                         <div className="flex flex-col gap-2">
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <div className="w-1 h-1 rounded-full bg-blue-500"></div> Nominal Sales
+                                <div className="w-1 h-1 rounded-full bg-blue-500"></div> Total Sales
                             </span>
                             <div className="text-xl md:text-2xl font-bold text-white font-outfit tracking-tight whitespace-nowrap">₹{formatIndianNumber(priceData.revenue || 0)}</div>
                         </div>
                         <div className="flex flex-col gap-2">
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <div className="w-1 h-1 rounded-full bg-emerald-500"></div> Liquid Surplus
+                                <div className="w-1 h-1 rounded-full bg-emerald-500"></div> Cash Left Over
                             </span>
                             <div className="text-xl md:text-2xl font-bold text-white font-outfit tracking-tight whitespace-nowrap">₹{formatIndianNumber(priceData.freeCashflow || 0)}</div>
                         </div>
@@ -594,8 +594,8 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         <div className="flex items-center gap-3.5 text-white font-bold text-xl font-outfit">
                             <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-sm shadow-[0_0_20px_rgba(37,99,235,0.4)]">SI</div>
                             <div className="flex flex-col">
-                                <span className="leading-tight tracking-tight">StockIntel Alpha</span>
-                                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">Terminal Architecture</span>
+                                <span className="leading-tight tracking-tight">StockIntel</span>
+                                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">Trading Platform</span>
                             </div>
                         </div>
                         <p className="text-[10px] font-bold text-slate-600 leading-relaxed uppercase tracking-[0.2em] opacity-80 mt-2">
@@ -607,25 +607,25 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     {/* Telemetry Columns */}
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 w-full max-w-4xl lg:ml-12">
                         <div className="flex flex-col gap-4">
-                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">Network Stream</h4>
+                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">Connection Status</h4>
                             <div className="space-y-3.5">
                                 <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><RefreshCcw size={10} className="text-slate-600" /> Sync Time</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><RefreshCcw size={10} className="text-slate-600" /> Last Updated</span>
                                     <span className="text-[10px] font-bold text-white font-mono tracking-wider whitespace-nowrap">{priceData.lastUpdated ? new Date(priceData.lastUpdated).toLocaleTimeString() : "--"}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Database size={10} className="text-slate-600" /> Data Tier</span>
-                                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest whitespace-nowrap">Enterprise Pulse</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Database size={10} className="text-slate-600" /> Data Quality</span>
+                                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest whitespace-nowrap">High Quality</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">Protocol Stack</h4>
+                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">System Info</h4>
                             <div className="space-y-3.5">
                                 <div className="flex items-center justify-between gap-4">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Shield size={10} className="text-slate-600" /> Layer</span>
-                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest tracking-wider whitespace-nowrap">Quantum-TSX</span>
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest tracking-wider whitespace-nowrap">Secure System</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Server size={10} className="text-slate-600" /> Node</span>
@@ -635,15 +635,15 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">Interface Health</h4>
+                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">System Speed</h4>
                             <div className="space-y-3.5">
                                 <div className="flex items-center justify-between gap-4">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Activity size={10} className="text-slate-600" /> Latency</span>
-                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest whitespace-nowrap">12ms Nominal</span>
+                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest whitespace-nowrap">Very Fast</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Target size={10} className="text-slate-600" /> Accuracy</span>
-                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest whitespace-nowrap">99.98% Cryptic</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Target size={10} className="text-slate-600" /> Data Correctness</span>
+                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest whitespace-nowrap">99.9% Correct</span>
                                 </div>
                             </div>
                         </div>
@@ -754,7 +754,7 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                 </div>
                 <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                        {orderType === 'MARKET' ? 'Market Price' : 'Target Price'}
+                        {orderType === 'MARKET' ? 'Current Price' : 'Target Price'}
                     </label>
                     <div className="relative group">
                         <input
@@ -804,7 +804,7 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                 </div>
                 {holding && (
                     <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
-                        <span className="text-slate-500">Security Nodes</span>
+                        <span className="text-slate-500">Shares Owned</span>
                         <span className="text-blue-400">{holding.quantity} Owned</span>
                     </div>
                 )}
@@ -817,7 +817,7 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                     className="flex items-center justify-center gap-2 py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
                 >
                     {isTrading ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
-                    {orderType === 'MARKET' ? 'Buy Asset' : 'Place Limit'}
+                    {orderType === 'MARKET' ? 'Buy Now' : 'Set Order'}
                 </button>
                 <button
                     onClick={() => handleTrade('SELL')}
@@ -825,7 +825,7 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                     className="flex items-center justify-center gap-2 py-3.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-rose-900/20 active:scale-95"
                 >
                     {isTrading ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
-                    {orderType === 'MARKET' ? 'Sell Asset' : 'Place Limit'}
+                    {orderType === 'MARKET' ? 'Sell Now' : 'Set Order'}
                 </button>
             </div>
 

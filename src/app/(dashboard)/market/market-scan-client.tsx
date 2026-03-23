@@ -15,9 +15,9 @@ import TerminalFooter from '@/components/ui/terminal-footer';
 import Tooltip from '@/components/ui/tooltip';
 import { useSnackbar } from '@/components/ui/snackbar';
 import { CandleLoader } from '@/components/ui/candle-loader';
-import { 
-    ScatterChart, Scatter, XAxis, YAxis, ZAxis, 
-    Tooltip as RechartsTooltip, ResponsiveContainer, Cell, 
+import {
+    ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+    Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
     ReferenceLine, CartesianGrid
 } from 'recharts';
 
@@ -38,17 +38,17 @@ interface MarketScanResult {
 const scanners = [
     {
         id: 'day_gainers',
-        label: 'Alpha Gainers',
+        label: 'Top Gainers',
         icon: <ArrowUpRight size={16} />,
         desc: 'Top percentage gainers across indexed markets.',
         tooltip: 'Stocks showing the highest percentage gains in the current session. These often indicate strong short-term momentum or positive news catalysts.'
     },
     {
         id: 'most_actives',
-        label: 'Liquid Momentum',
+        label: 'Most Traded',
         icon: <Activity size={16} />,
-        desc: 'High-volume assets with institutional order flow.',
-        tooltip: "Stocks with high trading volume relative to their average. This 'Smart Money' flow suggests institutional interest and potential for sustained price moves."
+        desc: 'Stocks with lots of trading activity.',
+        tooltip: "Stocks that many people are buying and selling right now. This often means big investors are interested."
     },
     {
         id: 'day_losers',
@@ -59,10 +59,10 @@ const scanners = [
     },
     {
         id: 'undervalued_growth_stocks',
-        label: 'Value Discovery',
+        label: 'Best Value',
         icon: <Database size={16} />,
-        desc: 'Low P/E candidates with high growth potential.',
-        tooltip: 'Stocks with low Price-to-Earnings ratios combined with solid fundamentals. These represent potential bargains undervalued by the market.'
+        desc: 'Cheap stocks with good growth potential.',
+        tooltip: "Stocks that are priced lower than they should be based on their company's earnings. These are potential bargains."
     }
 ];
 
@@ -142,9 +142,9 @@ export default function MarketScanClient() {
                         <CandleLoader />
                     </div>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 font-outfit tracking-tight">Interfacing with Global Markets...</h2>
+                <h2 className="text-3xl font-bold text-white mb-4 font-outfit tracking-tight">Connecting to Stock Market...</h2>
                 <p className="text-slate-400 max-w-md mx-auto text-sm leading-relaxed font-medium">
-                    Our high-frequency nodes are currently indexing live order flows and sentiment signals. Initiate secure handshake to synchronize regional data.
+                    We are getting the latest stock prices and market trends. Click below to start.
                 </p>
                 <button
                     onClick={establishConnection}
@@ -152,7 +152,7 @@ export default function MarketScanClient() {
                 >
                     <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                     <Signal size={18} className="mr-3 text-blue-100" />
-                    <span className="relative">Establish Secure Connection</span>
+                    <span className="relative">Start Scanning</span>
                 </button>
             </motion.div>
         );
@@ -187,15 +187,15 @@ export default function MarketScanClient() {
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-5xl font-black text-white font-mono">{connectionProgress}%</span>
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em] mt-2">Syncing Nodes</span>
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em] mt-2">Loading Data</span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-3xl">
-                    <StatusPulse label="Neural Link" active={connectionProgress > 20} />
-                    <StatusPulse label="Data Pipeline" active={connectionProgress > 50} />
-                    <StatusPulse label="Order Flux" active={connectionProgress > 80} />
-                    <StatusPulse label="Secure Handshake" active={connectionProgress > 95} />
+                    <StatusPulse label="System Check" active={connectionProgress > 20} />
+                    <StatusPulse label="Data Flow" active={connectionProgress > 50} />
+                    <StatusPulse label="Market Activity" active={connectionProgress > 80} />
+                    <StatusPulse label="Ready" active={connectionProgress > 95} />
                 </div>
             </div>
         );
@@ -266,7 +266,7 @@ export default function MarketScanClient() {
                                     viewMode === 'GRID' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
                                 )}
                             >
-                                Institutional Grid
+                                Stock List
                             </button>
                             <button
                                 onClick={() => setViewMode('RADAR')}
@@ -275,7 +275,7 @@ export default function MarketScanClient() {
                                     viewMode === 'RADAR' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
                                 )}
                             >
-                                Quantum Radar
+                                Stock Map
                             </button>
                         </div>
                         <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
@@ -315,13 +315,55 @@ export default function MarketScanClient() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-white/5 bg-white/[0.01]">
-                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Institutional Asset</th>
-                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Quote</th>
-                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Performance</th>
-                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Liquidity</th>
-                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right text-blue-400/80">Neural Alpha</th>
-                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">Sentiment Flow</th>
-                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-center">Protocol</th>
+                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">
+                                                <Tooltip content="Symbol and company name of the stock." position="bottom">
+                                                    <div className="flex items-center gap-2">
+                                                        Stock Name
+                                                        <Info size={10} className="text-slate-700" />
+                                                    </div>
+                                                </Tooltip>
+                                            </th>
+                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
+                                                <Tooltip content="Current market price in Rupees (INR)." position="bottom">
+                                                    <div className="flex items-center justify-end gap-2 w-full">
+                                                        Price
+                                                        <Info size={10} className="text-slate-700" />
+                                                    </div>
+                                                </Tooltip>
+                                            </th>
+                                            <th className="py-4 md:py-5 px-4 md:px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
+                                                <Tooltip content="Percentage change since market open." position="bottom">
+                                                    <div className="flex items-center justify-end gap-2 w-full">
+                                                        Performance
+                                                        <Info size={10} className="text-slate-700" />
+                                                    </div>
+                                                </Tooltip>
+                                            </th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
+                                                <Tooltip content="Total market value of the company." position="bottom">
+                                                    <div className="flex items-center justify-end gap-2 w-full">
+                                                        Market Cap
+                                                        <Info size={10} className="text-slate-700" />
+                                                    </div>
+                                                </Tooltip>
+                                            </th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right text-blue-400/80">
+                                                <Tooltip content="AI-calculated score based on market trends." position="bottom">
+                                                    <div className="flex items-center justify-end gap-2 w-full">
+                                                        AI Score
+                                                        <Info size={10} className="text-slate-700" />
+                                                    </div>
+                                                </Tooltip>
+                                            </th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-right">
+                                                <Tooltip content="Current market feeling (Bullish/Bearish)." position="bottom">
+                                                    <div className="flex items-center justify-end gap-2 w-full">
+                                                        Sentiment
+                                                        <Info size={10} className="text-slate-700" />
+                                                    </div>
+                                                </Tooltip>
+                                            </th>
+                                            <th className="py-5 px-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/[0.03]">
@@ -346,7 +388,7 @@ export default function MarketScanClient() {
                                                     <td className="py-6 px-8 text-right">
                                                         <div className="flex flex-col">
                                                             <span className="text-sm font-bold text-white font-mono">{formatCurrency(stock.price, 'INR')}</span>
-                                                            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">INR Asset</span>
+                                                            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Indian Stock</span>
                                                         </div>
                                                     </td>
                                                     <td className="py-6 px-8 text-right">
@@ -358,7 +400,7 @@ export default function MarketScanClient() {
                                                                 {stock.change >= 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
                                                                 {stock.change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                                                             </div>
-                                                            <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Session Drift</span>
+                                                            <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Today's Change</span>
                                                         </div>
                                                     </td>
                                                     <td className="py-6 px-8 text-right">
@@ -372,7 +414,7 @@ export default function MarketScanClient() {
                                                             <div className="text-sm font-black text-blue-400 font-outfit tracking-tighter bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
                                                                 {stock.neuralAlphaScore}
                                                             </div>
-                                                            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">Alpha Factor</span>
+                                                            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">AI Score</span>
                                                         </div>
                                                     </td>
                                                     <td className="py-6 px-8 text-right">
@@ -384,37 +426,41 @@ export default function MarketScanClient() {
                                                                 <div className={cn("w-1 h-1 rounded-full animate-pulse", stock.change >= 0 ? "bg-emerald-500" : "bg-rose-500")}></div>
                                                                 {stock.sentimentFlow}
                                                             </div>
-                                                            <span className="text-[9px] text-slate-700 font-bold uppercase tracking-widest mt-1">Convergence</span>
+                                                            <span className="text-[9px] text-slate-700 font-bold uppercase tracking-widest mt-1">Market Feeling</span>
                                                         </div>
                                                     </td>
                                                     <td className="py-6 px-8 relative z-20">
                                                         <div className="flex items-center justify-center gap-3">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setRefreshingRows(prev => ({ ...prev, [stock.symbol]: true }));
-                                                                    setTimeout(() => {
-                                                                        setRefreshingRows(prev => ({ ...prev, [stock.symbol]: false }));
-                                                                        showSnackbar(`Synchronized pulse data for ${stock.symbol}.`, 'success');
-                                                                    }, 1500);
-                                                                }}
-                                                                className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-500 transition-colors"
-                                                            >
-                                                                {refreshingRows[stock.symbol] ? (
-                                                                    <div className="scale-[0.3]"><CandleLoader /></div>
-                                                                ) : (
-                                                                    <CircuitBoard size={14} />
-                                                                )}
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedAuditStock(stock);
-                                                                }}
-                                                                className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-emerald-500 transition-colors"
-                                                            >
-                                                                <Dna size={14} />
-                                                            </button>
+                                                            <Tooltip content="Refresh Data">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setRefreshingRows(prev => ({ ...prev, [stock.symbol]: true }));
+                                                                        setTimeout(() => {
+                                                                            setRefreshingRows(prev => ({ ...prev, [stock.symbol]: false }));
+                                                                            showSnackbar(`Synchronized pulse data for ${stock.symbol}.`, 'success');
+                                                                        }, 1500);
+                                                                    }}
+                                                                    className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-500 transition-colors"
+                                                                >
+                                                                    {refreshingRows[stock.symbol] ? (
+                                                                        <div className="scale-[0.3]"><CandleLoader /></div>
+                                                                    ) : (
+                                                                        <CircuitBoard size={14} />
+                                                                    )}
+                                                                </button>
+                                                            </Tooltip>
+                                                            <Tooltip content="View Details">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedAuditStock(stock);
+                                                                    }}
+                                                                    className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-emerald-500 transition-colors"
+                                                                >
+                                                                    <Dna size={14} />
+                                                                </button>
+                                                            </Tooltip>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -509,7 +555,7 @@ export default function MarketScanClient() {
                                                                         <span className="text-blue-500 font-black italic">{data.sentimentFlow}</span>
                                                                     </div>
                                                                     <div className="pt-2 border-t border-white/5 text-[9px] text-slate-600 italic">
-                                                                        Neural analysis suggests {data.neuralAlphaScore > 75 ? 'extreme accumulation' : 'neutral flow'} at current price levels.
+                                                                        AI analysis suggests {data.neuralAlphaScore > 75 ? 'strong interest' : 'neutral flow'} at current price levels.
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -538,29 +584,31 @@ export default function MarketScanClient() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
+                </div >
 
-                {results.length > displayCount && (
-                    <div className="p-8 bg-black/40 border-t border-white/5 flex justify-center items-center relative z-10">
-                        <button
-                            onClick={handleLoadMore}
-                            className="px-8 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] cursor-pointer hover:bg-white/5 hover:border-blue-500/30 transition-all active:scale-95"
-                        >
-                            Load Additional Data
-                        </button>
-                    </div>
-                )}
+    {
+        results.length > displayCount && (
+            <div className="p-8 bg-black/40 border-t border-white/5 flex justify-center items-center relative z-10">
+                <button
+                    onClick={handleLoadMore}
+                    className="px-8 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] cursor-pointer hover:bg-white/5 hover:border-blue-500/30 transition-all active:scale-95"
+                >
+                    Load Additional Data
+                </button>
             </div>
+        )
+    }
+            </div >
 
-            <AnimatePresence>
-                {selectedAuditStock && (
-                    <TechnicalAuditModal
-                        stock={selectedAuditStock}
-                        onClose={() => setSelectedAuditStock(null)}
-                    />
-                )}
-            </AnimatePresence>
-        </div>
+        <AnimatePresence>
+            {selectedAuditStock && (
+                <TechnicalAuditModal
+                    stock={selectedAuditStock}
+                    onClose={() => setSelectedAuditStock(null)}
+                />
+            )}
+        </AnimatePresence>
+        </div >
     );
 }
 
@@ -572,10 +620,10 @@ function TechnicalAuditModal({ stock, onClose }: { stock: MarketScanResult; onCl
     };
 
     const metrics = [
-        { label: "Liquidity Depth", value: `${getMetric(stock.symbol, 1)}%`, desc: "Order book thickness and slippage protection level.", status: "Optimal" },
-        { label: "Protocol Security", value: "Verified", desc: "Exchange-direct protocol handshake status.", status: "Secure" },
-        { label: "Node Latency", value: `${(stock.symbol.charCodeAt(1) % 15) + 5}ms`, desc: "Direct stream connectivity response time.", status: "Ultra-Low" },
-        { label: "Volatility Index", value: stock.changePercent > 0 ? "High-Alpha" : "Stable", desc: "Current price action deviation analysis.", status: "Monitored" }
+        { label: "Market Interest", value: `${getMetric(stock.symbol, 1)}%`, desc: "How easily you can buy or sell this stock.", status: "Good" },
+        { label: "Data Quality", value: "Verified", desc: "Data is directly from the exchange.", status: "Secure" },
+        { label: "Update Speed", value: `${(stock.symbol.charCodeAt(1) % 15) + 5}ms`, desc: "How fast we get data for this stock.", status: "Very Fast" },
+        { label: "Price Movement", value: stock.changePercent > 0 ? "Active" : "Stable", desc: "How much the price is moving up and down.", status: "Monitored" }
     ];
 
     return (
@@ -601,8 +649,8 @@ function TechnicalAuditModal({ stock, onClose }: { stock: MarketScanResult; onCl
                             <Shield size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white font-outfit uppercase tracking-tight">{stock.symbol} Audit Report</h2>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Institutional Proof of Integrity</p>
+                            <h2 className="text-xl font-bold text-white font-outfit uppercase tracking-tight">{stock.symbol} Details</h2>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Company Details & Safety</p>
                         </div>
                     </div>
                     <button
@@ -651,7 +699,7 @@ function TechnicalAuditModal({ stock, onClose }: { stock: MarketScanResult; onCl
                         onClick={onClose}
                         className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-[0_0_30px_rgba(16,185,129,0.2)] transition-all active:scale-[0.98]"
                     >
-                        Finalize & Close Report
+                        Close Details
                     </button>
                 </div>
             </motion.div>

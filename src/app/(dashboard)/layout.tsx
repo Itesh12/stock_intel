@@ -168,13 +168,12 @@ export default function DashboardLayout({
                             >
                                 <Menu size={18} />
                             </button>
-                            
                             <div className="hidden lg:flex flex-col ml-1">
                                 <span className="text-[9px] font-black text-blue-500/60 uppercase tracking-[0.2em] leading-none mb-1">StockIntel / v5.0</span>
                                 <span className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                                     {getPageTitle()}
                                     <div className="w-1 h-1 rounded-full bg-slate-700" />
-                                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Live Intel</span>
+                                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Market Overview</span>
                                 </span>
                             </div>
                         </div>
@@ -186,7 +185,7 @@ export default function DashboardLayout({
                                     <Search size={16} className="absolute left-4 text-slate-500 group-focus-within/search:text-blue-400 transition-colors pointer-events-none" />
                                     <input
                                         type="text"
-                                        placeholder="Identify Stock Nodes, Sectors, or Intelligence Queries..."
+                                        placeholder="Search for Stocks, Industries, or Market Trends..."
                                         autoComplete="off"
                                         className="h-11 !py-0 !pl-11 !pr-20 !bg-white/[0.04] !border-white/10 focus:!border-blue-500/40 focus:!bg-white/[0.07] transition-all text-[13px] rounded-2xl w-full font-medium placeholder:text-slate-600 shadow-inner"
                                         value={searchQuery}
@@ -274,7 +273,7 @@ export default function DashboardLayout({
                                 )) : (
                                     <div className="flex items-center gap-2 text-slate-600 animate-pulse whitespace-nowrap">
                                         <Activity size={12} />
-                                        <span>Syncing Stream...</span>
+                                        <span>Getting Market Data...</span>
                                     </div>
                                 )}
                             </div>

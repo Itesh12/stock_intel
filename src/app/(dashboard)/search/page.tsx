@@ -28,7 +28,7 @@ export default function StrategyFinderPage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                 <Loader2 size={48} className="text-blue-500 animate-spin opacity-20" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Propagating Model Matrix</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Loading Strategies</span>
             </div>
         );
     }
@@ -38,10 +38,10 @@ export default function StrategyFinderPage() {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-glow"></span>
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Strategy Discovery Engine</span>
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Find Strategies</span>
                     </div>
                     <h1 className="text-4xl font-bold text-white tracking-tight font-outfit uppercase">Strategy Finder</h1>
-                    <p className="text-slate-500 mt-2 text-sm font-medium">Quantitative models from legendary traders, adapted for high-alpha discovery.</p>
+                    <p className="text-slate-500 mt-2 text-sm font-medium">Trading models from top traders, adapted to find high profits.</p>
                 </div>
             </div>
 
@@ -77,7 +77,7 @@ export default function StrategyFinderPage() {
 
                             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
                                 <div className="flex flex-col">
-                                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Target Accuracy</span>
+                                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Chance of Success</span>
                                     <span className="text-lg font-black text-white font-mono">{strategy.winRate}</span>
                                 </div>
                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -93,8 +93,8 @@ export default function StrategyFinderPage() {
                     <div className="w-16 h-16 rounded-full border border-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform bg-white/[0.02]">
                         <Zap size={24} className="text-slate-700" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-600 uppercase tracking-widest">More Models Incoming</h3>
-                    <p className="text-[10px] text-slate-700 mt-2 max-w-[200px]">Administrators are currently calibrating new high-frequency algorithms.</p>
+                    <h3 className="text-sm font-bold text-slate-600 uppercase tracking-widest">More Strategies Coming Soon</h3>
+                    <p className="text-[10px] text-slate-700 mt-2 max-w-[200px]">We are currently adding new high-speed trading models.</p>
                 </div>
             </div>
         </div>

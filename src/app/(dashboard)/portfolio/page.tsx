@@ -61,13 +61,12 @@ export default function PortfolioPage() {
                         <div className="candle-wick text-rose-500/40"></div>
                     </div>
                 </div>
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Hydrating Portfolio Node</span>
+                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Loading Your Portfolio</span>
             </div>
         );
     }
 
     const holdings = portfolio?.holdings || [];
-
     const totalInvested = holdings.reduce((acc: number, h: any) => acc + (h.quantity * h.averagePrice), 0);
     const totalUnrealizedPL = holdings.reduce((acc: number, h: any) => acc + (h.unrealizedPL || 0), 0);
     const totalUnrealizedPLPercent = totalInvested > 0 ? (totalUnrealizedPL / totalInvested) * 100 : 0;
@@ -79,9 +78,10 @@ export default function PortfolioPage() {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Briefcase size={14} className="text-blue-500" />
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Asset Management</span>
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">My Assets</span>
                     </div>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight font-outfit">Portfolio Topology</h1>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight font-outfit">My Portfolio</h1>
+                    <p className="text-slate-500 mt-2 text-sm font-medium">View your stocks, performance, and where your money is invested.</p>
                     <div className="flex items-center gap-6 mt-6">
                         <button 
                             onClick={() => setActiveTab('live')}
@@ -90,7 +90,7 @@ export default function PortfolioPage() {
                                 activeTab === 'live' ? "text-blue-500" : "text-slate-500 hover:text-slate-300"
                             )}
                         >
-                            Live Registry
+                            Live Portfolio
                             {activeTab === 'live' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />}
                         </button>
                         <button 
@@ -100,7 +100,7 @@ export default function PortfolioPage() {
                                 activeTab === 'backtest' ? "text-indigo-500" : "text-slate-500 hover:text-slate-300"
                             )}
                         >
-                            Strategy Replay
+                            Backtest History
                             {activeTab === 'backtest' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
                         </button>
                     </div>
@@ -108,7 +108,7 @@ export default function PortfolioPage() {
 
                 {portfolio && (
                     <div className="flex flex-col items-end gap-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Available Liquidity</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Cash to Invest</span>
                         <div className="text-2xl font-black text-emerald-400 font-outfit tracking-tighter">
                             ₹{formatIndianNumber(portfolio.cashBalance)}
                         </div>
@@ -127,35 +127,35 @@ export default function PortfolioPage() {
                     >
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                             <StatCard
-                                title="Net Asset Value"
+                                title="Total Portfolio Value"
                                 value={`₹${formatIndianNumber(portfolio?.totalValue || 0)}`}
                                 indicator={`${portfolio?.totalPLPercent?.toFixed(2) || 0}%`}
                                 subIndicator={`${(portfolio?.dayPnL || 0) >= 0 ? '+' : ''}${portfolio?.dayPnLPercent?.toFixed(2) || 0}% Today`}
                                 color={(portfolio?.totalPL || 0) >= 0 ? "emerald" : "blue"}
                             />
                             <StatCard
-                                title="Buying Power"
+                                title="Cash Balance"
                                 value={`₹${formatIndianNumber(portfolio?.cashBalance || 0)}`}
                                 indicator="READY"
                                 color="emerald"
                             />
-                            <StatCard title="Diversification" value={`${holdings.length} Nodes`} indicator="ACTIVE" color="blue" />
+                            <StatCard title="Diversification" value={`${holdings.length} Positions`} indicator="ACTIVE" color="blue" />
                             <StatCard
-                                title="SIM Performance"
-                                value={portfolio?.winRate ? `${portfolio.winRate.toFixed(1)}%` : "0.0%"}
-                                indicator="WIN RATE"
-                                subIndicator={`PF: ${portfolio?.profitFactor?.toFixed(2) || "0.00"}`}
-                                color={portfolio?.profitFactor >= 2 ? "emerald" : "blue"}
+                                title="Safety Rating"
+                                value={analytics?.sharpeRatio?.toFixed(2) || "0.00"}
+                                indicator="SHARPE"
+                                subIndicator={`DD: ${analytics?.maxDrawdown?.toFixed(1) || 0}%`}
+                                color="blue"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
                             <div className="lg:col-span-3 space-y-10">
                                 <section className="glass-morphic-card rounded-[32px] p-8 border-emerald-500/10 h-[400px]">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                                    <div className="flex items-center justify-between mb-8">
                                         <div>
-                                            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Growth Matrix</h2>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Virtual Capital Trajectory (30D)</p>
+                                            <h2 className="text-xl font-bold text-white tracking-tight">Profit Over Time</h2>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Portfolio Growth (30D)</p>
                                         </div>
                                     </div>
                                     <div className="h-[280px] w-full">
@@ -163,23 +163,11 @@ export default function PortfolioPage() {
                                     </div>
                                 </section>
 
-                                    <section className="glass-morphic-card rounded-none p-8 border-blue-500/10">
-                                        <div className="flex items-center justify-between mb-8">
-                                            <div>
-                                                <h2 className="text-xl font-bold text-white tracking-tight">Portfolio Density Heatmap</h2>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Relative Weights & Performance Distribution</p>
-                                            </div>
-                                        </div>
-                                        <div className="h-[400px] md:h-[500px] lg:h-[600px] w-full aspect-square md:aspect-auto">
-                                            <PortfolioHeatmap holdings={holdings} />
-                                        </div>
-                                    </section>
-
                                 <section className="glass-morphic-card rounded-[32px] overflow-hidden">
                                     <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                                        <h2 className="text-xl font-bold text-white tracking-tight">Active Holdings</h2>
+                                        <h2 className="text-xl font-bold text-white tracking-tight">My Assets</h2>
                                         <div className="flex items-center gap-4">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Real-Time Sync</span>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Live Data</span>
                                         </div>
                                     </div>
                                     <div className="overflow-x-auto">
@@ -187,12 +175,12 @@ export default function PortfolioPage() {
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Position</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Entry Basis</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Current Node</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Market Valuation</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Actions</th>
+                                                        <th className="px-8 py-5 font-bold">Stock Name</th>
+                                                        <th className="px-8 py-5 font-bold">Quantity</th>
+                                                        <th className="px-8 py-5 font-bold">Buy Price</th>
+                                                        <th className="px-8 py-5 font-bold">Current Price</th>
+                                                        <th className="px-8 py-5 font-bold text-right">Total Value</th>
+                                                        <th className="px-8 py-5 font-bold text-right">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
@@ -203,6 +191,26 @@ export default function PortfolioPage() {
                                                             onTradeSuccess={fetchPortfolio}
                                                         />
                                                     ))}
+                                                    <tr className="bg-white/[0.02] border-t border-white/10 group hover:bg-white/[0.03] transition-colors">
+                                                        <td colSpan={4} className="px-8 py-6 text-left">
+                                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-300 transition-colors">Total Active P/L</span>
+                                                        </td>
+                                                        <td className="px-8 py-6 text-right">
+                                                            <div className={cn(
+                                                                "text-base font-black font-outfit tracking-tight",
+                                                                isTotalPositive ? "text-emerald-400" : "text-rose-400"
+                                                            )}>
+                                                                {isTotalPositive ? '+' : '-'}₹{formatIndianNumber(Math.abs(totalUnrealizedPL))}
+                                                            </div>
+                                                            <div className={cn(
+                                                                "text-[10px] font-bold",
+                                                                isTotalPositive ? "text-emerald-500" : "text-rose-500"
+                                                            )}>
+                                                                {isTotalPositive ? '+' : ''}{totalUnrealizedPLPercent.toFixed(2)}%
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-6"></td>
+                                                    </tr>
                                                 </tbody>
                                             </table>
                                         ) : (
@@ -210,9 +218,10 @@ export default function PortfolioPage() {
                                                 <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
                                                     <Database className="text-slate-600" size={32} />
                                                 </div>
-                                                <h3 className="text-xl font-bold text-slate-400 font-outfit mb-2">Portfolio Empty</h3>
+                                                <h3 className="text-xl font-bold text-slate-400 font-outfit mb-2">No Assets Yet</h3>
+                                                <p className="text-sm text-slate-600 max-w-sm">Your investments will show up here once you start trading.</p>
                                                 <Link href="/market" className="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-sm transition-all">
-                                                    Exploration Hub
+                                                    Go to Market
                                                 </Link>
                                             </div>
                                         )}
@@ -224,48 +233,64 @@ export default function PortfolioPage() {
                                         <div className="p-8 border-b border-white/5 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <Cpu size={20} className="text-amber-500" />
-                                                <h2 className="text-xl font-bold text-white tracking-tight">Open Intelligence Orders</h2>
+                                                <h2 className="text-xl font-bold text-white tracking-tight">Pending Orders</h2>
                                             </div>
+                                            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/5 px-3 py-1.5 rounded-lg border border-amber-500/20">Pending Trigger</span>
                                         </div>
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Type</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Security</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold">Target Strike</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-center">Quantity</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Requirement</th>
-                                                        <th className="px-4 md:px-8 py-4 md:py-5 font-bold text-right">Actions</th>
+                                                        <th className="px-8 py-5 font-bold">Type</th>
+                                                        <th className="px-8 py-5 font-bold">Security</th>
+                                                        <th className="px-8 py-5 font-bold">Target Price</th>
+                                                        <th className="px-8 py-5 font-bold text-center">Quantity</th>
+                                                        <th className="px-8 py-5 font-bold text-right">Requirement</th>
+                                                        <th className="px-8 py-5 font-bold text-right">Timestamp</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
                                                     {limitOrders.filter(o => o.status === 'PENDING').map((order: any) => (
                                                         <tr key={order.id} className="hover:bg-amber-500/[0.02] transition-all group">
-                                                            <td className="px-4 md:px-8 py-4 md:py-5">
+                                                            <td className="px-8 py-5">
                                                                 <span className={cn(
                                                                     "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
-                                                                    order.type === 'BUY' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                                                                    order.type === 'BUY'
+                                                                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                                        : "bg-rose-500/10 border-rose-500/20 text-rose-400"
                                                                 )}>
                                                                     {order.type} LIMIT
                                                                 </span>
                                                             </td>
-                                                            <td className="px-4 md:px-8 py-4 md:py-5 font-bold text-white">{order.symbol}</td>
-                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-amber-500 font-mono italic">₹{order.targetPrice.toFixed(2)}</td>
-                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-center font-bold">{order.quantity}</td>
-                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-right font-bold">₹{formatIndianNumber(order.targetPrice * order.quantity)}</td>
-                                                            <td className="px-4 md:px-8 py-4 md:py-5 text-right">
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        if (confirm('Cancel this intelligence order?')) {
-                                                                            const res = await fetch(`/api/trade/limit?id=${order.id}`, { method: 'DELETE' });
-                                                                            if (res.ok) fetchPortfolio();
-                                                                        }
-                                                                    }}
-                                                                    className="p-1.5 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 transition-all"
-                                                                >
-                                                                    <Ban size={12} />
-                                                                </button>
+                                                            <td className="px-8 py-5">
+                                                                <span className="font-bold text-white text-sm tracking-tight">{order.symbol}</span>
+                                                            </td>
+                                                            <td className="px-8 py-5 text-amber-500 font-mono text-sm tracking-tighter">
+                                                                ₹{order.targetPrice.toFixed(2)}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-center text-slate-300 font-bold font-mono text-sm">
+                                                                {order.quantity}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-right font-bold text-white">
+                                                                ₹{formatIndianNumber(order.targetPrice * order.quantity)}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-right">
+                                                                <div className="flex items-center justify-end gap-3">
+                                                                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+                                                                        {new Date(order.timestamp).toLocaleDateString()}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (confirm('Cancel this intelligence order?')) {
+                                                                                const res = await fetch(`/api/trade/limit?id=${order.id}`, { method: 'DELETE' });
+                                                                                if (res.ok) fetchPortfolio();
+                                                                            }
+                                                                        }}
+                                                                        className="p-1.5 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                                                                    >
+                                                                        <Ban size={12} />
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -279,43 +304,66 @@ export default function PortfolioPage() {
                                     <div className="p-8 border-b border-white/5 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <History size={20} className="text-slate-400" />
-                                            <h2 className="text-xl font-bold text-white tracking-tight">Transaction Ledger</h2>
+                                            <h2 className="text-xl font-bold text-white tracking-tight">Recent Activity</h2>
                                         </div>
                                     </div>
-                                    <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                                    <th className="px-8 py-4">Type</th>
-                                                    <th className="px-8 py-4">Security</th>
-                                                    <th className="px-8 py-4">Price</th>
-                                                    <th className="px-8 py-4">Qty</th>
-                                                    <th className="px-8 py-4 text-right">Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {trades.map((trade: any) => (
-                                                    <tr key={trade.id} className="hover:bg-white/[0.03] transition-all">
-                                                        <td className="px-8 py-4">
-                                                            <span className={cn(
-                                                                "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border",
-                                                                trade.type === 'BUY' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                                                            )}>{trade.type}</span>
-                                                        </td>
-                                                        <td className="px-8 py-4 font-bold text-sm">{trade.symbol}</td>
-                                                        <td className="px-8 py-4 text-xs font-mono">₹{trade.price.toFixed(2)}</td>
-                                                        <td className="px-8 py-4 text-xs">{trade.quantity}</td>
-                                                        <td className="px-8 py-4 text-right font-bold text-sm">₹{formatIndianNumber(trade.totalValue)}</td>
+                                    <div className="overflow-x-auto">
+                                        {trades.length > 0 ? (
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
+                                                        <th className="px-8 py-5 font-bold text-center">Type</th>
+                                                        <th className="px-8 py-5 font-bold">Security</th>
+                                                        <th className="px-8 py-5 font-bold">Price</th>
+                                                        <th className="px-8 py-5 font-bold text-center">Quantity</th>
+                                                        <th className="px-8 py-5 font-bold text-right">Total Amount</th>
+                                                        <th className="px-8 py-5 font-bold text-right">Date</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {trades.map((trade: any) => (
+                                                        <tr key={trade.id} className="hover:bg-white/[0.03] transition-all group">
+                                                            <td className="px-8 py-5 text-center">
+                                                                <span className={cn(
+                                                                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tight border",
+                                                                    trade.type === 'BUY'
+                                                                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                                        : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                                                                )}>
+                                                                    {trade.type}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-8 py-5">
+                                                                <span className="font-bold text-white text-sm tracking-tight">{trade.symbol}</span>
+                                                            </td>
+                                                            <td className="px-8 py-5 text-slate-400 font-mono text-sm tracking-tighter">
+                                                                ₹{trade.price.toFixed(2)}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-center text-slate-300 font-bold font-mono text-sm">
+                                                                {trade.quantity}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-right font-bold text-white">
+                                                                ₹{formatIndianNumber(trade.totalValue)}
+                                                            </td>
+                                                            <td className="px-8 py-5 text-right text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                                                                {new Date(trade.timestamp).toLocaleDateString()}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        ) : (
+                                            <div className="py-20 flex flex-col items-center justify-center opacity-40">
+                                                <History size={40} className="text-slate-600 mb-4" />
+                                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">No activity history</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </section>
                             </div>
 
                             <div className="space-y-10">
-                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10 mb-10">
                                     <FinanceManagement onDepositSuccess={fetchPortfolio} />
                                 </section>
 
@@ -323,7 +371,7 @@ export default function PortfolioPage() {
                                     <div className="flex items-center justify-between mb-8">
                                         <div className="flex items-center gap-3">
                                             <ShieldAlert size={20} className="text-indigo-500" />
-                                            <h2 className="text-lg font-bold text-white tracking-tight">Risk Intelligence</h2>
+                                            <h2 className="text-lg font-bold text-white tracking-tight">Safety Rating</h2>
                                         </div>
                                         <ResetPortfolioButton onReset={fetchPortfolio} />
                                     </div>
@@ -331,38 +379,16 @@ export default function PortfolioPage() {
                                     <div className="space-y-8">
                                         <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
                                             <div className="flex justify-between items-end mb-4">
-                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Composite Risk Score</span>
+                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Overall Risk Score</span>
                                                 <span className="text-2xl font-black text-emerald-400 font-mono leading-none tracking-tighter">24<span className="text-[10px] text-slate-600 ml-1">/100</span></span>
                                             </div>
                                             <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[24%]" />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">SIM Performance Metrics</div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Profit Factor</div>
-                                                    <div className="text-lg font-black text-white font-mono">{portfolio?.profitFactor?.toFixed(2) || "0.00"}</div>
-                                                </div>
-                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Win Rate</div>
-                                                    <div className="text-lg font-black text-white font-mono">{portfolio?.winRate?.toFixed(1) || "0.0"}%</div>
-                                                </div>
-                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Avg Win</div>
-                                                    <div className="text-sm font-bold text-emerald-400 font-mono">₹{formatIndianNumber(portfolio?.avgWin || 0)}</div>
-                                                </div>
-                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                                                    <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-1">Avg Loss</div>
-                                                    <div className="text-sm font-bold text-rose-400 font-mono">₹{formatIndianNumber(portfolio?.avgLoss || 0)}</div>
-                                                </div>
+                                                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[24%] shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
                                             </div>
                                         </div>
 
                                         <div className="space-y-5">
-                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Sector Concentration</div>
+                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Industry Breakdown</div>
                                             <div className="space-y-4">
                                                 {Object.entries(portfolio?.sectorExposure || {}).length > 0 ? (
                                                     Object.entries(portfolio.sectorExposure).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5).map(([sector, percent]: any, idx) => (
@@ -381,10 +407,6 @@ export default function PortfolioPage() {
                                             </div>
                                         </div>
                                     </div>
-                                </section>
-
-                                <section className="glass-morphic-card rounded-[32px] p-8 border-blue-500/10">
-                                    <TraderJournal />
                                 </section>
                             </div>
                         </div>
@@ -517,7 +539,7 @@ function HoldingRow({ holding, onTradeSuccess }: any) {
                     <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center font-bold text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">{symbol[0]}</div>
                     <Link href={`/stock/${symbol}`} className="cursor-pointer">
                         <div className="font-bold text-white text-base tracking-tight leading-none mb-1 group-hover:text-blue-400 transition-colors">{symbol}</div>
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Equity Node</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Equity Stock</div>
                     </Link>
                 </div>
             </td>
@@ -641,12 +663,12 @@ function FinanceManagement({ onDepositSuccess }: { onDepositSuccess: () => void 
         <div className="space-y-8">
             <div className="flex items-center gap-3">
                 <Coins size={20} className="text-emerald-500" />
-                <h2 className="text-lg font-bold text-white tracking-tight">Finance Management</h2>
+                <h2 className="text-lg font-bold text-white tracking-tight">Money Manager</h2>
             </div>
 
             <div className="space-y-6">
                 <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Deposit Virtual Capital</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Add Virtual Money</label>
                     <div className="relative group">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-sm">₹</div>
                         <input
@@ -681,7 +703,7 @@ function FinanceManagement({ onDepositSuccess }: { onDepositSuccess: () => void 
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-bold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl shadow-emerald-900/20"
                 >
                     {isDepositing ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                    Inject Capital Stream
+                    Add Money
                 </button>
 
                 <AnimatePresence>
@@ -710,7 +732,7 @@ function FinanceManagement({ onDepositSuccess }: { onDepositSuccess: () => void 
 function PerformanceCurve({ data }: { data: any[] }) {
     if (!data || data.length === 0) return (
         <div className="h-full flex items-center justify-center opacity-20">
-            <span className="text-[10px] font-bold uppercase tracking-widest">Awaiting Data Points</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Waiting for Data</span>
         </div>
     );
 
