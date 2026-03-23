@@ -57,12 +57,12 @@ export class NewsService {
         return { score, label, reasoning };
     }
 
-    public async getMarketWideNews(count: number = 20, offset: number = 0): Promise<AnalyzedNewsItem[]> {
-        // Fetch news for broad market contexts
-        const contexts = ["NIFTY 50", "Indian Stock Market", "NSE", "Indian Economy"];
+    public async getMarketWideNews(count: number = 20, offset: number = 0, dateFilter?: string, sentimentFilter?: string): Promise<{ items: AnalyzedNewsItem[], hasMore: boolean }> {
+        // Broaden contexts to ensure we have a larger pool for date/sentiment filtering
+        const contexts = ["NIFTY 50", "Indian Stock Market", "NSE", "Indian Economy", "Sensex", "RBI News India", "Adani", "Reliance Industries"];
         
-        // Use a larger count per context to allow for better aggregation and pagination
-        const perContext = Math.min(20, count + offset);
+        // If we have a specific filter, we need a larger pool to satisfy the 'count'
+        const perContext = sentimentFilter ? 25 : 12; 
         const allNewsPromises = contexts.map(context => this.marketRepo.getNews(context, perContext));
         const allNewsResults = await Promise.all(allNewsPromises);
         
@@ -77,34 +77,54 @@ export class NewsService {
             }
         });
 
-        // Sort by time descending if available
-        uniqueNews.sort((a, b) => (b.providerPublishTime || 0) - (a.providerPublishTime || 0));
-
-        // Analyze and format with pagination
-        return uniqueNews.slice(offset, offset + count).map(item => {
-            // If summary is missing, use title or a better fallback
-            let summary = item.summary || "";
-            if (!summary || summary === "No summary available for this market event.") {
-                summary = `Latest report from ${item.publisher || 'market experts'} regarding ${item.title.toLowerCase()}. Stay updated with real-time market shifts.`;
-            }
-
-            const sentiment = this.calculateSentiment(item.title || "", summary);
-            
-            // Fix timestamp: Yahoo Finance returns seconds or milliseconds. 
-            // If it's less than 10^12, it's likely seconds.
+        // Pre-format and parse times for filtering
+        let formattedNews = uniqueNews.map(item => {
             const pubTime = item.providerPublishTime || Date.now() / 1000;
             const timeMs = pubTime < 10000000000 ? pubTime * 1000 : pubTime;
+            const dateObj = new Date(timeMs);
+            
+            const summary = item.summary && item.summary !== "No summary available for this market event." 
+                ? item.summary 
+                : `Latest report from ${item.publisher || 'market experts'} regarding ${item.title.toLowerCase()}. Stay updated with real-time market shifts.`;
 
             return {
-                title: item.title || "Market Update",
+                ...item,
                 summary,
-                source: item.publisher || item.source?.name || "Market Source",
-                url: item.link || "#",
-                time: new Date(timeMs).toISOString(),
-                sentiment,
-                relatedSymbols: item.relatedTickers || []
+                parsedDate: dateObj,
+                dateString: dateObj.toISOString().split('T')[0], // YYYY-MM-DD
+                sentiment: this.calculateSentiment(item.title || "", summary)
             };
         });
+
+        // Filter by date if provided
+        if (dateFilter) {
+            formattedNews = formattedNews.filter(item => item.dateString === dateFilter);
+        }
+
+        // Filter by sentiment if provided
+        if (sentimentFilter && sentimentFilter !== 'ALL') {
+            formattedNews = formattedNews.filter(item => item.sentiment.label === sentimentFilter);
+        }
+
+        // Sort by time descending
+        formattedNews.sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+
+        const totalAvailable = formattedNews.length;
+        const sliced = formattedNews.slice(offset, offset + count);
+        const hasMore = (offset + count) < totalAvailable;
+
+        // Final formatting for API
+        const items = sliced.map(item => ({
+            title: item.title || "Market Update",
+            summary: item.summary,
+            source: item.publisher || item.source?.name || "Market Source",
+            url: item.link || "#",
+            time: item.parsedDate.toISOString(),
+            sentiment: item.sentiment,
+            relatedSymbols: item.relatedTickers || []
+        }));
+
+        return { items, hasMore };
     }
 
     public getAggregateSentiment(news: AnalyzedNewsItem[]) {
