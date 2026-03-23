@@ -211,25 +211,22 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
         }
     }
 
-    async getPerformance(symbol: string, period: string = '1mo'): Promise<{
+    async getPerformance(symbol: string, period: string = '1mo'): Promise<Partial<Stock> & {
         change: number;
         changePercent: number;
         currentPrice: number;
-        volume?: number;
-        symbol: string;
         low?: number;
         high?: number;
-        sector?: string | null;
     }> {
         const stock = await this.getStockPrice(symbol);
 
         if (period === '1d' || !period) {
             return {
+                ...stock,
                 symbol,
                 change: stock.change || 0,
                 changePercent: stock.changePercent || 0,
                 currentPrice: stock.price || 0,
-                volume: stock.volume,
                 low: stock.dayLow || stock.price,
                 high: stock.dayHigh || stock.price,
                 sector: stock.sector
@@ -299,11 +296,11 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             const high = Math.max(...pricesHigh, currentPrice);
 
             const resultObj = {
+                ...stock,
                 symbol,
                 change,
                 changePercent,
                 currentPrice,
-                volume: stock.volume,
                 low,
                 high,
                 sector: stock.sector
