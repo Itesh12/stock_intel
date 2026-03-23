@@ -295,12 +295,13 @@ export default function ComparisonPage() {
     const fetchData = useCallback(async (symA: string, symB: string) => {
         if (!symA || !symB) return;
         setIsLoading(true);
+        const t = Date.now();
         try {
             const [perfA, perfB, hA, hB] = await Promise.all([
-                fetch(`/api/stock/performance?symbol=${symA}&period=${period}`).then(r => r.json()),
-                fetch(`/api/stock/performance?symbol=${symB}&period=${period}`).then(r => r.json()),
-                fetch(`/api/stock/history?symbol=${symA}&period=${period}`).then(r => r.json()),
-                fetch(`/api/stock/history?symbol=${symB}&period=${period}`).then(r => r.json()),
+                fetch(`/api/stock/performance?symbol=${symA}&period=${period}&_t=${t}`).then(r => r.json()),
+                fetch(`/api/stock/performance?symbol=${symB}&period=${period}&_t=${t}`).then(r => r.json()),
+                fetch(`/api/stock/history?symbol=${symA}&period=${period}&_t=${t}`).then(r => r.json()),
+                fetch(`/api/stock/history?symbol=${symB}&period=${period}&_t=${t}`).then(r => r.json()),
             ]);
             
             setDataA({ ...perfA, price: perfA.currentPrice });
@@ -329,18 +330,30 @@ export default function ComparisonPage() {
     const mergedChartData = React.useMemo(() => {
         if (!histA.length || !histB.length) return [];
         
-        // Find common dates if possible, or just map by index if same length
-        return histA.map((d: any, i: number) => {
-            const baseA = histA[0]?.close || 1;
-            const baseB = histB[0]?.close || 1;
+        const nameKeyA = stockA?.replace(/\.(NS|BO)$/, '') || 'A';
+        const nameKeyB = stockB?.replace(/\.(NS|BO)$/, '') || 'B';
+        const baseA = histA[0]?.close || 1;
+        const baseB = histB[0]?.close || 1;
+
+        // Map B's data by date for alignment
+        const bMap = new Map(histB.map((d: any) => [new Date(d.date).setHours(0,0,0,0), d.close]));
+        
+        return histA.map((d: any) => {
+            const dateObj = new Date(d.date);
+            const ts = dateObj.setHours(0,0,0,0);
+            const closeB = bMap.get(ts);
+            
+            if (closeB === undefined) return null;
+
             return {
-                date: new Date(d.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
-                [stockA?.replace(/\.(NS|BO)$/, '') || 'A']: parseFloat((( (histA[i]?.close || 0) / baseA - 1) * 100).toFixed(2)),
-                [stockB?.replace(/\.(NS|BO)$/, '') || 'B']: parseFloat((( (histB[i]?.close || 0) / baseB - 1) * 100).toFixed(2)),
+                date: dateObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+                [nameKeyA]: parseFloat((( d.close / baseA - 1) * 100).toFixed(2)),
+                [nameKeyB]: parseFloat((( closeB / baseB - 1) * 100).toFixed(2)),
             };
-        }).filter((_, i) => {
-            if (period === '1y') return i % 10 === 0;
-            if (period === '3mo') return i % 3 === 0;
+        }).filter(Boolean).filter((_, i, arr) => {
+            if (period === '1y') return i % 10 === 0 || i === arr.length - 1;
+            if (period === '5y') return i % 30 === 0 || i === arr.length - 1;
+            if (period === '3mo') return i % 3 === 0 || i === arr.length - 1;
             return true;
         });
     }, [histA, histB, stockA, stockB, period]);
