@@ -571,95 +571,20 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                 </div>
             </motion.div>
 
-                <StockIntelligenceMemo symbol={symbol} />
+            <StockIntelligenceMemo symbol={symbol} />
 
-                <section className="glass-morphic-card rounded-[32px] p-5 md:p-8 mt-6 border-blue-500/10">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
-                            <Newspaper size={20} />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
-                        </div>
+            <section className="glass-morphic-card rounded-[32px] p-5 md:p-8 mt-6 border-blue-500/10">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10">
+                        <Newspaper size={20} />
                     </div>
-                    <StockNewsSentiment symbol={symbol} />
-                </section>
-
-            {/* 5. FUNCTIONAL METADATA FOOTER (FINAL POLISH) */}
-            <motion.div variants={itemVariants} className="pt-12 mt-12 border-t border-white/5">
-                <div className="flex flex-col lg:flex-row justify-between gap-12 items-start">
-                    {/* Brand Meta */}
-                    <div className="flex flex-col gap-5 max-w-xs">
-                        <div className="flex items-center gap-3.5 text-white font-bold text-xl font-outfit">
-                            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-sm shadow-[0_0_20px_rgba(37,99,235,0.4)]">SI</div>
-                            <div className="flex flex-col">
-                                <span className="leading-tight tracking-tight">StockIntel</span>
-                                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">Trading Platform</span>
-                            </div>
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-600 leading-relaxed uppercase tracking-[0.2em] opacity-80 mt-2">
-                            Professional Analytics Environment<br />
-                            <span className="text-slate-800 font-mono">Build 2.4.0-STABLE / RT-SYNC</span>
-                        </p>
-                    </div>
-
-                    {/* Telemetry Columns */}
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 w-full max-w-4xl lg:ml-12">
-                        <div className="flex flex-col gap-4">
-                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">Connection Status</h4>
-                            <div className="space-y-3.5">
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><RefreshCcw size={10} className="text-slate-600" /> Last Updated</span>
-                                    <span className="text-[10px] font-bold text-white font-mono tracking-wider whitespace-nowrap">{priceData.lastUpdated ? new Date(priceData.lastUpdated).toLocaleTimeString() : "--"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Database size={10} className="text-slate-600" /> Data Quality</span>
-                                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest whitespace-nowrap">High Quality</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-4">
-                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">System Info</h4>
-                            <div className="space-y-3.5">
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Shield size={10} className="text-slate-600" /> Layer</span>
-                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest tracking-wider whitespace-nowrap">Secure System</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Server size={10} className="text-slate-600" /> Node</span>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest tracking-wider whitespace-nowrap">HTTP/2 TLS 1.3</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-4">
-                            <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em] pb-2.5 border-b border-white/5">System Speed</h4>
-                            <div className="space-y-3.5">
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Activity size={10} className="text-slate-600" /> Latency</span>
-                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest whitespace-nowrap">Very Fast</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-4">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap"><Target size={10} className="text-slate-600" /> Data Correctness</span>
-                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest whitespace-nowrap">99.9% Correct</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Action Hub */}
-                    <div className="flex lg:flex-col items-center gap-3.5 lg:justify-start lg:h-full lg:pt-1">
-                        <div className="w-11 h-11 rounded-xl border border-white/5 flex items-center justify-center text-slate-600 hover:text-white hover:border-white transition-all cursor-pointer bg-white/[0.03]">
-                            <ExternalLink size={18} />
-                        </div>
-                        <div className="w-11 h-11 rounded-xl border border-white/5 flex items-center justify-center text-slate-600 hover:text-white hover:border-white transition-all cursor-pointer bg-white/[0.03]">
-                            <Shield size={18} />
-                        </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white tracking-tight leading-none mb-1">Intelligence Stream</h2>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">AI-Analyzed News & Sentiment Analysis</p>
                     </div>
                 </div>
-            </motion.div>
+                <StockNewsSentiment symbol={symbol} />
+            </section>
         </motion.div>
     );
 }
