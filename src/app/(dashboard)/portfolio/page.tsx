@@ -64,8 +64,8 @@ export default function PortfolioPage() {
             const limitData = await limitRes.json();
 
             setPortfolio(portData);
-            setTrades(tradeData || []);
-            setLimitOrders(limitData || []);
+            setTrades(Array.isArray(tradeData) ? tradeData : []);
+            setLimitOrders(Array.isArray(limitData) ? limitData : []);
             setAnalytics(analyticsData);
         } catch (err) {
             console.error("Failed to fetch dashboard data", err);
@@ -107,7 +107,8 @@ export default function PortfolioPage() {
     const totalUnrealizedPLPercent = totalInvested > 0 ? (totalUnrealizedPL / totalInvested) * 100 : 0;
     
     // Realized P&L from trades
-    const realizedPL = trades.filter(t => t.type === 'SELL').reduce((acc: number, t: any) => {
+    const safeTrades = Array.isArray(trades) ? trades : [];
+    const realizedPL = safeTrades.filter(t => t.type === 'SELL').reduce((acc: number, t: any) => {
         return acc + (t.realizedPL || 0);
     }, 0);
 
@@ -315,7 +316,7 @@ export default function PortfolioPage() {
                                     </div>
                                 </section>
 
-                                {limitOrders.filter(o => o.status === 'PENDING').length > 0 && (
+                                {Array.isArray(limitOrders) && limitOrders.filter(o => o.status === 'PENDING').length > 0 && (
                                     <section className="glass-morphic-card rounded-[32px] overflow-hidden border-blue-500/10">
                                         <div className="p-8 border-b border-white/5 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
@@ -337,7 +338,7 @@ export default function PortfolioPage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
-                                                    {limitOrders.filter(o => o.status === 'PENDING').map((order: any) => (
+                                                    {Array.isArray(limitOrders) && limitOrders.filter(o => o.status === 'PENDING').map((order: any) => (
                                                         <tr key={order.id} className="hover:bg-blue-500/[0.02] transition-all group">
                                                             <td className="px-8 py-5">
                                                                 <span className={cn(
@@ -430,7 +431,7 @@ export default function PortfolioPage() {
                                     </div>
                                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                                         <div className="space-y-3">
-                                            {trades.length > 0 ? trades.map((trade, idx) => (
+                                            {Array.isArray(trades) && trades.length > 0 ? trades.map((trade, idx) => (
                                                 <TradeItem key={idx} trade={trade} />
                                             )) : (
                                                 <div className="py-12 text-center opacity-20">
