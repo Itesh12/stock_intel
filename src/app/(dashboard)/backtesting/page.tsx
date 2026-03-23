@@ -26,10 +26,16 @@ const STRATEGIES = [
     { id: "volume_break", label: "Volume Breakout", description: "Buy when volume spikes above average and price is above 20 SMA.", params: [
         { label: "Vol Mult", key: "volMult", default: 2 },
     ]},
-    { id: "custom", label: "Quant Builder 🛠️", description: "Build your own strategy by picking an indicator and threshold.", params: [
-        { label: "Indicator", key: "indicator", default: "rsi", type: "select", options: ["rsi", "price"] },
-        { label: "Buy When", key: "operator", default: "less", type: "select", options: ["less", "greater"] },
-        { label: "Buy Value", key: "value", default: 30 },
+    { id: "custom", label: "Custom Strategy 🛠️", description: "Build your own strategy by picking from 20+ indicators and custom rules.", params: [
+        { label: "Indicator A", key: "indicator", default: "rsi", type: "select", options: [
+            "price", "volume", "rsi", "macd", "signal", "hist", "upper", "lower", "sma20", "sma50", "sma100", "sma200", "ema20", "ema50", "high20", "low20", "high252", "low252", "avgVol", "change", "gap", "volatility"
+        ]},
+        { label: "Condition", key: "operator", default: "less", type: "select", options: ["less", "greater"] },
+        { label: "Compare With", key: "compareWith", default: "value", type: "select", options: ["value", "indicator"] },
+        { label: "If Value", key: "value", default: 30, condition: (p: any) => p.compareWith !== 'indicator' },
+        { label: "If Indicator", key: "compareIndicator", default: "sma50", type: "select", options: [
+            "price", "volume", "rsi", "macd", "signal", "hist", "upper", "lower", "sma20", "sma50", "sma100", "sma200", "ema20", "ema50", "high20", "low20", "high252", "low252", "avgVol", "change", "gap", "volatility"
+        ], condition: (p: any) => p.compareWith === 'indicator' },
         { label: "Sell Value", key: "sellValue", default: 70 },
     ]},
 ];
@@ -83,73 +89,97 @@ function runBacktest(history: any[], strategyId: string, params: any): { trades:
         return Math.sqrt(variance);
     };
 
-    let prevEma12 = null, prevEma26 = null, prevSignal = null;
-    const macdBuffer: number[] = [];
+    // INDICATOR PRE-CALCULATOR
+    const indicators: Record<string, number[]> = {
+        price: prices,
+        volume: history.map(h => h.volume || 0),
+        sma20: prices.map((_, i) => sma(prices, 20, i)),
+        sma50: prices.map((_, i) => sma(prices, 50, i)),
+        sma100: prices.map((_, i) => sma(prices, 100, i)),
+        sma200: prices.map((_, i) => sma(prices, 200, i)),
+        rsi: prices.map((_, i) => calculateRSI(prices, i, 14)),
+        high20: prices.map((_, i) => Math.max(...prices.slice(Math.max(0, i - 20), i + 1))),
+        low20: prices.map((_, i) => Math.min(...prices.slice(Math.max(0, i - 20), i + 1))),
+        high252: prices.map((_, i) => Math.max(...prices.slice(Math.max(0, i - 252), i + 1))),
+        low252: prices.map((_, i) => Math.min(...prices.slice(Math.max(0, i - 252), i + 1))),
+    };
+
+    // EMA & MACD Pre-calc
+    let e12 = null, e26 = null, sig = null, e20 = null, e50 = null;
+    const macdLineArr: number[] = [], signalLineArr: number[] = [];
+    const ema20Arr: number[] = [], ema50Arr: number[] = [];
+    for (let i = 0; i < prices.length; i++) {
+        e12 = calculateEMA(prices, i, 12, e12);
+        e26 = calculateEMA(prices, i, 26, e26);
+        e20 = calculateEMA(prices, i, 20, e20);
+        e50 = calculateEMA(prices, i, 50, e50);
+        const mLine = e12 - e26;
+        macdLineArr.push(mLine);
+        sig = calculateEMA(macdLineArr, i, 9, sig);
+        signalLineArr.push(sig);
+        ema20Arr.push(e20 || 0);
+        ema50Arr.push(e50 || 0);
+    }
+    indicators.macd = macdLineArr;
+    indicators.signal = signalLineArr;
+    indicators.hist = macdLineArr.map((m, i) => m - signalLineArr[i]);
+    indicators.ema20 = ema20Arr;
+    indicators.ema50 = ema50Arr;
+
+    // Bollinger Pre-calc
+    indicators.upper = prices.map((_, i) => sma(prices, 20, i) + calculateStdDev(prices, i, 20) * 2);
+    indicators.lower = prices.map((_, i) => sma(prices, 20, i) - calculateStdDev(prices, i, 20) * 2);
+
+    // Volatility & Momentum
+    indicators.avgVol = indicators.volume.map((_, i) => sma(indicators.volume, 20, i));
+    indicators.change = prices.map((p, i) => i === 0 ? 0 : ((p - prices[i - 1]) / prices[i - 1]) * 100);
+    indicators.gap = prices.map((p, i) => i === 0 ? 0 : ((p - history[i - 1].close) / history[i - 1].close) * 100);
+    indicators.volatility = prices.map((_, i) => calculateStdDev(prices, i, 20));
+
     let grossWins = 0;
     let grossLosses = 0;
 
     for (let i = 50; i < prices.length; i++) {
         const date = new Date(history[i].date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
         const price = prices[i];
-        const volume = history[i].volume || 0;
         let signal = null;
 
         // STRATEGY LOGIC
         if (strategyId === 'sma_cross') {
-            const sShort = params.smaShort || 20;
-            const sLong = params.smaLong || 50;
-            const short = sma(prices, sShort, i);
-            const long = sma(prices, sLong, i);
-            const prevShort = sma(prices, sShort, i - 1);
-            const prevLong = sma(prices, sLong, i - 1);
+            const short = sma(prices, params.smaShort || 20, i);
+            const long = sma(prices, params.smaLong || 50, i);
+            const prevShort = sma(prices, params.smaShort || 20, i - 1);
+            const prevLong = sma(prices, params.smaLong || 50, i - 1);
             if (prevShort <= prevLong && short > long) signal = 'BUY';
             if (prevShort >= prevLong && short < long) signal = 'SELL';
         } else if (strategyId === 'rsi_mean') {
-            const rsi = calculateRSI(prices, i, params.rsiPeriod || 14);
-            const thresholdLow = params.rsiLow || 30;
-            const thresholdHigh = params.rsiHigh || 70;
-            if (rsi < thresholdLow && shares === 0) signal = 'BUY';
-            if (rsi > thresholdHigh && shares > 0) signal = 'SELL';
+            const rsi = indicators.rsi[i];
+            if (rsi < (params.rsiLow || 30) && shares === 0) signal = 'BUY';
+            if (rsi > (params.rsiHigh || 70) && shares > 0) signal = 'SELL';
         } else if (strategyId === 'macd') {
-            const ema12: number = calculateEMA(prices, i, params.macdFast || 12, prevEma12);
-            const ema26: number = calculateEMA(prices, i, params.macdSlow || 26, prevEma26);
-            const macdLine = ema12 - ema26;
-            macdBuffer.push(macdLine);
-            const signalLine: number = calculateEMA(macdBuffer, macdBuffer.length - 1, 9, prevSignal);
-            if (macdLine > signalLine && (prevSignal === null || (macdBuffer[macdBuffer.length - 2] || 0) <= (prevSignal || 0)) && shares === 0) signal = 'BUY';
-            if (macdLine < signalLine && (prevSignal === null || (macdBuffer[macdBuffer.length - 2] || 0) >= (prevSignal || 0)) && shares > 0) signal = 'SELL';
-            prevEma12 = ema12; prevEma26 = ema26; prevSignal = signalLine;
+            if (indicators.macd[i] > indicators.signal[i] && indicators.macd[i - 1] <= indicators.signal[i - 1]) signal = 'BUY';
+            if (indicators.macd[i] < indicators.signal[i] && indicators.macd[i - 1] >= indicators.signal[i - 1]) signal = 'SELL';
         } else if (strategyId === 'bollinger') {
-            const period = params.bbPeriod || 20;
-            const stdDevMult = params.bbStd || 2;
-            const mean = sma(prices, period, i);
-            const stdDev = calculateStdDev(prices, i, period);
-            const upper = mean + stdDev * stdDevMult;
-            const lower = mean - stdDev * stdDevMult;
-            if (price <= lower && shares === 0) signal = 'BUY';
-            if (price >= upper && shares > 0) signal = 'SELL';
+            if (price <= indicators.lower[i] && shares === 0) signal = 'BUY';
+            if (price >= indicators.upper[i] && shares > 0) signal = 'SELL';
         } else if (strategyId === 'volume_break') {
-            const sma20 = sma(prices, 20, i);
-            const avgVol = history.slice(Math.max(0, i - 20), i).reduce((a, b) => a + (b.volume || 0), 0) / 20;
-            if (volume > avgVol * (params.volMult || 2) && price > sma20 && shares === 0) signal = 'BUY';
-            if (price < sma20 && shares > 0) signal = 'SELL';
+            if (indicators.volume[i] > indicators.avgVol[i] * (params.volMult || 2) && price > indicators.sma20[i]) signal = 'BUY';
+            if (price < indicators.sma20[i] && shares > 0) signal = 'SELL';
         } else if (strategyId === 'custom') {
-            const indicator = params.indicator || 'rsi';
+            const valA = indicators[params.indicator || 'rsi']?.[i] ?? 0;
             const operator = params.operator || 'less';
-            const buyVal = params.value || 30;
-            const sellVal = params.sellValue || 70;
-            let currentVal = 0;
-            if (indicator === 'rsi') currentVal = calculateRSI(prices, i, 14);
-            else if (indicator === 'price') currentVal = price;
+            const valB = params.compareWith === 'indicator' 
+                ? (indicators[params.compareIndicator || 'sma50']?.[i] ?? 0)
+                : (params.value || 30);
             
-            const isBuyMet = operator === 'less' ? currentVal < buyVal : currentVal > buyVal;
-            const isSellMet = operator === 'less' ? currentVal > sellVal : currentVal < sellVal;
+            const isBuyMet = operator === 'less' ? valA < valB : valA > valB;
+            const sellThreshold = params.sellValue || 70;
+            const isSellMet = operator === 'less' ? valA > sellThreshold : valA < sellThreshold;
             
             if (isBuyMet && shares === 0) signal = 'BUY';
             if (isSellMet && shares > 0) signal = 'SELL';
         } else if (strategyId === 'momentum') {
-            const lookback = params.momLookback || 252;
-            const high52 = Math.max(...prices.slice(Math.max(0, i - lookback), i));
+            const high52 = Math.max(...prices.slice(Math.max(0, i - (params.momLookback || 252)), i));
             if (price >= high52 * 0.99 && shares === 0) signal = 'BUY';
             if (shares > 0 && i % (params.holdDays || 30) === 0) signal = 'SELL';
         }
@@ -279,7 +309,7 @@ export default function BacktestingPage() {
                                 <input
                                     className="bg-transparent text-white text-sm font-medium w-full focus:outline-none placeholder:text-slate-600"
                                     placeholder="Search stock..."
-                                    value={searchQuery}
+                                    value={searchQuery.toUpperCase()}
                                     onChange={e => handleSearch(e.target.value.toUpperCase())}
                                 />
                             </div>
@@ -368,7 +398,7 @@ export default function BacktestingPage() {
                             <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Strategy Parameters</h3>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {STRATEGIES.find(s => s.id === strategy)?.params?.map(p => (
+                            {STRATEGIES.find(s => s.id === strategy)?.params?.filter(p => !p.condition || p.condition(params)).map(p => (
                                 <div key={p.key} className="space-y-2">
                                     <label className="text-[9px] font-bold text-slate-500 ml-1">{p.label}</label>
                                     {p.type === "select" ? (
