@@ -70,7 +70,17 @@ export default function PortfolioPage() {
     const totalInvested = holdings.reduce((acc: number, h: any) => acc + (h.quantity * h.averagePrice), 0);
     const totalUnrealizedPL = holdings.reduce((acc: number, h: any) => acc + (h.unrealizedPL || 0), 0);
     const totalUnrealizedPLPercent = totalInvested > 0 ? (totalUnrealizedPL / totalInvested) * 100 : 0;
-    const isTotalPositive = totalUnrealizedPL >= 0;
+    
+    // Calculate Realized P&L (Simplified: Sum of P&L from Sell trades)
+    // Note: A robust system would track lots, but here we use the trade history's P&L if available or calculate it.
+    const realizedPL = trades.filter(t => t.type === 'SELL').reduce((acc: number, t: any) => acc + (t.realizedPL || 0), 0);
+    const combinedPL = realizedPL + totalUnrealizedPL;
+    
+    const isTotalPositive = combinedPL >= 0;
+
+    // Derived Performance Lists
+    const gainers = [...holdings].sort((a: any, b: any) => (b.dayChangePercent || 0) - (a.dayChangePercent || 0)).slice(0, 3);
+    const losers = [...holdings].sort((a: any, b: any) => (a.dayChangePercent || 0) - (b.dayChangePercent || 0)).slice(0, 3);
 
     return (
         <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
@@ -78,10 +88,10 @@ export default function PortfolioPage() {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Briefcase size={14} className="text-blue-500" />
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">My Assets</span>
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Wealth Dashboard</span>
                     </div>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight font-outfit">My Portfolio</h1>
-                    <p className="text-slate-500 mt-2 text-sm font-medium">View your stocks, performance, and where your money is invested.</p>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight font-outfit text-pretty">Portfolio Intelligence</h1>
+                    <p className="text-slate-500 mt-2 text-sm font-medium">Real-time tracking of combined P&L, sector concentration, and asset performance.</p>
                     <div className="flex items-center gap-6 mt-6">
                         <button 
                             onClick={() => setActiveTab('live')}
@@ -90,7 +100,7 @@ export default function PortfolioPage() {
                                 activeTab === 'live' ? "text-blue-500" : "text-slate-500 hover:text-slate-300"
                             )}
                         >
-                            Live Portfolio
+                            Live Positions
                             {activeTab === 'live' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />}
                         </button>
                         <button 
@@ -100,7 +110,7 @@ export default function PortfolioPage() {
                                 activeTab === 'backtest' ? "text-indigo-500" : "text-slate-500 hover:text-slate-300"
                             )}
                         >
-                            Backtest History
+                            Quant History
                             {activeTab === 'backtest' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
                         </button>
                     </div>
@@ -108,7 +118,7 @@ export default function PortfolioPage() {
 
                 {portfolio && (
                     <div className="flex flex-col items-end gap-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Cash to Invest</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Available Capital</span>
                         <div className="text-2xl font-black text-emerald-400 font-outfit tracking-tighter">
                             ₹{formatIndianNumber(portfolio.cashBalance)}
                         </div>
@@ -127,26 +137,65 @@ export default function PortfolioPage() {
                     >
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                             <StatCard
-                                title="Total Portfolio Value"
+                                title="Current Net Worth"
                                 value={`₹${formatIndianNumber(portfolio?.totalValue || 0)}`}
-                                indicator={`${portfolio?.totalPLPercent?.toFixed(2) || 0}%`}
-                                subIndicator={`${(portfolio?.dayPnL || 0) >= 0 ? '+' : ''}${portfolio?.dayPnLPercent?.toFixed(2) || 0}% Today`}
+                                indicator={`${(portfolio?.totalPLPercent || 0).toFixed(2)}%`}
+                                subIndicator="LIFETIME"
                                 color={(portfolio?.totalPL || 0) >= 0 ? "emerald" : "blue"}
                             />
                             <StatCard
-                                title="Cash Balance"
-                                value={`₹${formatIndianNumber(portfolio?.cashBalance || 0)}`}
-                                indicator="READY"
-                                color="emerald"
+                                title="Combined P&L"
+                                value={`₹${formatIndianNumber(combinedPL)}`}
+                                indicator={`${isTotalPositive ? '+' : ''}${((combinedPL / (totalInvested || 1)) * 100).toFixed(2)}%`}
+                                subIndicator="REALIZED + PAPER"
+                                color={isTotalPositive ? "emerald" : "blue"}
                             />
-                            <StatCard title="Diversification" value={`${holdings.length} Positions`} indicator="ACTIVE" color="blue" />
                             <StatCard
-                                title="Safety Rating"
+                                title="Day Performance"
+                                value={`₹${formatIndianNumber(Math.abs(portfolio?.dayPnL || 0))}`}
+                                indicator={`${(portfolio?.dayPnL || 0) >= 0 ? '+' : ''}${portfolio?.dayPnLPercent?.toFixed(2) || 0}%`}
+                                subIndicator="TODAY'S FLUCTUATION"
+                                color={(portfolio?.dayPnL || 0) >= 0 ? "emerald" : "blue"}
+                            />
+                            <StatCard
+                                title="Risk Efficiency"
                                 value={analytics?.sharpeRatio?.toFixed(2) || "0.00"}
                                 indicator="SHARPE"
-                                subIndicator={`DD: ${analytics?.maxDrawdown?.toFixed(1) || 0}%`}
+                                subIndicator={`Volatility: ${analytics?.volatility?.toFixed(1) || 0}%`}
                                 color="blue"
                             />
+                        </div>
+
+                        {/* TOP PERFORMERS SHELF */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="glass-morphic-card rounded-3xl p-6 border-emerald-500/10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Top Gainers</h3>
+                                    <ArrowUpRight size={14} className="text-emerald-500" />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    {gainers.length > 0 ? gainers.map(h => (
+                                        <div key={h.symbol} className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                                            <div className="text-xs font-black text-white">{h.symbol}</div>
+                                            <div className="text-[10px] font-bold text-emerald-400">+{h.dayChangePercent.toFixed(2)}%</div>
+                                        </div>
+                                    )) : <div className="col-span-3 text-[10px] text-slate-600 font-bold uppercase py-2">No Gainers Today</div>}
+                                </div>
+                            </div>
+                            <div className="glass-morphic-card rounded-3xl p-6 border-rose-500/10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Top Losers</h3>
+                                    <ArrowDownRight size={14} className="text-rose-500" />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    {losers.length > 0 ? losers.map(h => (
+                                        <div key={h.symbol} className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                                            <div className="text-xs font-black text-white">{h.symbol}</div>
+                                            <div className="text-[10px] font-bold text-rose-400">{h.dayChangePercent.toFixed(2)}%</div>
+                                        </div>
+                                    )) : <div className="col-span-3 text-[10px] text-slate-600 font-bold uppercase py-2">No Data</div>}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
@@ -176,8 +225,8 @@ export default function PortfolioPage() {
                                                 <thead>
                                                     <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
                                                         <th className="px-8 py-5 font-bold">Stock Name</th>
-                                                        <th className="px-8 py-5 font-bold">Quantity</th>
-                                                        <th className="px-8 py-5 font-bold">Buy Price</th>
+                                                        <th className="px-8 py-5 font-bold text-center">Weight %</th>
+                                                        <th className="px-8 py-5 font-bold">Buy Price & Target</th>
                                                         <th className="px-8 py-5 font-bold">Current Price</th>
                                                         <th className="px-8 py-5 font-bold text-right">Total Value</th>
                                                         <th className="px-8 py-5 font-bold text-right">Actions</th>
@@ -188,6 +237,7 @@ export default function PortfolioPage() {
                                                         <HoldingRow
                                                             key={holding.id}
                                                             holding={holding}
+                                                            portfolioTotalValue={portfolio?.totalValue || 1}
                                                             onTradeSuccess={fetchPortfolio}
                                                         />
                                                     ))}
@@ -367,43 +417,52 @@ export default function PortfolioPage() {
                                     <FinanceManagement onDepositSuccess={fetchPortfolio} />
                                 </section>
 
-                                <section className="glass-morphic-card rounded-[32px] p-8 border-indigo-500/10">
+                                <section className="glass-morphic-card rounded-[32px] p-8 border-indigo-500/10 h-[600px] flex flex-col">
                                     <div className="flex items-center justify-between mb-8">
                                         <div className="flex items-center gap-3">
-                                            <ShieldAlert size={20} className="text-indigo-500" />
-                                            <h2 className="text-lg font-bold text-white tracking-tight">Safety Rating</h2>
+                                            <PieChart size={20} className="text-indigo-500" />
+                                            <h2 className="text-lg font-bold text-white tracking-tight">Concentration Hub</h2>
                                         </div>
-                                        <ResetPortfolioButton onReset={fetchPortfolio} />
+                                        <div className="flex gap-2">
+                                            <ResetPortfolioButton onReset={fetchPortfolio} />
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-8">
-                                        <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
-                                            <div className="flex justify-between items-end mb-4">
-                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Overall Risk Score</span>
-                                                <span className="text-2xl font-black text-emerald-400 font-mono leading-none tracking-tighter">24<span className="text-[10px] text-slate-600 ml-1">/100</span></span>
-                                            </div>
-                                            <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[24%] shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+                                    <div className="flex-1 space-y-10 overflow-y-auto pr-2 custom-scrollbar">
+                                        {/* SECTOR ALLOCATION CHART */}
+                                        <div className="space-y-4">
+                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Sector Allocation</div>
+                                            <div className="h-48 w-full">
+                                                <ConcentrationChart 
+                                                    data={Object.entries(portfolio?.sectorExposure || {}).map(([name, value]) => ({ name, value }))} 
+                                                    colors={['#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899']}
+                                                />
                                             </div>
                                         </div>
 
-                                        <div className="space-y-5">
-                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Industry Breakdown</div>
-                                            <div className="space-y-4">
-                                                {Object.entries(portfolio?.sectorExposure || {}).length > 0 ? (
-                                                    Object.entries(portfolio.sectorExposure).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5).map(([sector, percent]: any, idx) => (
-                                                        <ExposureBar
-                                                            key={sector}
-                                                            label={sector}
-                                                            percent={Math.round(percent)}
-                                                            color={idx === 0 ? 'blue' : idx === 1 ? 'indigo' : 'slate'}
-                                                        />
-                                                    ))
-                                                ) : (
-                                                    <div className="py-10 text-center opacity-20">
-                                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">No sector data</span>
-                                                    </div>
-                                                )}
+                                        {/* ASSET CONCENTRATION */}
+                                        <div className="space-y-4">
+                                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Asset Concentration</div>
+                                            <div className="h-48 w-full">
+                                                <ConcentrationChart 
+                                                    data={holdings.map((h: any) => ({ name: h.symbol, value: (h.marketValue / (portfolio?.totalValue || 1)) * 100 }))} 
+                                                    colors={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#6366f1']}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
+                                            <div className="flex justify-between items-end mb-4">
+                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Portfolio Safety</span>
+                                                <span className="text-2xl font-black text-emerald-400 font-mono leading-none tracking-tighter">
+                                                    {Math.min(100, Math.round((analytics?.sharpeRatio || 0) * 40))}<span className="text-[10px] text-slate-600 ml-1">/100</span>
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" 
+                                                    style={{ width: `${Math.min(100, Math.round((analytics?.sharpeRatio || 0) * 40))}%` }}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -506,12 +565,16 @@ function ResetPortfolioButton({ onReset }: { onReset: () => void }) {
     );
 }
 
-function HoldingRow({ holding, onTradeSuccess }: any) {
+function HoldingRow({ holding, portfolioTotalValue, onTradeSuccess }: any) {
     const { symbol, quantity: qty, averagePrice: avg, currentPrice: cur, marketValue: val, unrealizedPL: pl } = holding;
     const isPositive = pl >= 0;
     const [isSelling, setIsSelling] = useState(false);
     const [sellQty, setSellQty] = useState(1);
     const [showSellAction, setShowSellAction] = useState(false);
+
+    const weight = (val / portfolioTotalValue) * 100;
+    const gainLossColor = isPositive ? "text-emerald-400" : "text-rose-400";
+    const gainLossBg = isPositive ? "bg-emerald-500/10" : "bg-rose-500/10";
 
     const handleSell = async () => {
         setIsSelling(true);
@@ -543,8 +606,31 @@ function HoldingRow({ holding, onTradeSuccess }: any) {
                     </Link>
                 </div>
             </td>
-            <td className="px-4 md:px-8 py-4 md:py-6 text-sm font-bold text-slate-300 font-mono tracking-tighter">{qty}</td>
-            <td className="px-4 md:px-8 py-4 md:py-6 text-sm text-slate-600 font-medium">₹{avg.toFixed(2)}</td>
+            <td className="px-4 md:px-8 py-4 md:py-6 text-center">
+                <div className="flex flex-col items-center gap-1.5">
+                    <div className="text-xs font-black text-white font-mono">{weight.toFixed(1)}%</div>
+                    <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500" style={{ width: `${weight}%` }} />
+                    </div>
+                </div>
+            </td>
+            <td className="px-4 md:px-8 py-4 md:py-6">
+                <div className="space-y-1.5 min-w-[120px]">
+                    <div className="flex justify-between text-[10px] items-center">
+                        <span className="text-slate-500 font-bold uppercase tracking-widest">Entry: ₹{avg.toFixed(1)}</span>
+                    </div>
+                    <div className="h-1 bg-white/5 rounded-full overflow-hidden relative">
+                        <div 
+                            className={cn("absolute h-full transition-all duration-1000", isPositive ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : "bg-rose-500 shadow-[0_0_8px_#ef4444]")} 
+                            style={{ 
+                                left: isPositive ? '50%' : `${Math.max(0, 50 - Math.abs(pl / (val || 1) * 100))}%`,
+                                width: `${Math.min(50, Math.abs(pl / (val || 1) * 100))}%`
+                            }} 
+                        />
+                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-white/20 z-10" />
+                    </div>
+                </div>
+            </td>
             <td className="px-4 md:px-8 py-4 md:py-6 text-sm text-slate-300 font-bold font-mono tracking-tighter">
                 <div>₹{cur.toFixed(2)}</div>
                 {holding.dayChange !== undefined && (
@@ -724,6 +810,54 @@ function FinanceManagement({ onDepositSuccess }: { onDepositSuccess: () => void 
                         </motion.div>
                     )}
                 </AnimatePresence>
+            </div>
+        </div>
+    );
+}
+
+function ConcentrationChart({ data, colors }: { data: any[]; colors: string[] }) {
+    if (!data || data.length === 0) return (
+        <div className="h-full flex items-center justify-center opacity-20 border border-dashed border-white/10 rounded-2xl">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Awaiting Assets</span>
+        </div>
+    );
+
+    // Dynamic import of Recharts to avoid SSR issues if any, but since it's a client component we can just use it
+    const { PieChart: RePieChart, Pie, Cell, ResponsiveContainer, Tooltip: ReTooltip } = require('recharts');
+
+    return (
+        <div className="flex items-center gap-10 h-full">
+            <ResponsiveContainer width="60%" height="100%">
+                <RePieChart>
+                    <Pie
+                        data={data}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={70}
+                        paddingAngle={5}
+                        dataKey="value"
+                        animationDuration={1500}
+                    >
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="rgba(0,0,0,0.2)" />
+                        ))}
+                    </Pie>
+                    <ReTooltip 
+                        contentStyle={{ backgroundColor: '#121214', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '9px' }}
+                        itemStyle={{ fontWeight: 800 }}
+                        formatter={(value: any) => [`${value.toFixed(1)}%`]}
+                    />
+                </RePieChart>
+            </ResponsiveContainer>
+            <div className="flex-1 space-y-3">
+                {data.slice(0, 5).map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
+                        <span className="text-[9px] font-bold text-slate-500 uppercase truncate max-w-[80px]">{d.name}</span>
+                        <span className="text-[9px] font-black text-white ml-auto">{d.value.toFixed(1)}%</span>
+                    </div>
+                ))}
             </div>
         </div>
     );
