@@ -375,39 +375,60 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 )}
             </section>
 
-            {/* SECTION 2: GLOBAL MACRO (High Density Grid) */}
-            <section className="space-y-4">
-                <div className="flex items-center justify-between">
+            {/* SECTION 2: MACRO MONITOR */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
-                        <Globe className="text-blue-400" size={20} />
-                        Global Macro
+                        <Coins className="text-amber-400" size={20} />
+                        Gold & Commodities
                     </h2>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Commodities, Rates & Yields</span>
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    {/* Commodities */}
-                    {[
-                        { label: "Gold", sym: "GC=F", icon: <Coins size={12} className="text-amber-500/50" /> },
-                        { label: "Silver", sym: "SI=F", icon: <Coins size={12} className="text-neutral-400/50" /> },
-                        { label: "Crude", sym: "CL=F", icon: <Coins size={12} className="text-slate-500/50" /> },
-                        // Currencies
-                        { label: "USD/INR", sym: "USDINR=X", icon: <Banknote size={12} className="text-emerald-500/50" /> },
-                        { label: "EUR/INR", sym: "EURINR=X", icon: <Banknote size={12} className="text-blue-500/50" /> },
-                        { label: "GBP/INR", sym: "GBPINR=X", icon: <Banknote size={12} className="text-purple-500/50" /> },
-                        { label: "JPY/INR", sym: "JPYINR=X", icon: <Banknote size={12} className="text-rose-500/50" /> },
-                        { label: "AUD/INR", sym: "AUDINR=X", icon: <Banknote size={12} className="text-yellow-500/50" /> },
-                        { label: "CHF/INR", sym: "CHFINR=X", icon: <Banknote size={12} className="text-red-500/50" /> },
-                        // Yields
-                        { label: "US 13W", sym: "^IRX", icon: <Timer size={12} className="text-indigo-500/50" /> },
-                        { label: "US 5Y", sym: "^FVX", icon: <Timer size={12} className="text-indigo-500/50" /> },
-                        { label: "US 10Y", sym: "^TNX", icon: <Timer size={12} className="text-indigo-500/50" /> },
-                        { label: "US 30Y", sym: "^TYX", icon: <Timer size={12} className="text-indigo-500/50" /> }
-                    ].map((item) => (
-                        <SymbolCard key={item.sym} label={item.label} data={getPerf(item.sym)} icon={item.icon} />
-                    ))}
-                </div>
-            </section>
+                    <div className="grid grid-cols-1 gap-4">
+                        {[
+                            { label: "Gold Futures", sym: "GC=F" },
+                            { label: "Silver Futures", sym: "SI=F" },
+                            { label: "Crude Oil", sym: "CL=F" }
+                        ].map((item) => (
+                            <SymbolCard key={item.sym} label={item.label} data={getPerf(item.sym)} icon={<Coins size={14} className="text-amber-500/50" />} />
+                        ))}
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
+                        <Banknote className="text-emerald-400" size={20} />
+                        Currency Rates
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                            { label: "USD / INR", sym: "USDINR=X" },
+                            { label: "EUR / INR", sym: "EURINR=X" },
+                            { label: "GBP / INR", sym: "GBPINR=X" },
+                            { label: "JPY / INR", sym: "JPYINR=X" },
+                            { label: "AUD / INR", sym: "AUDINR=X" },
+                            { label: "CHF / INR", sym: "CHFINR=X" }
+                        ].map((item) => (
+                            <SymbolCard key={item.sym} label={item.label} data={getPerf(item.sym)} />
+                        ))}
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
+                        <Timer className="text-purple-400" size={20} />
+                        US Yield Curve
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                            { label: "US 13W Yield", sym: "^IRX" },
+                            { label: "US 5Y Yield", sym: "^FVX" },
+                            { label: "US 10Y Yield", sym: "^TNX" },
+                            { label: "US 30Y Yield", sym: "^TYX" }
+                        ].map((item) => (
+                            <SymbolCard key={item.sym} label={item.label} data={getPerf(item.sym)} />
+                        ))}
+                    </div>
+                </section>
+            </div>
 
             {/* SECTION 3: INDIAN SECTOR ALPHA (Definitive Grid Alignment) */}
             <div className="pt-4 md:pt-6 border-t border-white/5">
@@ -512,7 +533,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* Data Insights Breakdown */}
-            <div className="rounded-2xl border border-white/5 bg-white/5 p-4 md:p-5 space-y-3 mt-4">
+            <div className="rounded-3xl border border-white/5 bg-white/5 p-6 space-y-4">
                 <div className="flex items-center gap-2">
                     <Info size={16} className="text-blue-400" />
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">How these scores are calculated</h3>
@@ -539,10 +560,10 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
 function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: any; icon?: React.ReactNode; prefix?: string }) {
     return (
         <motion.div
-            whileHover={{ y: -2, scale: 1.02 }}
-            className="glass-card p-3 md:p-4 flex flex-col gap-1.5 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
+            whileHover={{ y: -4, scale: 1.02 }}
+            className="glass-card p-5 md:p-6 flex flex-col gap-2 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
         >
-            <div className="flex items-center gap-1.5 opacity-50 mb-0.5">
+            <div className="flex items-center gap-1.5 opacity-50 mb-1">
                 {icon || <Globe size={12} className="text-slate-500" />}
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate leading-none">{label}</span>
             </div>
