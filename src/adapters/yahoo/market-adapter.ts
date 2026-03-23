@@ -443,7 +443,13 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
     async getNews(symbol: string, count: number = 5): Promise<any[]> {
         try {
-            const result = await (yahooFinance.search(symbol, { newsCount: count }, { validateResult: false }) as any);
+            // Re-fetch or use cached stock info to get the full company name for better news search
+            // If the symbol is niche, searching for the long name often yields better results
+            const cacheKey = `price_${symbol}`;
+            const cached = CacheUtils.get(cacheKey);
+            const searchQuery = cached?.name ? `${cached.name} ${symbol}` : symbol;
+
+            const result = await (yahooFinance.search(searchQuery, { newsCount: count }, { validateResult: false }) as any);
             return result.news || [];
         } catch (error) {
             console.error(`Error fetching news for ${symbol}:`, error);

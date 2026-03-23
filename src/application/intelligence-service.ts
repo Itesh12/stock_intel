@@ -24,6 +24,7 @@ export interface IntelligenceMemo {
     recommendation: {
         action: "BUY" | "SELL" | "HOLD";
         rationale: string;
+        confidence: number;
     };
     generatedAt: Date;
 }
@@ -93,20 +94,36 @@ export class IntelligenceService {
 
         const action = score.overallScore > 75 ? "BUY" : (score.overallScore < 40 ? "SELL" : "HOLD");
         
+        // 1. Calculate realistic Confidence
+        // Factors: Data completeness + Score alignment
+        const dataCompleteness = (stock.peRatio ? 0.2 : 0) + (stock.roe ? 0.2 : 0) + (stock.debtToEquity ? 0.2 : 0) + (stock.beta ? 0.2 : 0) + 0.2;
+        const scoreDivergence = Math.abs(score.fundamentalScore - score.technicalScore) / 100;
+        const confidenceScore = Math.round((dataCompleteness * 100 * (1 - scoreDivergence * 0.5)));
+
+        // 2. Build dynamic Rationale
         let rational = "";
+        const strengths = [];
+        if (score.fundamentalScore > 70) strengths.push("robust fundamentals (ROE/margins)");
+        if (score.technicalScore > 70) strengths.push("strong price action near 52W highs");
+        if (score.momentumScore > 80) strengths.push("explosive short-term momentum");
+        
+        const risks = [];
+        if (score.riskScore < 50) risks.push("elevated volatility/beta");
+        if (score.fundamentalScore < 40) risks.push("stretched valuation (P/E)");
+
         if (action === "BUY") {
-            rational = `${stock.symbol} shows exceptional strength in ${score.fundamentalScore > score.technicalScore ? 'fundamental value' : 'technical momentum'}. Sentiment is currently ${sentiment.toLowerCase()}.`;
+            rational = `${stock.symbol} is showing ${strengths.join(" and ")}. Sentiment is ${sentiment.toLowerCase()}.`;
         } else if (action === "SELL") {
-            rational = `Elevated risk and weakening momentum suggest a defensive stance. Sentiment is ${sentiment.toLowerCase()}.`;
+            rational = `Caution advised due to ${risks.join(" and ")}. Technical momentum is ${momentum.toLowerCase()}.`;
         } else {
-            rational = `Maintain current position. Fundamentals are stable, but momentum is neutral. Sentiment is ${sentiment.toLowerCase()}.`;
+            rational = `Neutral stance. ${strengths.length > 0 ? strengths[0] : 'Stable metrics'} balanced by ${risks.length > 0 ? risks[0] : 'market uncertainty'}.`;
         }
 
         return {
             symbol: stock.symbol,
             name: stock.name,
             overallScore: score.overallScore,
-            summary: `Intelligence analysis for ${stock.name} indicates a ${valuation.toLowerCase()} profile with ${momentum.toLowerCase()} momentum and ${sentiment.toLowerCase()} news flow.`,
+            summary: `${stock.name} maintains a ${valuation.toLowerCase()} profile with ${momentum.toLowerCase()} momentum. Analysis confidence is ${confidenceScore}%.`,
             keyMetrics: {
                 valuation,
                 momentum,
@@ -122,7 +139,8 @@ export class IntelligenceService {
             },
             recommendation: {
                 action,
-                rationale: rational
+                rationale: rational,
+                confidence: confidenceScore
             },
             generatedAt: new Date()
         };

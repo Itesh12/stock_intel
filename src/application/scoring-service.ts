@@ -47,36 +47,97 @@ export class ScoringService {
     }
 
     private computeFundamentalScore(stock: Stock): number {
-        // Placeholder logic for Phase 1/2
-        // In production, this would look at P/E, Debt/Equity, Revenue Growth etc.
-        if (stock.marketCap > 2000000000000) return 85; // Mega caps
-        if (stock.marketCap > 100000000000) return 75; // Large caps
-        return 60;
+        let score = 50; // Neutral starting point
+
+        // 1. P/E Ratio (Lower is generally better, but not 0)
+        if (stock.peRatio) {
+            if (stock.peRatio < 15) score += 20;
+            else if (stock.peRatio < 25) score += 10;
+            else if (stock.peRatio > 50) score -= 10;
+        }
+
+        // 2. ROE (Higher is better)
+        if (stock.roe) {
+            const roePct = stock.roe * 100;
+            if (roePct > 20) score += 20;
+            else if (roePct > 10) score += 10;
+            else if (roePct < 5) score -= 10;
+        }
+
+        // 3. Debt to Equity (Lower is safer)
+        if (stock.debtToEquity) {
+            if (stock.debtToEquity < 50) score += 10; // Debt/Equity < 0.5
+            else if (stock.debtToEquity > 150) score -= 10;
+        }
+
+        // 4. Margins
+        if (stock.profitMargins) {
+            const margins = stock.profitMargins * 100;
+            if (margins > 15) score += 10;
+        }
+
+        return Math.max(0, Math.min(100, score));
     }
 
     private computeTechnicalScore(stock: Stock, context: any): number {
-        // Looks at EMA/SMA crossovers, RSI etc.
-        const change = stock.changePercent;
-        if (change > 2) return 90;
-        if (change > 0) return 70;
-        if (change > -2) return 50;
-        return 30;
+        let score = 50;
+
+        // 1. Price vs 52W Range (Trading near high is bullish)
+        if (stock.fiftyTwoWeekHigh && stock.fiftyTwoWeekLow && stock.price) {
+            const range = stock.fiftyTwoWeekHigh - stock.fiftyTwoWeekLow;
+            const position = (stock.price - stock.fiftyTwoWeekLow) / (range || 1);
+            
+            if (position > 0.8) score += 20; // Near 52W High
+            else if (position < 0.3) score -= 10; // Near 52W Low
+        }
+
+        // 2. Short term trend
+        if (stock.changePercent > 1) score += 15;
+        else if (stock.changePercent < -1) score -= 15;
+
+        return Math.max(0, Math.min(100, score));
     }
 
     private computeLiquidityScore(stock: Stock): number {
-        // High market cap usually implies high liquidity
-        return Math.min(stock.marketCap / 1000000000, 100);
+        // Logarithmic scale for Market Cap + Volume proxy
+        const capScore = Math.min((Math.log10(stock.marketCap || 1) - 6) * 10, 60); // 0-60 based on MCap
+        const volumeScore = stock.volume && stock.volume > 1000000 ? 40 : 20; // +40 for high volume
+        
+        return Math.max(10, Math.min(100, capScore + volumeScore));
     }
 
     private computeRiskScore(stock: Stock, context: any): number {
-        // Beta, Volatility, Sector risk
-        if (stock.sector === "Technology") return 65; // High vol
-        if (stock.sector === "Utilities") return 85; // Low risk (higher score here means better/lower risk)
-        return 75;
+        let score = 75; // Starting with "Safe" (Higher means better risk profile)
+
+        // 1. Beta (Higher than 1.5 is risky)
+        if (stock.beta) {
+            if (stock.beta > 1.5) score -= 25;
+            else if (stock.beta < 0.8) score += 10;
+        }
+
+        // 2. Debt exposure
+        if (stock.debtToEquity && stock.debtToEquity > 100) {
+            score -= 15;
+        }
+
+        // 3. Sector Volatility
+        const highVolSectors = ["Technology", "Biotechnology", "Mining"];
+        if (highVolSectors.includes(stock.sector)) {
+            score -= 10;
+        }
+
+        return Math.max(0, Math.min(100, score));
     }
 
     private computeMomentumScore(stock: Stock): number {
-        // Recent price performance
-        return stock.changePercent > 0 ? 80 : 40;
+        let score = 50;
+
+        // Uses change percent as a proxy for momentum strength
+        if (stock.changePercent > 3) score = 90;
+        else if (stock.changePercent > 1) score = 75;
+        else if (stock.changePercent < -3) score = 20;
+        else if (stock.changePercent < -1) score = 40;
+
+        return score;
     }
 }
