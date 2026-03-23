@@ -338,7 +338,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
                             {watchlistData.map((item) => (
                                 <Link key={item.symbol} href={`/stock/${item.symbol}`}>
-                                    <div className="glass-card p-6 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
+                                    <div className="glass-card p-4 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
@@ -533,7 +533,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* Data Insights Breakdown */}
-            <div className="rounded-3xl border border-white/5 bg-white/5 p-6 space-y-4">
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-4 md:p-5 space-y-3 mt-4">
                 <div className="flex items-center gap-2">
                     <Info size={16} className="text-blue-400" />
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">How these scores are calculated</h3>
@@ -560,10 +560,10 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
 function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: any; icon?: React.ReactNode; prefix?: string }) {
     return (
         <motion.div
-            whileHover={{ y: -4, scale: 1.02 }}
-            className="glass-card p-5 md:p-6 flex flex-col gap-2 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
+            whileHover={{ y: -2, scale: 1.02 }}
+            className="glass-card p-3 md:p-4 flex flex-col gap-1.5 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
         >
-            <div className="flex items-center gap-1.5 opacity-50 mb-1">
+            <div className="flex items-center gap-1.5 opacity-50 mb-0.5">
                 {icon || <Globe size={12} className="text-slate-500" />}
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate leading-none">{label}</span>
             </div>
