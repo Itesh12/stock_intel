@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FlaskConical, Search, TrendingUp, TrendingDown, Play, Loader2, BarChart3, Info } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
@@ -19,9 +19,18 @@ const STRATEGIES = [
         { label: "Fast EMA", key: "macdFast", default: 12 },
         { label: "Slow EMA", key: "macdSlow", default: 26 },
     ]},
-    { id: "momentum", label: "Breakout", description: "Ride the trend when stock breaks 52-week highs with fixed hold time.", params: [
-        { label: "Lookback (Days)", key: "momLookback", default: 252 },
-        { label: "Hold Days", key: "holdDays", default: 30 },
+    { id: "bollinger", label: "Bollinger Bands", description: "Buy on lower band touch, sell on upper band. Mean reversion logic.", params: [
+        { label: "Period", key: "bbPeriod", default: 20 },
+        { label: "Std Dev", key: "bbStd", default: 2 },
+    ]},
+    { id: "volume_break", label: "Volume Breakout", description: "Buy when volume spikes above average and price is above 20 SMA.", params: [
+        { label: "Vol Mult", key: "volMult", default: 2 },
+    ]},
+    { id: "custom", label: "Quant Builder 🛠️", description: "Build your own strategy by picking an indicator and threshold.", params: [
+        { label: "Indicator", key: "indicator", default: "rsi", type: "select", options: ["rsi", "price"] },
+        { label: "Buy When", key: "operator", default: "less", type: "select", options: ["less", "greater"] },
+        { label: "Buy Value", key: "value", default: 30 },
+        { label: "Sell Value", key: "sellValue", default: 70 },
     ]},
 ];
 
@@ -67,6 +76,13 @@ function runBacktest(history: any[], strategyId: string, params: any): { trades:
         return price * k + prevEma * (1 - k);
     };
 
+    const calculateStdDev = (arr: number[], idx: number, period: number) => {
+        const slice = arr.slice(Math.max(0, idx - period + 1), idx + 1);
+        const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
+        const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / slice.length;
+        return Math.sqrt(variance);
+    };
+
     let prevEma12 = null, prevEma26 = null, prevSignal = null;
     const macdBuffer: number[] = [];
     let grossWins = 0;
@@ -75,6 +91,7 @@ function runBacktest(history: any[], strategyId: string, params: any): { trades:
     for (let i = 50; i < prices.length; i++) {
         const date = new Date(history[i].date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
         const price = prices[i];
+        const volume = history[i].volume || 0;
         let signal = null;
 
         // STRATEGY LOGIC
@@ -102,6 +119,34 @@ function runBacktest(history: any[], strategyId: string, params: any): { trades:
             if (macdLine > signalLine && (prevSignal === null || (macdBuffer[macdBuffer.length - 2] || 0) <= (prevSignal || 0)) && shares === 0) signal = 'BUY';
             if (macdLine < signalLine && (prevSignal === null || (macdBuffer[macdBuffer.length - 2] || 0) >= (prevSignal || 0)) && shares > 0) signal = 'SELL';
             prevEma12 = ema12; prevEma26 = ema26; prevSignal = signalLine;
+        } else if (strategyId === 'bollinger') {
+            const period = params.bbPeriod || 20;
+            const stdDevMult = params.bbStd || 2;
+            const mean = sma(prices, period, i);
+            const stdDev = calculateStdDev(prices, i, period);
+            const upper = mean + stdDev * stdDevMult;
+            const lower = mean - stdDev * stdDevMult;
+            if (price <= lower && shares === 0) signal = 'BUY';
+            if (price >= upper && shares > 0) signal = 'SELL';
+        } else if (strategyId === 'volume_break') {
+            const sma20 = sma(prices, 20, i);
+            const avgVol = history.slice(Math.max(0, i - 20), i).reduce((a, b) => a + (b.volume || 0), 0) / 20;
+            if (volume > avgVol * (params.volMult || 2) && price > sma20 && shares === 0) signal = 'BUY';
+            if (price < sma20 && shares > 0) signal = 'SELL';
+        } else if (strategyId === 'custom') {
+            const indicator = params.indicator || 'rsi';
+            const operator = params.operator || 'less';
+            const buyVal = params.value || 30;
+            const sellVal = params.sellValue || 70;
+            let currentVal = 0;
+            if (indicator === 'rsi') currentVal = calculateRSI(prices, i, 14);
+            else if (indicator === 'price') currentVal = price;
+            
+            const isBuyMet = operator === 'less' ? currentVal < buyVal : currentVal > buyVal;
+            const isSellMet = operator === 'less' ? currentVal > sellVal : currentVal < sellVal;
+            
+            if (isBuyMet && shares === 0) signal = 'BUY';
+            if (isSellMet && shares > 0) signal = 'SELL';
         } else if (strategyId === 'momentum') {
             const lookback = params.momLookback || 252;
             const high52 = Math.max(...prices.slice(Math.max(0, i - lookback), i));
@@ -163,10 +208,17 @@ export default function BacktestingPage() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [strategy, setStrategy] = useState("sma_cross");
-    const [params, setParams] = useState<Record<string, number>>({ smaShort: 20, smaLong: 50 });
+    const [params, setParams] = useState<Record<string, any>>({ smaShort: 20, smaLong: 50 });
     const [period, setPeriod] = useState("1y");
     const [result, setResult] = useState<any>(null);
     const [isRunning, setIsRunning] = useState(false);
+
+    // Auto-run when strategy or params change
+    useEffect(() => {
+        if (symbol && strategy) {
+            handleRun();
+        }
+    }, [symbol, strategy, params, period]);
 
     const handleSearch = async (q: string) => {
         setSearchQuery(q);
@@ -228,7 +280,7 @@ export default function BacktestingPage() {
                                     className="bg-transparent text-white text-sm font-medium w-full focus:outline-none placeholder:text-slate-600"
                                     placeholder="Search stock..."
                                     value={searchQuery}
-                                    onChange={e => handleSearch(e.target.value)}
+                                    onChange={e => handleSearch(e.target.value.toUpperCase())}
                                 />
                             </div>
                             {searchResults.length > 0 && (
@@ -281,7 +333,7 @@ export default function BacktestingPage() {
                         key={s.id}
                         onClick={() => {
                             setStrategy(s.id);
-                            const newParams: Record<string, number> = {};
+                            const newParams: Record<string, any> = {};
                             s.params?.forEach(p => newParams[p.key] = p.default);
                             setParams(newParams);
                         }}
@@ -319,12 +371,24 @@ export default function BacktestingPage() {
                             {STRATEGIES.find(s => s.id === strategy)?.params?.map(p => (
                                 <div key={p.key} className="space-y-2">
                                     <label className="text-[9px] font-bold text-slate-500 ml-1">{p.label}</label>
-                                    <input
-                                        type="number"
-                                        value={params[p.key] || p.default}
-                                        onChange={e => setParams(prev => ({ ...prev, [p.key]: parseInt(e.target.value) || 0 }))}
-                                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all"
-                                    />
+                                    {p.type === "select" ? (
+                                        <select
+                                            value={params[p.key] || p.default}
+                                            onChange={e => setParams(prev => ({ ...prev, [p.key]: e.target.value }))}
+                                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all cursor-pointer"
+                                        >
+                                            {p.options?.map(opt => (
+                                                <option key={opt} value={opt} className="bg-[#111]">{opt.toUpperCase()}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="number"
+                                            value={params[p.key] || p.default}
+                                            onChange={e => setParams(prev => ({ ...prev, [p.key]: parseInt(e.target.value) || 0 }))}
+                                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-violet-500 transition-all"
+                                        />
+                                    )}
                                 </div>
                             ))}
                         </div>
