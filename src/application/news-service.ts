@@ -57,11 +57,13 @@ export class NewsService {
         return { score, label, reasoning };
     }
 
-    public async getMarketWideNews(count: number = 20): Promise<AnalyzedNewsItem[]> {
+    public async getMarketWideNews(count: number = 20, offset: number = 0): Promise<AnalyzedNewsItem[]> {
         // Fetch news for broad market contexts
         const contexts = ["NIFTY 50", "Indian Stock Market", "NSE", "Indian Economy"];
         
-        const allNewsPromises = contexts.map(context => this.marketRepo.getNews(context, 10));
+        // Use a larger count per context to allow for better aggregation and pagination
+        const perContext = Math.min(20, count + offset);
+        const allNewsPromises = contexts.map(context => this.marketRepo.getNews(context, perContext));
         const allNewsResults = await Promise.all(allNewsPromises);
         
         // Flatten and de-duplicate by URL
@@ -75,17 +77,30 @@ export class NewsService {
             }
         });
 
-        // Analyze and format
-        return uniqueNews.slice(0, count).map(item => {
-            const sentiment = this.calculateSentiment(item.title || "", item.summary || "");
+        // Sort by time descending if available
+        uniqueNews.sort((a, b) => (b.providerPublishTime || 0) - (a.providerPublishTime || 0));
+
+        // Analyze and format with pagination
+        return uniqueNews.slice(offset, offset + count).map(item => {
+            // If summary is missing, use title or a better fallback
+            let summary = item.summary || "";
+            if (!summary || summary === "No summary available for this market event.") {
+                summary = `Latest report from ${item.publisher || 'market experts'} regarding ${item.title.toLowerCase()}. Stay updated with real-time market shifts.`;
+            }
+
+            const sentiment = this.calculateSentiment(item.title || "", summary);
+            
+            // Fix timestamp: Yahoo Finance returns seconds or milliseconds. 
+            // If it's less than 10^12, it's likely seconds.
+            const pubTime = item.providerPublishTime || Date.now() / 1000;
+            const timeMs = pubTime < 10000000000 ? pubTime * 1000 : pubTime;
+
             return {
-                title: item.title || "Untitled Intelligence",
-                summary: item.summary || "No summary available for this market event.",
+                title: item.title || "Market Update",
+                summary,
                 source: item.publisher || item.source?.name || "Market Source",
                 url: item.link || "#",
-                time: item.providerPublishTime 
-                    ? new Date(item.providerPublishTime * 1000).toISOString() 
-                    : new Date().toISOString(),
+                time: new Date(timeMs).toISOString(),
                 sentiment,
                 relatedSymbols: item.relatedTickers || []
             };
@@ -93,7 +108,7 @@ export class NewsService {
     }
 
     public getAggregateSentiment(news: AnalyzedNewsItem[]) {
-        if (news.length === 0) return { score: 0, label: 'NEUTRAL', bullishCount: 0, bearishCount: 0, neutralCount: 0 };
+        if (news.length === 0) return { score: 0, label: 'NEUTRAL', bullishCount: 0, bearishCount: 0, neutralCount: 0, confidence: 0 };
 
         const bullish = news.filter(n => n.sentiment.label === 'BULLISH').length;
         const bearish = news.filter(n => n.sentiment.label === 'BEARISH').length;
