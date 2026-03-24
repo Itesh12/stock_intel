@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 export default function NewsIntelligencePage() {
     const [newsState, setNewsState] = useState<Record<string, { items: any[], offset: number, hasMore: boolean }>>({
@@ -100,20 +101,7 @@ export default function NewsIntelligencePage() {
     });
 
     if (isLoading && newsState[activeFilter].items.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8">
-                <div className="relative">
-                    <div className="w-20 h-20 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <BarChart3 className="text-indigo-400 animate-pulse" size={24} />
-                    </div>
-                </div>
-                <div className="space-y-2 text-center">
-                    <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Scanning Markets</span>
-                    <p className="text-slate-400 text-sm animate-pulse italic">Finding the latest news for you...</p>
-                </div>
-            </div>
-        );
+        return <GlobalLoader title="Scanning Market News" />;
     }
 
     return (

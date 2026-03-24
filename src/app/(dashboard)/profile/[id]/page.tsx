@@ -4,6 +4,7 @@ import { Trophy, Crown, Medal, TrendingUp, TrendingDown, Users, Briefcase, Globe
 import { formatCurrency, formatIndianNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
@@ -26,12 +27,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     }, [id]);
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <div className="w-16 h-16 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin"></div>
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Loading Profile</span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Profile" />;
     }
 
     if (!profile || profile.error) {

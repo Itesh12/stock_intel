@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, Target, Zap, ShieldCheck, Trophy, Crown, Activity, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 export default function StrategyFinderPage() {
     const [strategies, setStrategies] = useState<any[]>([]);
@@ -25,12 +26,7 @@ export default function StrategyFinderPage() {
     }, []);
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <Loader2 size={48} className="text-blue-500 animate-spin opacity-20" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Loading Strategies</span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Strategies" />;
     }
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">

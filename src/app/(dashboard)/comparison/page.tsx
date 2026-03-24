@@ -5,6 +5,7 @@ import { Scale, Search, X, TrendingUp, TrendingDown, Loader2, BarChart2, Refresh
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { cn, formatIndianNumber } from "@/lib/utils";
 import TimeframeSelector from "../timeframe-selector";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 interface Metric {
     label: string;
@@ -400,10 +401,8 @@ export default function ComparisonPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="py-32 flex flex-col items-center justify-center gap-6"
                     >
-                        <Loader2 size={48} className="text-indigo-500 animate-spin" />
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Comparing Data...</p>
+                        <GlobalLoader title="Comparing Data" />
                     </motion.div>
                 ) : dataA && dataB ? (
                     <motion.div

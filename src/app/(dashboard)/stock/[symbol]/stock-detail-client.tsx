@@ -13,7 +13,7 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import Tooltip from '@/components/ui/tooltip';
 import InteractiveChart from '@/components/charts/InteractiveChart';
 import { formatCurrency, formatIndianNumber, formatPercent, cn } from '../../../../lib/utils';
-import { CandleLoader } from '@/components/ui/candle-loader';
+import { GlobalLoader } from '@/components/ui/global-loader';
 import StockNewsSentiment from "@/components/stock/NewsSentiment";
 import StockIntelligenceMemo from "@/components/stock/IntelligenceMemo";
 import AlertManager from "@/components/alerts/AlertManager";
@@ -183,12 +183,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
     };
 
     if (!isMounted) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <CandleLoader />
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Loading Stock Details</span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Stock Details" />;
     }
 
     return (
@@ -327,17 +322,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                         <div className="relative flex-1 min-h-[400px] h-full bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
                             <AnimatePresence>
                                 {isLoading && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="absolute inset-0 flex items-center justify-center bg-[#0A0A0B]/80 backdrop-blur-sm z-40"
-                                    >
-                                        <div className="flex flex-col items-center gap-4">
-                                            <CandleLoader />
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Updating Data</span>
-                                        </div>
-                                    </motion.div>
+                                    <GlobalLoader title="Updating Chart Data" fullScreen={true} />
                                 )}
                             </AnimatePresence>
 

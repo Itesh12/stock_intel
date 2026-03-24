@@ -23,6 +23,7 @@ import {
     ArrowDown 
 } from "lucide-react";
 import { formatCurrency, formatIndianNumber, cn } from "@/lib/utils";
+import { GlobalLoader } from "@/components/ui/global-loader";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -81,23 +82,7 @@ export default function PortfolioPage() {
     }, []);
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <div className="flex items-center justify-center gap-1.5 h-8">
-                    <div className="flex flex-col items-center">
-                        <div className="candle-wick text-emerald-500/40"></div>
-                        <div className="candle-green"></div>
-                        <div className="candle-wick text-emerald-500/40"></div>
-                    </div>
-                    <div className="flex flex-col items-center translate-y-2">
-                        <div className="candle-wick text-rose-500/40"></div>
-                        <div className="candle-red"></div>
-                        <div className="candle-wick text-rose-500/40"></div>
-                    </div>
-                </div>
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase tracking-widest">Loading Your Portfolio</span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Your Portfolio" />;
     }
 
     // Calculation Engine

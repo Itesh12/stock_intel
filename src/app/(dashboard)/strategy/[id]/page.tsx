@@ -9,6 +9,8 @@ import {
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { AnimatePresence } from 'framer-motion';
+import { GlobalLoader } from '@/components/ui/global-loader';
 import StrategyBacktestPanel from '@/components/strategy/StrategyBacktestPanel';
 
 export default function StrategyDetailPage() {
@@ -141,6 +143,21 @@ export default function StrategyDetailPage() {
                             </div>
                         ))}
                     </div>
+
+                    <AnimatePresence>
+                        {isScanning && (
+                            <GlobalLoader 
+                                fullScreen={true} 
+                                title={`Scanning Entire NSE For ${strategy.name}`} 
+                                steps={[
+                                    { label: 'Validating Strategy Rules', threshold: 10 },
+                                    { label: 'Querying 3,000+ Symbols', threshold: 30 },
+                                    { label: 'Evaluating Technicals', threshold: 60 },
+                                    { label: 'Ranking Top 20', threshold: 90 }
+                                ]}
+                            />
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Alpha & Risk Column */}

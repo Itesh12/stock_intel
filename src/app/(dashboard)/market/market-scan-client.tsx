@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Tooltip from '@/components/ui/tooltip';
 import { useSnackbar } from '@/components/ui/snackbar';
 import { CandleLoader } from '@/components/ui/candle-loader';
+import { GlobalLoader } from '@/components/ui/global-loader';
 import {
     ScatterChart, Scatter, XAxis, YAxis, ZAxis,
     Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
@@ -141,9 +142,9 @@ export default function MarketScanClient() {
                         <CandleLoader />
                     </div>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 font-outfit tracking-tight">Connecting to Stock Market...</h2>
+                <h2 className="text-3xl font-bold text-white mb-4 font-outfit tracking-tight">Market Scan Terminal</h2>
                 <p className="text-slate-400 max-w-md mx-auto text-sm leading-relaxed font-medium">
-                    We are getting the latest stock prices and market trends. Click below to start.
+                    Scanning institutional order flow and algorithmic price action. Click below to begin sequence.
                 </p>
                 <button
                     onClick={establishConnection}
@@ -159,44 +160,11 @@ export default function MarketScanClient() {
 
     if (isEstablishing) {
         return (
-            <div className="h-[600px] flex flex-col items-center justify-center space-y-12">
-                <div className="relative w-72 h-72">
-                    <svg className="w-full h-full -rotate-90">
-                        <circle
-                            cx="144"
-                            cy="144"
-                            r="130"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="transparent"
-                            className="text-white/5"
-                        />
-                        <motion.circle
-                            cx="144"
-                            cy="144"
-                            r="130"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="transparent"
-                            strokeDasharray="816.8"
-                            initial={{ strokeDashoffset: 816.8 }}
-                            animate={{ strokeDashoffset: 816.8 - (816.8 * connectionProgress) / 100 }}
-                            className="text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                        />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-5xl font-black text-white font-mono">{connectionProgress}%</span>
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em] mt-2">Loading Data</span>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-3xl">
-                    <StatusPulse label="System Check" active={connectionProgress > 20} />
-                    <StatusPulse label="Data Flow" active={connectionProgress > 50} />
-                    <StatusPulse label="Market Activity" active={connectionProgress > 80} />
-                    <StatusPulse label="Ready" active={connectionProgress > 95} />
-                </div>
-            </div>
+            <GlobalLoader 
+                progress={connectionProgress} 
+                title="Loading Data" 
+                fullScreen={false} 
+            />
         );
     }
 

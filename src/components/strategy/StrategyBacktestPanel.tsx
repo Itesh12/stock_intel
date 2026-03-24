@@ -4,6 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Play, TrendingUp, History, Target, Loader2, GaugeCircle, BarChart, ChevronDown, Rocket } from "lucide-react";
 import { formatIndianNumber, cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 export default function StrategyBacktestPanel({ strategyId }: { strategyId: string }) {
     const [days, setDays] = useState(365);
@@ -180,25 +181,17 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
 
                 <AnimatePresence>
                     {isSimulating && (
-                        <motion.div 
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="mt-6 pt-6 border-t border-blue-500/10 overflow-hidden"
-                        >
-                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-2 px-1">
-                                <span className="animate-pulse">{statusMessage}</span>
-                                <span className="text-blue-400 font-mono">{progress}%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-black/60 rounded-full overflow-hidden border border-blue-500/20">
-                                <motion.div 
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${progress}%` }}
-                                    transition={{ duration: 0.2 }}
-                                    className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]" 
-                                />
-                            </div>
-                        </motion.div>
+                        <GlobalLoader 
+                            progress={progress}
+                            title={statusMessage.length > 50 ? "Compiling Time-Travel Engine Data..." : statusMessage}
+                            fullScreen={true}
+                            steps={[
+                                { label: 'Initializing Engine', threshold: 10 },
+                                { label: 'Fetching Price Context', threshold: 40 },
+                                { label: 'Running Quant Models', threshold: 70 },
+                                { label: 'Aggregating Results', threshold: 95 }
+                            ]}
+                        />
                     )}
                 </AnimatePresence>
             </div>
