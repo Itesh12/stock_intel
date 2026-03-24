@@ -21,10 +21,8 @@ export class CanslimScanner {
             const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
             const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
 
-            // Randomly sample 300 symbols for broader algorithmic discovery
-            discoveryPool = allSymbols
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 300);
+            // Evaluate the ENTIRE Indian market namespace for maximum algorithmic depth
+            discoveryPool = allSymbols.sort(() => 0.5 - Math.random());
         } catch (err) {
             console.error("[QuantScanner] Failed to load discovery pool:", err);
         }
@@ -145,7 +143,7 @@ export class IntermarketScanner {
             const path = await import("path");
             const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
             const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
-            discoveryPool = allSymbols.sort(() => 0.5 - Math.random()).slice(0, 300);
+            discoveryPool = allSymbols.sort(() => 0.5 - Math.random());
         } catch (err) {
             console.error("[QuantScanner] Failed to load discovery pool:", err);
         }

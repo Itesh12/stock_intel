@@ -7,23 +7,9 @@ export async function GET() {
         const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
         const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
 
-        // We inject Nifty 50 ultra-heavyweights at the front of the pool.
-        // This guarantees that the real-data historical engine evaluates stocks with pristine, 
-        // gapless data on Yahoo Finance, avoiding "0 matches" logic crashes due to illiquid penny stocks.
-        const heavyweights = [
-            'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS', 
-            'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'LT.NS', 'TATAMOTORS.NS', 
-            'KOTAKBANK.NS', 'AXISBANK.NS', 'BAJFINANCE.NS', 'MARUTI.NS', 'SUNPHARMA.NS', 
-            'M&M.NS', 'TATASTEEL.NS', 'ASIANPAINT.NS', 'HCLTECH.NS', 'TITAN.NS'
-        ];
-
-        // Ensure heavyweights are actually real Indian strings logic
-        const randomPool = allSymbols
-            .filter((s: string) => !heavyweights.includes(s))
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 50);
-
-        const discoveryPool = [...heavyweights, ...randomPool];
+        // We removed sampling. The orchestrator will now process the ENTIRE NSE symbol list.
+        // It will take longer and evaluate in batches, but it guarantees the absolute Top 20 from the whole market.
+        const discoveryPool = allSymbols.sort(() => 0.5 - Math.random());
 
         return NextResponse.json({ symbols: discoveryPool });
     } catch (error: any) {
