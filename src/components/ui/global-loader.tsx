@@ -52,16 +52,21 @@ export function GlobalLoader({
 
         const interval = setInterval(() => {
             setInternalProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    if (onComplete) {
-                        setTimeout(() => onComplete(), 500);
-                    }
-                    return 100;
+                // If it's pure simulation, we never hit 100. We wait for unmount.
+                if (prev >= 99) return 99;
+                
+                // Asymptotic approach to 99%
+                const remaining = 99 - prev;
+                let jump = Math.max(0.1, remaining * (Math.random() * 0.15));
+                
+                // Fast start to give impression of speed
+                if (prev < 40) {
+                    jump = Math.random() * 12 + 4;
+                } else if (prev >= 95) {
+                    jump = Math.random() * 0.4; // Creep very slowly at the end
                 }
-                // Simulate network jumpiness mimicking data ingestion chunks
-                const jump = Math.random() > 0.7 ? Math.floor(Math.random() * 15) + 5 : Math.floor(Math.random() * 3) + 1;
-                return Math.min(100, prev + jump);
+
+                return Math.min(99, prev + jump);
             });
         }, 120);
 
