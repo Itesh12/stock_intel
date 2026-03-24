@@ -18,6 +18,8 @@ interface GlobalLoaderProps {
     title?: string;
     steps?: LoaderStep[];
     fullScreen?: boolean;
+    minimal?: boolean;
+    className?: string;
     onComplete?: () => void;
 }
 
@@ -33,6 +35,8 @@ export function GlobalLoader({
     title = "Loading Data", 
     steps = DEFAULT_STEPS,
     fullScreen = false,
+    minimal = false,
+    className,
     onComplete
 }: GlobalLoaderProps) {
     const [internalProgress, setInternalProgress] = useState(0);
@@ -80,18 +84,23 @@ export function GlobalLoader({
             exit={{ opacity: 0, scale: 1.02 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             className={cn(
-                "flex flex-col items-center justify-center space-y-12 w-full",
-                fullScreen ? "fixed inset-0 z-[200] bg-black/80 backdrop-blur-2xl" : "min-h-[500px] h-[60vh] py-12"
+                "flex flex-col items-center justify-center transition-all duration-500",
+                fullScreen ? "fixed inset-0 z-[200] bg-black/80 backdrop-blur-2xl w-full" : 
+                minimal ? "h-full w-full py-0 space-y-0" : "min-h-[500px] h-[60vh] py-12 space-y-12 w-full",
+                className
             )}
         >
-            <div className="relative w-72 h-72">
-                <svg className="w-full h-full -rotate-90">
+            <div className={cn(
+                "relative",
+                minimal ? "w-full h-full aspect-square" : "w-72 h-72"
+            )}>
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 288 288">
                     <circle
                         cx="144"
                         cy="144"
                         r="130"
                         stroke="currentColor"
-                        strokeWidth="4"
+                        strokeWidth={minimal ? "12" : "4"}
                         fill="transparent"
                         className="text-white/5"
                     />
@@ -100,7 +109,7 @@ export function GlobalLoader({
                         cy="144"
                         r="130"
                         stroke="currentColor"
-                        strokeWidth="4"
+                        strokeWidth={minimal ? "12" : "4"}
                         fill="transparent"
                         strokeDasharray="816.8"
                         initial={{ strokeDashoffset: 816.8 }}
@@ -109,13 +118,15 @@ export function GlobalLoader({
                         transition={{ duration: 0.3, ease: 'easeOut' }}
                     />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-5xl font-black text-white font-mono">{Math.round(progress)}%</span>
-                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em] mt-2 text-center break-words max-w-[150px] leading-relaxed">{title}</span>
-                </div>
+                {!minimal && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-5xl font-black text-white font-mono">{Math.round(progress)}%</span>
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em] mt-2 text-center break-words max-w-[150px] leading-relaxed">{title}</span>
+                    </div>
+                )}
             </div>
 
-            {steps && steps.length > 0 && (
+            {!minimal && steps && steps.length > 0 && (
                 <div className={cn(
                     "grid gap-4 md:gap-6 w-full max-w-4xl px-6",
                     steps.length === 4 ? "grid-cols-2 lg:grid-cols-4" : 

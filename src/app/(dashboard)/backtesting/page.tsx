@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FlaskConical, Search, TrendingUp, TrendingDown, Play, Loader2, BarChart3, Info } from "lucide-react";
+import { FlaskConical, Search, TrendingUp, TrendingDown, Play, BarChart3, Info } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { cn, formatIndianNumber } from "@/lib/utils";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 const STRATEGIES = [
     { id: "sma_cross", label: "SMA Crossover", description: "Classic trend-following using Short vs Long Moving Average crossover.", params: [
@@ -345,7 +346,9 @@ export default function BacktestingPage() {
                     ) : (
                         <div className="relative">
                             <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus-within:border-violet-500 transition-all">
-                                {isSearching ? <Loader2 size={14} className="animate-spin text-slate-500" /> : <Search size={14} className="text-slate-500" />}
+                                {isSearching ? (
+                                   <div className="w-3.5 h-3.5"><GlobalLoader minimal={true} /></div>
+                                ) : <Search size={14} className="text-slate-500" />}
                                 <input
                                     className="bg-transparent text-white text-sm font-medium w-full focus:outline-none placeholder:text-slate-600"
                                     placeholder="Search stock..."
@@ -391,7 +394,9 @@ export default function BacktestingPage() {
                     className="w-full max-w-md px-10 py-4 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl shadow-violet-900/30 group relative overflow-hidden"
                 >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
-                    {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
+                    {isRunning ? (
+                        <div className="w-4 h-4"><GlobalLoader minimal={true} /></div>
+                    ) : <Play size={16} fill="currentColor" />}
                     {isRunning ? "Simulating Intelligence..." : "Execute Backtest"}
                 </button>
             </div>

@@ -235,7 +235,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     title={isWatched ? "Remove from Watchlist" : "Add to Watchlist"}
                                 >
                                     {isWatchlistLoading ? (
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <div className="w-4 h-4"><GlobalLoader minimal={true} /></div>
                                     ) : isWatched ? (
                                         <>
                                             <Star size={16} fill="currentColor" className="group-hover:hidden" />
@@ -726,7 +726,9 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                     disabled={isTrading || !currentPrice || (portfolio && portfolio.cashBalance < totalValue)}
                     className="flex items-center justify-center gap-2 py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
                 >
-                    {isTrading ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
+                    {isTrading ? (
+                        <div className="w-3.5 h-3.5"><GlobalLoader minimal={true} /></div>
+                    ) : <ShoppingCart size={14} />}
                     {orderType === 'MARKET' ? 'Buy Now' : 'Set Order'}
                 </button>
                 <button
@@ -734,7 +736,9 @@ function OrderTerminal({ symbol, currentPrice, portfolio, onTradeSuccess, isTrad
                     disabled={isTrading || !holding || holding.quantity < quantity}
                     className="flex items-center justify-center gap-2 py-3.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-rose-900/20 active:scale-95"
                 >
-                    {isTrading ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                    {isTrading ? (
+                        <div className="w-3.5 h-3.5"><GlobalLoader minimal={true} /></div>
+                    ) : <Ban size={14} />}
                     {orderType === 'MARKET' ? 'Sell Now' : 'Set Order'}
                 </button>
             </div>

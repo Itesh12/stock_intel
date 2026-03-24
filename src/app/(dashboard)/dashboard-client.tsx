@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import { formatIndianNumber } from "@/lib/utils";
 import TimeframeSelector from "./timeframe-selector";
-import { CandleLoader } from "@/components/ui/candle-loader";
+import { GlobalLoader } from "@/components/ui/global-loader";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MarketDataPoint {
@@ -197,7 +197,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             {isLoading && (
                 <div className="absolute inset-x-0 -top-8 flex justify-center z-50 pointer-events-none">
                     <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-blue-600 shadow-2xl shadow-blue-600/50 border border-blue-400/20 animate-in slide-in-from-top-4">
-                        <CandleLoader />
+                        <GlobalLoader minimal={true} />
                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Getting Data</span>
                     </div>
                 </div>
@@ -295,8 +295,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all w-full sm:w-64"
                             />
                             {isSearching && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-[0.4] origin-right pointer-events-none">
-                                    <CandleLoader />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-[0.6] origin-right pointer-events-none">
+                                    <GlobalLoader minimal={true} />
                                 </div>
                             )}
 

@@ -51,12 +51,7 @@ export default function StrategyDetailPage() {
     };
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <Loader2 size={48} className="text-blue-500 animate-spin opacity-20" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">Loading Strategy</span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Strategy" />;
     }
 
     if (!strategy) return null;
@@ -191,7 +186,9 @@ export default function StrategyDetailPage() {
                                 disabled={isScanning}
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                             >
-                                {isScanning ? <Loader2 size={10} className="animate-spin" /> : <Activity size={10} />}
+                                {isScanning ? (
+                                   <div className="w-2.5 h-2.5"><GlobalLoader minimal={true} /></div>
+                                ) : <Activity size={10} />}
                                 {isScanning ? "Scanning..." : "Find Stocks"}
                             </button>
                         </div>

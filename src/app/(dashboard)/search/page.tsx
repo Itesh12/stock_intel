@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Target, Zap, ShieldCheck, Trophy, Crown, Activity, Loader2 } from "lucide-react";
+import { ArrowRight, Target, Zap, ShieldCheck, Trophy, Crown, Activity } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { GlobalLoader } from "@/components/ui/global-loader";

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
-import { CandleLoader } from "@/components/ui/candle-loader";
+import { GlobalLoader } from "@/components/ui/global-loader";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 import { NotificationsPopover } from "@/components/ui/notifications-popover";
 
@@ -195,8 +195,8 @@ export default function DashboardLayout({
                                             <span className="text-[8px] opacity-60">CTRL</span> K
                                         </div>
                                         {isSearching && (
-                                            <div className="scale-[0.35] origin-right opacity-60">
-                                                <CandleLoader />
+                                            <div className="scale-[0.8] origin-right opacity-60">
+                                                <GlobalLoader minimal={true} />
                                             </div>
                                         )}
                                     </div>

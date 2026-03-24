@@ -13,7 +13,6 @@ import { formatCurrency, formatIndianNumber, cn } from '../../../lib/utils';
 import Link from 'next/link';
 import Tooltip from '@/components/ui/tooltip';
 import { useSnackbar } from '@/components/ui/snackbar';
-import { CandleLoader } from '@/components/ui/candle-loader';
 import { GlobalLoader } from '@/components/ui/global-loader';
 import {
     ScatterChart, Scatter, XAxis, YAxis, ZAxis,
@@ -139,7 +138,7 @@ export default function MarketScanClient() {
                     <div className="absolute inset-0 rounded-full border-2 border-blue-500/30 border-t-transparent animate-[spin_3s_linear_infinite]"></div>
                     <div className="absolute -inset-4 rounded-full border border-blue-500/10 animate-[pulse_4s_ease-in-out_infinite]"></div>
                     <div className="w-28 h-28 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
-                        <CandleLoader />
+                        <GlobalLoader minimal={true} />
                     </div>
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-4 font-outfit tracking-tight">Market Scan Terminal</h2>
@@ -247,8 +246,8 @@ export default function MarketScanClient() {
                         </div>
                         <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                             {isLoading ? (
-                                <div className="scale-50 origin-left mr-2">
-                                    <CandleLoader />
+                                <div className="scale-75 origin-left mr-2">
+                                    <GlobalLoader minimal={true} />
                                 </div>
                             ) : (
                                 <RefreshCcw size={12} />
@@ -411,7 +410,7 @@ export default function MarketScanClient() {
                                                                     className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-500 transition-colors"
                                                                 >
                                                                     {refreshingRows[stock.symbol] ? (
-                                                                        <div className="scale-[0.3]"><CandleLoader /></div>
+                                                                        <div className="scale-[0.5]"><GlobalLoader minimal={true} /></div>
                                                                     ) : (
                                                                         <CircuitBoard size={14} />
                                                                     )}

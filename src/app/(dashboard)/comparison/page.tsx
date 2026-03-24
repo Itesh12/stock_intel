@@ -233,7 +233,9 @@ function StockSearchInput({ onSelect, placeholder, selected }: { onSelect: (symb
     return (
         <div className="relative">
             <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus-within:border-blue-500 transition-all">
-                {isSearching ? <Loader2 size={14} className="animate-spin text-slate-500" /> : <Search size={14} className="text-slate-500" />}
+                {isSearching ? (
+                   <div className="w-3.5 h-3.5"><GlobalLoader minimal={true} /></div>
+                ) : <Search size={14} className="text-slate-500" />}
                 <input
                     className="bg-transparent text-white text-sm font-medium w-full focus:outline-none placeholder:text-slate-600 uppercase"
                     placeholder={placeholder}
@@ -389,7 +391,9 @@ export default function ComparisonPage() {
                     disabled={!stockA || !stockB || isLoading}
                     className="w-full lg:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl"
                 >
-                    {isLoading ? <Loader2 size={16} className="animate-spin" /> : <BarChart2 size={16} />}
+                    {isLoading ? (
+                        <div className="w-4 h-4"><GlobalLoader minimal={true} /></div>
+                    ) : <BarChart2 size={16} />}
                     Compare
                 </button>
             </div>
@@ -455,7 +459,7 @@ export default function ComparisonPage() {
                             <div className="h-[400px] w-full mt-4 relative">
                                 {isHistoryLoading && (
                                     <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-3xl">
-                                        <Loader2 size={32} className="text-indigo-500 animate-spin" />
+                                        <div className="w-8 h-8"><GlobalLoader minimal={true} /></div>
                                     </div>
                                 )}
                                 {mergedChartData.length > 0 ? (
