@@ -184,19 +184,22 @@ export default function StrategyDetailPage() {
                             </div>
                             <div className="p-4 sm:p-6 flex-1">
                                 {strategy.recommendations && strategy.recommendations.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                    <div className="flex flex-col gap-3">
                                         {strategy.recommendations.slice(0, 20).map((symbol: string) => (
-                                            <Link key={symbol} href={`/stock/${symbol}`} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 transition-all group shadow-sm">
-                                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-black group-hover:bg-emerald-500 group-hover:text-black transition-all shrink-0">
+                                            <Link key={symbol} href={`/stock/${symbol}`} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/20 transition-all group shadow-sm">
+                                                <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-black group-hover:bg-emerald-500 group-hover:text-black transition-all shrink-0">
                                                     {symbol.split('.')[0][0]}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-sm font-black text-white uppercase tracking-tight truncate group-hover:text-emerald-300 transition-colors">
+                                                    <div className="text-base font-black text-white uppercase tracking-tight truncate group-hover:text-emerald-300 transition-colors">
                                                         {symbol.replace('.NS', '')}
                                                     </div>
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">NSE India</div>
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">NSE India Equity</div>
                                                 </div>
-                                                <ChevronRight size={16} className="text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0" />
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest hidden sm:block">View Data</span>
+                                                    <ChevronRight size={18} className="text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0" />
+                                                </div>
                                             </Link>
                                         ))}
                                     </div>

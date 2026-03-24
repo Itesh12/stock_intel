@@ -49,6 +49,12 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
                 }
 
                 setProgress(Math.round(((i + 1) / totalChunks) * 100));
+
+                // Hard Sleep to stop Yahoo Finance API from rejecting 300+ incoming rapid-fire chunks 
+                // and returning empty data brackets.
+                if (i < totalChunks - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                }
             }
 
             setStatusMessage("Compiling Historical Trajectories...");
