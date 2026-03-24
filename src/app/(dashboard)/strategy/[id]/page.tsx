@@ -180,26 +180,24 @@ export default function StrategyDetailPage() {
                         </div>
                         <div className="glass-morphic-card rounded-[32px] overflow-hidden border-emerald-500/10 min-h-[200px] flex flex-col">
                             <div className="p-6 bg-emerald-500/5 border-b border-white/5">
-                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Recommended Stocks</span>
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Recommended Stocks (Top 20)</span>
                             </div>
-                            <div className="divide-y divide-white/5 flex-1">
+                            <div className="p-4 sm:p-6 flex-1">
                                 {strategy.recommendations && strategy.recommendations.length > 0 ? (
-                                    strategy.recommendations.map((symbol: string) => (
-                                        <Link key={symbol} href={`/stock/${symbol}`} className="flex items-center justify-between p-5 hover:bg-white/5 transition-all group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black text-white group-hover:bg-emerald-500 group-hover:text-black transition-all">
-                                                    {symbol.split('.')[0][0]}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                        {strategy.recommendations.slice(0, 20).map((symbol: string) => (
+                                            <Link key={symbol} href={`/stock/${symbol}`} className="flex flex-col p-4 rounded-2xl bg-white/5 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 transition-all group">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-black group-hover:bg-emerald-500 group-hover:text-black transition-all">
+                                                        {symbol.split('.')[0][0]}
+                                                    </div>
+                                                    <ChevronRight size={14} className="text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-black text-white uppercase tracking-tight">{symbol.replace('.NS', '')}</div>
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">NSE India</div>
-                                                </div>
-                                            </div>
-                                            <div className="p-2 rounded-lg bg-white/5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all">
-                                                <ChevronRight size={16} />
-                                            </div>
-                                        </Link>
-                                    ))
+                                                <div className="text-sm font-black text-white uppercase tracking-tight truncate">{symbol.replace('.NS', '')}</div>
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">NSE India</div>
+                                            </Link>
+                                        ))}
+                                    </div>
                                 ) : (
                                     <div className="p-10 text-center flex flex-col items-center justify-center h-full gap-4 opacity-50">
                                         <div className="w-12 h-12 rounded-full border border-dashed border-emerald-500/30 flex items-center justify-center">
