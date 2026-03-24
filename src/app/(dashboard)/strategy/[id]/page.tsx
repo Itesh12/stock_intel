@@ -271,7 +271,7 @@ export default function StrategyDetailPage() {
             </div>
 
             {/* Backtesting Engine Section */}
-            <div className="mt-8 md:mt-16 space-y-8">
+            <div className="mt-8 md:mt-12 space-y-6">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-3xl font-bold text-white tracking-tighter font-outfit uppercase flex items-center gap-4">
                         <History size={28} className="text-blue-500" />

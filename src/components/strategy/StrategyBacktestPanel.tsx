@@ -198,7 +198,10 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
 
             {/* Main Results View */}
             <div className="space-y-6">
-                <section className="glass-morphic-card rounded-[32px] p-4 sm:p-6 lg:p-8 border-white/5 min-h-[400px] flex flex-col bg-white/[0.01]">
+                <section className={cn(
+                    "glass-morphic-card rounded-[32px] border-white/5 flex flex-col bg-white/[0.01] transition-all duration-500",
+                    result ? "p-4 sm:p-6 lg:p-8 min-h-[400px]" : "p-4 sm:p-6 min-h-[180px]"
+                )}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-white/5 pb-6">
                         <div>
                             <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
@@ -216,8 +219,11 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
                         )}
                     </div>
                     
-                    <div className="flex-1 w-full min-h-[350px] relative">
-                        {result?.equityCurve ? (
+                    <div className={cn(
+                        "flex-1 w-full relative transition-all duration-500",
+                        result?.equityCurve && result.equityCurve.length > 0 ? "min-h-[350px]" : "min-h-[150px]"
+                    )}>
+                        {result?.equityCurve && result.equityCurve.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={result.equityCurve} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                     <defs>
