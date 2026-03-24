@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import {
     ArrowLeft, Target, ShieldCheck, TrendingUp, Zap,
     BarChart3, Activity, Info, ChevronRight, Crown,
-    AlertCircle, Landmark, ShoppingCart, Loader2
+    AlertCircle, Landmark, ShoppingCart, Loader2, History
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import StrategyBacktestPanel from '@/components/strategy/StrategyBacktestPanel';
 
 export default function StrategyDetailPage() {
     const params = useParams();
@@ -250,6 +251,20 @@ export default function StrategyDetailPage() {
                         </Link>
                     </div>
                 </div>
+            </div>
+
+            {/* Backtesting Engine Section */}
+            <div className="mt-8 md:mt-16 space-y-8">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl font-bold text-white tracking-tighter font-outfit uppercase flex items-center gap-4">
+                        <History size={28} className="text-blue-500" />
+                        Time Machine
+                    </h2>
+                    <p className="text-slate-400 max-w-2xl text-xs font-bold uppercase tracking-widest">
+                        Run a real-data historical simulation to verify this strategy's predictive edge over the Nifty 50.
+                    </p>
+                </div>
+                <StrategyBacktestPanel strategyId={strategySlug} />
             </div>
         </div>
     );
