@@ -145,5 +145,57 @@ export const strategies: Strategy[] = [
             'Stop Loss (Longs) = Entry - 2 × ATR(14)',
             'Stop Loss (Shorts) = Entry + 2 × ATR(14)'
         ]
+    },
+    {
+        id: 'warren-buffet',
+        name: 'Indian Buffett Filter',
+        trader: 'Warren Buffett',
+        description: 'The Indian Value Compounder Formula (IVCF) identifies high-quality business franchises with strong moats and financial strength.',
+        objective: 'Identify long-term compounders in the Indian market using Quality, Moat, Financial, Valuation, and Growth metrics (IVCF).',
+        longDescription: `This strategy implements the Indian Value Compounder Formula (IVCF), specifically calibrated for the Indian market's unique dynamics like promoter holding and governance. It uses a weighted scoring system: Quality (25%), Moat (20%), Financial Strength (20%), Valuation (20%), and Growth (15%). It filters for stocks with ROE > 15%, ROCE > 18%, low debt, and high promoter skin in the game.`,
+        riskLevel: 'LOW',
+        winRate: '75%',
+        steps: [
+            {
+                id: 'Q',
+                title: 'Quality Score (25%)',
+                description: 'BUSINESS QUALITY METRICS',
+                formula: '(ROE + ROCE + OPM) / 3',
+                requirements: ['ROE > 15%', 'ROCE > 18%', 'Operating Margin > 15%']
+            },
+            {
+                id: 'M',
+                title: 'Moat Score (20%)',
+                description: 'COMPETITIVE ADVANTAGE',
+                requirements: ['Brand Power', 'Market Share Leadership', 'Pricing Power', 'Low Competition']
+            },
+            {
+                id: 'F',
+                title: 'Financial Strength (20%)',
+                description: 'BALANCE SHEET INTEGRITY',
+                formula: '100 - (Debt/Equity * 100)',
+                requirements: ['Debt/Equity < 0.5', 'High Interest Coverage', 'Positive Free Cash Flow']
+            },
+            {
+                id: 'V',
+                title: 'Valuation Score (20%)',
+                description: 'MARGIN OF SAFETY',
+                formula: '(Intrinsic Value / Market Price) * 100',
+                requirements: ['P/E vs Sector Average', 'P/B for Banks', 'EV/EBITDA for Industrials']
+            },
+            {
+                id: 'G',
+                title: 'Growth Score (15%)',
+                description: 'COMPOUNDING VELOCITY',
+                formula: '(Revenue CAGR + EPS CAGR) / 2',
+                requirements: ['5Y Sales CAGR > 10%', '5Y Profit CAGR > 12%']
+            }
+        ],
+        recommendations: ['TITAN.NS', 'ASIANPAINT.NS', 'HDFCBANK.NS', 'TCS.NS', 'HINDUNILVR.NS'],
+        riskManagement: [
+            'Buy on dips in fair value zones',
+            'Hold as long as business quality is intact',
+            'Exit if governance issues emerge'
+        ]
     }
 ];

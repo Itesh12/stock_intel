@@ -6,7 +6,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
         const { id } = await params;
         const infra = await getInfrastructure();
-        const scanner = id === 'canslim' ? new CanslimScanner(infra) : new IntermarketScanner(infra);
+        const { CanslimScanner, IntermarketScanner, BuffetScanner } = await import("@/services/quant-scanner");
+        
+        let scanner;
+        if (id === 'canslim') scanner = new CanslimScanner(infra);
+        else if (id === 'warren-buffet') scanner = new BuffetScanner(infra);
+        else scanner = new IntermarketScanner(infra);
+
         const results = await scanner.scan();
         return NextResponse.json({ success: true, count: results.length });
     } catch (error: any) {
