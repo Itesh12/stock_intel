@@ -9,4 +9,6 @@ export interface Trade {
     totalValue: number;
     type: TradeType;
     timestamp: Date;
+    realizedPL?: number;
+    averagePriceAtSale?: number;
 }

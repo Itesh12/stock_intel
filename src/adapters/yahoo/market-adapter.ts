@@ -30,18 +30,30 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
     async getStockPrice(symbol: string): Promise<Partial<Stock>> {
         const cacheKey = `price_${symbol}`;
         try {
-            // Use quoteSummary to get deep fundamental data
+            // Catch errors individually to prevent Promise.all from failing completely
             const [quoteRes, summaryRes] = await Promise.all([
-                this.withRetry(() => yahooFinance.quote(symbol, undefined, { validateResult: false }), symbol),
+                this.withRetry(() => yahooFinance.quote(symbol, undefined, { validateResult: false }), symbol)
+                    .catch(e => { console.warn(`[StockIntel] Quote fetch failed for ${symbol}: ${e.message}`); return null; }),
                 this.withRetry(() => yahooFinance.quoteSummary(symbol, {
                     modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
                 }, { validateResult: false }), symbol)
+                    .catch(e => { console.warn(`[StockIntel] Summary fetch failed for ${symbol}: ${e.message}`); return null; })
             ]);
 
             if (!quoteRes || (Array.isArray(quoteRes) && quoteRes.length === 0)) {
                 const fallback = CacheUtils.getFallback(cacheKey);
-                if (fallback) return fallback;
-                throw new Error(`Yahoo Finance returned no data for ${symbol}`);
+                if (fallback) {
+                    return fallback;
+                }
+                console.warn(`[StockIntel] Yahoo Finance returned no data for ${symbol}`);
+                return {
+                    symbol,
+                    name: symbol,
+                    price: 0,
+                    change: 0,
+                    changePercent: 0,
+                    lastUpdated: new Date()
+                };
             }
 
             const data = Array.isArray(quoteRes) ? quoteRes[0] : (quoteRes as any);
@@ -78,7 +90,7 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
                 dayLow: data.regularMarketDayLow || summaryDetail.dayLow || data.regularMarketPrice || data.bid || 0,
                 fiftyTwoWeekHigh: data.fiftyTwoWeekHigh || summaryDetail.fiftyTwoWeekHigh || data.regularMarketPrice || 0,
                 fiftyTwoWeekLow: data.fiftyTwoWeekLow || summaryDetail.fiftyTwoWeekLow || data.regularMarketPrice || 0,
-                currency: data.currency || (symbol.endsWith('.NS') || symbol.endsWith('.BO') ? 'INR' : 'USD'),
+                currency: data.currency || (symbol.endsWith('.NS') ? 'INR' : 'USD'),
                 sector: data.sector || data.industry || null,
 
                 // New Fundamentals
@@ -211,25 +223,22 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
         }
     }
 
-    async getPerformance(symbol: string, period: string = '1mo'): Promise<{
+    async getPerformance(symbol: string, period: string = '1mo'): Promise<Partial<Stock> & {
         change: number;
         changePercent: number;
         currentPrice: number;
-        volume?: number;
-        symbol: string;
         low?: number;
         high?: number;
-        sector?: string | null;
     }> {
         const stock = await this.getStockPrice(symbol);
 
         if (period === '1d' || !period) {
             return {
+                ...stock,
                 symbol,
                 change: stock.change || 0,
                 changePercent: stock.changePercent || 0,
                 currentPrice: stock.price || 0,
-                volume: stock.volume,
                 low: stock.dayLow || stock.price,
                 high: stock.dayHigh || stock.price,
                 sector: stock.sector
@@ -299,19 +308,19 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             const high = Math.max(...pricesHigh, currentPrice);
 
             const resultObj = {
+                ...stock,
                 symbol,
                 change,
                 changePercent,
                 currentPrice,
-                volume: stock.volume,
                 low,
                 high,
                 sector: stock.sector
             };
             CacheUtils.set(cacheKey, resultObj);
             return resultObj;
-        } catch (error) {
-            console.error(`Error calculating performance for ${symbol}:`, error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error calculating performance for ${symbol}: ${error.message}`);
             const fallback = CacheUtils.getFallback(cacheKey);
             return fallback || { symbol, change: 0, changePercent: 0, currentPrice: 0, volume: stock.volume };
         }
@@ -413,10 +422,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
                 .filter((quote: any) =>
                     quote && quote.symbol && (
                         quote.symbol.endsWith('.NS') ||
-                        quote.symbol.endsWith('.BO') ||
                         quote.currency === 'INR' ||
-                        quote.fullExchangeName?.includes('NSE') ||
-                        quote.fullExchangeName?.includes('BSE')
+                        quote.fullExchangeName?.includes('NSE')
                     )
                 )
                 .slice(0, count)
@@ -446,7 +453,13 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
     async getNews(symbol: string, count: number = 5): Promise<any[]> {
         try {
-            const result = await (yahooFinance.search(symbol, { newsCount: count }, { validateResult: false }) as any);
+            // Re-fetch or use cached stock info to get the full company name for better news search
+            // If the symbol is niche, searching for the long name often yields better results
+            const cacheKey = `price_${symbol}`;
+            const cached = CacheUtils.get(cacheKey);
+            const searchQuery = cached?.name ? `${cached.name} ${symbol}` : symbol;
+
+            const result = await (yahooFinance.search(searchQuery, { newsCount: count }, { validateResult: false }) as any);
             return result.news || [];
         } catch (error) {
             console.error(`Error fetching news for ${symbol}:`, error);

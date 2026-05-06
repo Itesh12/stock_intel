@@ -18,7 +18,7 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        showLoader("Establishing Secure Account...");
+        showLoader("Creating Your Account...");
 
         try {
             const response = await fetch("/api/register", {
@@ -33,14 +33,14 @@ export default function RegisterPage() {
                 showSnackbar(data.error || "Registration failed.", "error");
                 hideLoader();
             } else {
-                showSnackbar("Account Created. Welcome to StockIntel.", "success");
+                showSnackbar("Account created successfully. Welcome!", "success");
                 setTimeout(() => {
                     hideLoader();
                     router.push("/auth/login");
                 }, 1500);
             }
         } catch (error) {
-            showSnackbar("Network error. Persistence failed.", "error");
+            showSnackbar("Connection error. Please try again.", "error");
             hideLoader();
         }
     };
@@ -53,7 +53,7 @@ export default function RegisterPage() {
                         <ShieldCheck size={32} className="text-white" />
                     </div>
                     <h1 className="text-3xl font-bold text-white font-outfit tracking-tight text-center">Create Account</h1>
-                    <p className="text-slate-500 mt-2 text-sm text-center">Join StockIntel for professional market insights.</p>
+                    <p className="text-slate-500 mt-2 text-sm text-center">Join StockIntel for market data and insights.</p>
                 </div>
 
                 <div className="glass-card p-6 sm:p-10 relative overflow-hidden group">

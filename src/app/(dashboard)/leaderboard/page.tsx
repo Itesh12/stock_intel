@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
     Trophy,
     Crown,
@@ -13,11 +14,13 @@ import {
 import { formatIndianNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 export default function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const router = useRouter();
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -40,20 +43,7 @@ export default function LeaderboardPage() {
     );
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <div className="relative">
-                    <div className="w-16 h-16 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin"></div>
-                    <Trophy
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500"
-                        size={24}
-                    />
-                </div>
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">
-                    Aggregating Alpha Data
-                </span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Rankings" />;
     }
 
     return (
@@ -63,37 +53,29 @@ export default function LeaderboardPage() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-10">
                 <div className="space-y-4">
                     <div className="flex items-center gap-2.5">
-                        <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-                            Global Arena
-                        </div>
+                        <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">Rankings</div>
                         <div className="h-1 w-1 rounded-full bg-slate-700"></div>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                             <Users size={12} /> {leaderboard.length} Active Traders
                         </span>
                     </div>
-
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tighter font-outfit">
-                        Apex Rankings
-                    </h1>
-
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tighter font-outfit">Top Players</h1>
                     <p className="text-slate-500 text-sm font-medium max-w-xl">
-                        The definitive arena for virtual alpha. Ranks are determined by
-                        historical portfolio ROI from the initial 10L capital injection.
+                        The definitive arena for virtual trading. Ranks are determined by past profit from the initial 10L capital.
                     </p>
                 </div>
 
-                <div className="relative group">
-                    <Search
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors"
-                        size={16}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Search Elite Traders..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-all w-full md:w-64"
-                    />
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search Top Players..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-all w-full md:w-64"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -110,27 +92,17 @@ export default function LeaderboardPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-[0.2em] border-b border-white/5">
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-center w-20">
-                                    Rank
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">
-                                    Trader Hierarchy
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">
-                                    Structural NAV
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right">
-                                    Growth Index
-                                </th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right w-32">
-                                    Status
-                                </th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-center w-20">Rank</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Player</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Total Portfolio Value</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right">Profit Percentage</th>
+                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right w-32">Status</th>
                             </tr>
                         </thead>
 
                         <tbody className="divide-y divide-white/5">
                             {filteredLeaderboard.slice(3).map((trader) => (
-                                <LeaderboardRow key={trader.userId} trader={trader} />
+                                <LeaderboardRow key={trader.userId} trader={trader} router={router} />
                             ))}
                         </tbody>
                     </table>
@@ -159,77 +131,84 @@ function PodiumCard({ trader, position }: { trader: any; position: number }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: position * 0.1 }}
             className={cn(
-                "relative bg-gradient-to-br p-px rounded-[32px] overflow-hidden",
+                "relative bg-gradient-to-br p-px rounded-[32px] overflow-hidden group/podium hover:scale-[1.02] transition-transform duration-500",
                 colors[position]
             )}
         >
-            <div className="bg-[#0A0A0B] rounded-[31px] p-6 flex flex-col gap-6">
-                <div className="flex justify-between items-start">
-                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center">
-                        {icons[position]}
+            <Link href={`/profile/${trader.userId}`} className="block">
+                <div className="bg-[#0A0A0B] rounded-[31px] p-6 flex flex-col gap-6 relative overflow-hidden">
+                    {/* Visual Flare */}
+                    <div className={cn(
+                        "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-[60px] opacity-20 transition-opacity group-hover/podium:opacity-40",
+                        position === 1 ? "bg-amber-400" : position === 2 ? "bg-slate-400" : "bg-rose-500"
+                    )} />
+
+                    <div className="flex justify-between items-start relative z-10">
+                        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/podium:border-white/20 transition-colors">
+                            {icons[position]}
+                        </div>
+
+                        <div className="text-right">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                Rank
+                            </span>
+                            <div className="text-3xl font-black text-white tracking-tighter">#{position}</div>
+                        </div>
                     </div>
 
-                    <div className="text-right">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">
-                            Rank
+                    <div className="space-y-1 relative z-10">
+                        <h3 className="text-xl font-bold text-white font-outfit tracking-tight group-hover/podium:text-blue-400 transition-colors uppercase">{trader.name}</h3>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            <UserIcon size={12} className="text-blue-500" /> Top Trader
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between text-base font-mono relative z-10 pt-2 border-t border-white/5">
+                        <span className="text-slate-400">
+                            ₹{formatIndianNumber(trader.totalValue)}
                         </span>
-                        <div className="text-3xl font-black text-white">#{position}</div>
+
+                        <span
+                            className={cn(
+                                "font-bold",
+                                trader.growthPercent >= 0 ? "text-emerald-400" : "text-rose-400"
+                            )}
+                        >
+                            {trader.growthPercent >= 0 ? "+" : ""}
+                            {trader.growthPercent.toFixed(2)}%
+                        </span>
                     </div>
                 </div>
-
-                <Link href={`/profile/${trader.userId}`}>
-                    <h3 className="text-xl font-bold text-white uppercase">
-                        {trader.name}
-                    </h3>
-                </Link>
-
-                <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">
-                        ₹{formatIndianNumber(trader.totalValue)}
-                    </span>
-
-                    <span
-                        className={cn(
-                            "font-bold",
-                            trader.growthPercent >= 0 ? "text-emerald-400" : "text-rose-400"
-                        )}
-                    >
-                        {trader.growthPercent >= 0 ? "+" : ""}
-                        {trader.growthPercent.toFixed(2)}%
-                    </span>
-                </div>
-            </div>
+            </Link>
         </motion.div>
     );
 }
 
-function LeaderboardRow({ trader }: { trader: any }) {
+function LeaderboardRow({ trader, router }: { trader: any; router: any }) {
     const isPositive = trader.growthPercent >= 0;
 
     return (
-        <tr className="hover:bg-white/[0.03] transition-all">
-            <td className="px-6 py-6 text-center font-mono text-slate-400">
+        <tr 
+            className="hover:bg-white/[0.04] transition-all cursor-pointer group/row border-white/5"
+            onClick={() => router.push(`/profile/${trader.userId}`)}
+        >
+            <td className="px-6 py-6 text-center font-mono text-slate-400 group-hover/row:text-white transition-colors">
                 {trader.rank}
             </td>
 
             <td className="px-6 py-6">
-                <Link
-                    href={`/profile/${trader.userId}`}
-                    className="flex items-center gap-4"
-                >
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-slate-300">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-slate-300 border border-white/5 group-hover/row:border-blue-500/20 group-hover/row:text-blue-400 transition-all">
                         {trader.name[0]}
                     </div>
 
                     <div>
-                        <div className="font-bold text-white uppercase">
-                            {trader.name}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                            TRADER_NODE_{trader.userId.slice(0, 4)}
+                        <div className="font-bold text-white text-base tracking-tight leading-none mb-1 group-hover/row:text-blue-400 transition-colors uppercase">{trader.name}</div>
+                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <div className="w-1 h-1 rounded-full bg-slate-700"></div> PLAYER_{trader.userId.slice(0, 4)}
                         </div>
                     </div>
-                </Link>
+                </div>
             </td>
 
             <td className="px-6 py-6 font-mono text-white">

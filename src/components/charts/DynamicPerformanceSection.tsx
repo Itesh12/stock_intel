@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import InteractiveChart from './InteractiveChart';
-import { CandleLoader } from '../ui/candle-loader';
+import { GlobalLoader } from '../ui/global-loader';
 
 interface DynamicPerformanceSectionProps {
     initialData: any[];
@@ -116,9 +116,7 @@ export default function DynamicPerformanceSection({
 
             <div className="flex-1 relative h-[400px] min-h-[400px] z-10">
                 {isLoading ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-sm rounded-3xl z-20">
-                        <CandleLoader />
-                    </div>
+                    <GlobalLoader title="Fetching Chart Data" fullScreen={true} />
                 ) : null}
                 <InteractiveChart data={data} isPositive={isPositive} />
             </div>

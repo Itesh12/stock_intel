@@ -42,6 +42,8 @@ export async function POST(req: Request) {
             };
         }
 
+        const initialHolding = portfolio.holdings.find((h: any) => h.symbol === symbol);
+
         // Get current price
         const stockData = await infra.market.getStockPrice(symbol);
         const currentPrice = stockData.price;
@@ -119,6 +121,9 @@ export async function POST(req: Request) {
 
         await infra.portfolio.save(portfolio);
 
+        const realizedPL = type === 'SELL' ? (currentPrice - (initialHolding?.averagePrice || currentPrice)) * quantity : undefined;
+        const averagePriceAtSale = type === 'SELL' ? (initialHolding?.averagePrice || currentPrice) : undefined;
+
         // Record trade in ledger
         const tradeId = uuidv4();
         await infra.trade.save({
@@ -129,7 +134,9 @@ export async function POST(req: Request) {
             price: currentPrice,
             totalValue: currentPrice * quantity,
             type: type as any,
-            timestamp: new Date()
+            timestamp: new Date(),
+            realizedPL,
+            averagePriceAtSale
         });
 
         // Save attached SL/TP orders if BUY

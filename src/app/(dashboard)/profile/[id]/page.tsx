@@ -4,6 +4,7 @@ import { Trophy, Crown, Medal, TrendingUp, TrendingDown, Users, Briefcase, Globe
 import { formatCurrency, formatIndianNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { GlobalLoader } from "@/components/ui/global-loader";
 
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
@@ -26,20 +27,15 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     }, [id]);
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <div className="w-16 h-16 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin"></div>
-                <span className="text-xs font-bold text-slate-500 tracking-[0.4em] uppercase">Retrieving Trader Matrix</span>
-            </div>
-        );
+        return <GlobalLoader title="Loading Profile" />;
     }
 
     if (!profile || profile.error) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
                 <ShieldCheck className="text-rose-500 mb-6" size={48} />
-                <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-tighter">Access Entity Failed</h1>
-                <p className="text-slate-500 max-w-sm">The requested trader node does not exist or has been privatized from the global rankings.</p>
+                <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-tighter">Profile Not Found</h1>
+                <p className="text-slate-500 max-w-sm">The requested profile does not exist or has been made private from the rankings.</p>
                 <Link href="/leaderboard" className="mt-8 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl font-bold text-sm text-white hover:bg-white/10 transition-all">
                     Back to Leaderboard
                 </Link>
@@ -67,16 +63,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
                     <div className="flex-1 text-center md:text-left space-y-4">
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tighter uppercase font-outfit">{profile.name}</h1>
-                            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Verified Trader</span>
+                            <h1 className="text-4xl font-black text-white tracking-tighter uppercase font-outfit">{profile.name}</h1>
+                            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Verified Player</span>
                         </div>
 
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-slate-500 font-bold uppercase text-[10px] tracking-widest">
                             <div className="flex items-center gap-2">
-                                <MapPin size={14} className="text-blue-500" /> Web Node Alpha
+                                <MapPin size={14} className="text-blue-500" /> Active Player
                             </div>
                             <div className="flex items-center gap-2">
-                                <Zap size={14} className="text-amber-500" /> {profile.holdingsCount} Active Sectors
+                                <Zap size={14} className="text-amber-500" /> {profile.holdingsCount} Industries Included
                             </div>
                             <div className="flex items-center gap-2 text-white">
                                 <Trophy size={14} className="text-yellow-500" /> Rank #1
@@ -85,7 +81,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                     </div>
 
                     <div className="flex flex-col items-center md:items-end gap-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Growth Index</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Profit %</span>
                         <div className={cn(
                             "text-3xl sm:text-4xl md:text-5xl font-black font-outfit tracking-tighter",
                             isPositive ? "text-emerald-400" : "text-rose-400"
@@ -99,7 +95,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="glass-morphic-card rounded-[32px] p-8 border-white/5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Total Valuation</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Total Portfolio Value</span>
                     <div className="text-3xl font-black text-white font-mono tracking-tighter">₹{formatIndianNumber(profile.totalValue)}</div>
                     <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/5 px-3 py-1.5 rounded-xl border border-emerald-500/10 w-fit">
                         <TrendingUp size={12} /> High Performance
@@ -107,16 +103,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                 </div>
 
                 <div className="glass-morphic-card rounded-[32px] p-8 border-white/5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Portfolio Breadth</span>
-                    <div className="text-3xl font-black text-white font-mono tracking-tighter">{profile.holdingsCount} Positions</div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Stocks Owned</span>
+                    <div className="text-3xl font-black text-white font-mono tracking-tighter">{profile.holdingsCount} Stocks</div>
                     <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-blue-400 bg-blue-500/5 px-3 py-1.5 rounded-xl border border-blue-500/10 w-fit">
                         <Briefcase size={12} /> Diversified
                     </div>
                 </div>
 
                 <div className="glass-morphic-card rounded-[32px] p-8 border-white/5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Account Tier</span>
-                    <div className="text-3xl font-black text-white font-outfit tracking-tighter">ELITE WHALE</div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Account Type</span>
+                    <div className="text-3xl font-black text-white font-outfit tracking-tighter">Top Player</div>
                     <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-amber-500 bg-amber-500/5 px-3 py-1.5 rounded-xl border border-amber-500/10 w-fit">
                         <Crown size={12} /> Top 0.1% Globally
                     </div>
@@ -128,7 +124,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                 <div className="p-8 border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Globe size={20} className="text-blue-500" />
-                        <h2 className="text-xl font-bold text-white tracking-tight uppercase">Public Disclosure: Allocation</h2>
+                        <h2 className="text-xl font-bold text-white tracking-tight uppercase">Portfolio Breakdown</h2>
                     </div>
                 </div>
 
@@ -136,12 +132,12 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                <th className="px-8 py-5 font-bold">Security Symbol</th>
-                                <th className="px-8 py-5 font-bold">Strategic Sector</th>
-                                <th className="px-8 py-5 font-bold text-right">Avg Price</th>
-                                <th className="px-8 py-5 font-bold text-right">Current Price</th>
-                                <th className="px-8 py-5 font-bold text-right">Total P&L</th>
-                                <th className="px-8 py-5 font-bold text-right">Weight</th>
+                                <th className="px-8 py-5 font-bold">Stock Symbol</th>
+                                <th className="px-8 py-5 font-bold">Industry</th>
+                                <th className="px-8 py-5 font-bold text-right">Bought Price</th>
+                                <th className="px-8 py-5 font-bold text-right">Live Price</th>
+                                <th className="px-8 py-5 font-bold text-right">Profit/Loss</th>
+                                <th className="px-8 py-5 font-bold text-right">Portfolio %</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -154,7 +150,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold text-blue-400 border border-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all">{holding.symbol[0]}</div>
                                                 <div>
                                                     <div className="font-bold text-white tracking-tight uppercase leading-none mb-1 group-hover:text-blue-400 transition-colors">{holding.symbol.replace(/\.(NS|BO)$/, '')}</div>
-                                                    <div className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{holding.symbol.endsWith('.NS') ? 'NSE' : 'BSE'}</div>
+                                                    <div className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{holding.symbol.endsWith('.NS') ? 'NSE' : 'EQUITY'}</div>
                                                 </div>
                                             </div>
                                         </td>

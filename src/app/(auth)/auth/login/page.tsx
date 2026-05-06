@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        showLoader("Authenticating Credentials...");
+        showLoader("Checking Login Details...");
 
         try {
             const result = await signIn("credentials", {
@@ -28,17 +28,17 @@ export default function LoginPage() {
             });
 
             if (result?.error) {
-                showSnackbar("Invalid email or password. Access Denied.", "error");
+                showSnackbar("Invalid email or password. Login Failed.", "error");
                 hideLoader();
             } else {
-                showSnackbar("Access Granted. Synchronizing Portfolio...", "success");
+                showSnackbar("Login Successful. Loading Your Profile...", "success");
                 setTimeout(() => {
                     hideLoader();
                     window.location.href = "/";
                 }, 1000);
             }
         } catch (error) {
-            showSnackbar("System error. Connection refused.", "error");
+            showSnackbar("Connection error. Please try again.", "error");
             hideLoader();
         }
     };
@@ -51,7 +51,7 @@ export default function LoginPage() {
                         <span className="text-3xl font-black text-white">S</span>
                     </div>
                     <h1 className="text-3xl font-bold text-white font-outfit tracking-tight">Sign In</h1>
-                    <p className="text-slate-500 mt-2 text-sm text-center">Access your professional portfolio and market intelligence.</p>
+                    <p className="text-slate-500 mt-2 text-sm text-center">View your stocks and market data.</p>
                 </div>
 
                 <div className="glass-card p-6 sm:p-10 relative overflow-hidden group">
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 </div>
 
                 <p className="mt-8 text-center text-sm text-slate-500">
-                    New to StockIntel? <Link href="/auth/register" prefetch={false} className="text-blue-500 font-bold hover:text-blue-400 transition-colors">Create Account</Link>
+                    Don't have an account? <Link href="/auth/register" prefetch={false} className="text-blue-500 font-bold hover:text-blue-400 transition-colors">Create Account</Link>
                 </p>
             </div>
         </div>

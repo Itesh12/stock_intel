@@ -5,12 +5,12 @@ import {
     TrendingUp, Activity, Zap, Shield,
     ArrowUpRight, ArrowDownRight, AlertCircle,
     Globe, Gauge, Hexagon, Coins, Landmark, Repeat,
-    Banknote, Timer, Loader2, Star, Plus
+    Banknote, Timer, Loader2, Star, Plus, Info
 } from "lucide-react";
 import Link from "next/link";
 import { formatIndianNumber } from "@/lib/utils";
 import TimeframeSelector from "./timeframe-selector";
-import { CandleLoader } from "@/components/ui/candle-loader";
+import { GlobalLoader } from "@/components/ui/global-loader";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MarketDataPoint {
@@ -114,7 +114,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             alert("Watchlist limit reached. You can only track up to 20 stocks.");
             return;
         }
-        
+
         setIsAdding(true);
         try {
             const res = await fetch('/api/watchlist', {
@@ -164,21 +164,31 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
         };
     });
 
-    const advances = sectors.filter(s => s.changePercent > 0).length;
-    const declines = sectors.filter(s => s.changePercent <= 0).length;
-    const breadth = declines > 0 ? (advances / declines).toFixed(2) : advances.toString();
-    const avgSectorChange = sectors.reduce((acc, s) => acc + (s.changePercent || 0), 0) / sectors.length;
-    const sentimentScore = Math.min(Math.max(Math.round(50 + (avgSectorChange * 15)), 10), 98);
+    // Granular Market Breadth (using all 50+ stocks from data)
+    const stockData = marketData.filter(m => m.symbol.endsWith('.NS'));
+    const advances = stockData.filter(s => (s.changePercent || 0) > 0).length;
+    const declines = stockData.filter(s => (s.changePercent || 0) < 0).length;
+    
+    // Breadth as percentage of advancing stocks (Real market-wide view)
+    const activeSample = advances + declines;
+    const breadthPercent = activeSample > 0 ? (advances / activeSample) * 100 : 50;
+    const breadthLabel = breadthPercent > 60 ? "STRONG BREADTH" : breadthPercent < 40 ? "WEAK BREADTH" : "NEUTRAL BREADTH";
+    
+    const avgSectorChange = sectors.reduce((acc, s) => acc + (s.changePercent || 0), 0) / (sectors.length || 1);
+    const sentimentScore = Math.min(Math.max(Math.round(50 + (avgSectorChange * 15)), 15), 95);
+    
     const vixValue = vix.currentPrice || 12.5;
-    const healthIndex = Math.min(Math.max(Math.round(((100 - sentimentScore) * 0.2) + (sentimentScore * 0.8) + (20 - vixValue)), 20), 99);
-
+    // Normalized VIX impact: 16 is calm, 22+ is panic.
+    const vixEffect = (16 - vixValue) * 1.2; 
+    const healthIndex = Math.min(Math.max(Math.round(((100 - sentimentScore) * 0.1) + (sentimentScore * 0.9) + vixEffect), 15), 99);
+    
     let regime: 'EXPANSION' | 'DISTRIBUTION' | 'CAPITULATION' | 'COMPRESSION' = 'COMPRESSION';
-    if (parseFloat(breadth) > 1.2 && vixValue < 15) regime = 'EXPANSION';
-    else if (nifty.changePercent > 0 && parseFloat(breadth) < 0.8) regime = 'DISTRIBUTION';
-    else if (vixValue > 22 && parseFloat(breadth) < 0.5) regime = 'CAPITULATION';
-    else if (vixValue < 13 && Math.abs(avgSectorChange) < 0.3) regime = 'COMPRESSION';
+    if (breadthPercent > 60 && vixValue < 18) regime = 'EXPANSION';
+    else if ((nifty.changePercent || 0) > 0 && breadthPercent < 45) regime = 'DISTRIBUTION';
+    else if (vixValue > 25 && breadthPercent < 35) regime = 'CAPITULATION';
+    else if (vixValue < 14 && Math.abs(avgSectorChange) < 0.4) regime = 'COMPRESSION';
 
-    const isDivergent = (nifty.changePercent > 0.1 && parseFloat(breadth) < 0.7) || (nifty.changePercent < -0.1 && parseFloat(breadth) > 1.3);
+    const isDivergent = ((nifty.changePercent || 0) > 0.1 && breadthPercent < 45) || ((nifty.changePercent || 0) < -0.1 && breadthPercent > 55);
     const moneyFlows = [...sectors].sort((a, b) => b.momentum - a.momentum).slice(0, 3);
 
     return (
@@ -187,22 +197,22 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             {isLoading && (
                 <div className="absolute inset-x-0 -top-8 flex justify-center z-50 pointer-events-none">
                     <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-blue-600 shadow-2xl shadow-blue-600/50 border border-blue-400/20 animate-in slide-in-from-top-4">
-                        <CandleLoader />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Intel Syncing</span>
+                        <GlobalLoader minimal={true} />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Getting Data</span>
                     </div>
                 </div>
             )}
 
             {/* Intel Hero & Regime Header */}
-            <div className="flex flex-col gap-8 pb-4 border-b border-white/5">
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+            <div className="flex flex-col gap-4 md:gap-6 pb-4 border-b border-white/5">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 md:gap-6">
                     <div className="space-y-4">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
                             <Hexagon size={12} className="text-blue-400 fill-blue-400/20" />
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">Global Intel v5.0 SPA</span>
+                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">Market Insights</span>
                         </div>
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-outfit tracking-tighter leading-[0.9]">
-                            Strategic <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Market Vision</span>
+                            Market <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Overview</span>
                         </h1>
                     </div>
 
@@ -220,7 +230,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                             'text-blue-400'
                                     } animate-pulse`} />
                                 <div className="flex flex-col">
-                                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mb-0.5">Market Regime</span>
+                                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mb-0.5">Market Trend</span>
                                     <h3 className="text-lg font-black text-white tracking-tighter leading-none">{regime}</h3>
                                 </div>
                             </div>
@@ -244,7 +254,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Globe className="text-blue-400" size={20} />
-                        Global Equity Monitor
+                        Global Markets
                     </h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -267,7 +277,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     <div className="flex items-center gap-4">
                         <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                             <Star className="text-amber-400" size={20} fill="currentColor" />
-                            Watchlist Monitor
+                            My Watchlist
                             {isWatchlistLoading && <Loader2 size={14} className="animate-spin text-slate-500" />}
                         </h2>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 border border-white/5 px-2 py-1 rounded-md">
@@ -285,8 +295,8 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all w-full sm:w-64"
                             />
                             {isSearching && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-[0.4] origin-right pointer-events-none">
-                                    <CandleLoader />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-[0.6] origin-right pointer-events-none">
+                                    <GlobalLoader minimal={true} />
                                 </div>
                             )}
 
@@ -309,8 +319,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                                     </div>
                                                     <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest">
                                                         {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                            result.symbol?.endsWith('.BO') ? 'BSE' :
-                                                                (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQ')}
+                                                            (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQ')}
                                                     </span>
                                                 </div>
                                                 <div className="text-[9px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity">
@@ -327,34 +336,34 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                 {watchlistData.length > 0 ? (
                     <div className="max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
-                        {watchlistData.map((item) => (
-                            <Link key={item.symbol} href={`/stock/${item.symbol}`}>
-                                <div className="glass-card p-6 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
-                                                {item.symbol.replace(/\.(NS|BO)$/, '')}
-                                            </span>
-                                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-bold uppercase tracking-widest">
-                                                {item.symbol.endsWith('.NS') ? 'NSE' : 'BSE'}
+                            {watchlistData.map((item) => (
+                                <Link key={item.symbol} href={`/stock/${item.symbol}`}>
+                                    <div className="glass-card p-4 border-amber-500/10 hover:border-amber-500/30 transition-all bg-amber-500/[0.02] flex items-center justify-between group cursor-pointer active:scale-[0.98]">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-black text-white group-hover:text-amber-400 transition-colors uppercase tracking-tight">
+                                                    {item.symbol.replace(/\.(NS|BO)$/, '')}
+                                                </span>
+                                                <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-bold uppercase tracking-widest">
+                                                    {item.symbol.endsWith('.NS') ? 'NSE' : 'EQUITY'}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 truncate max-w-[120px]">
+                                                {item.label || "Equity Node"}
                                             </span>
                                         </div>
-                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 truncate max-w-[120px]">
-                                            {item.label || "Equity Node"}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-base font-black text-white font-mono tracking-tighter">
-                                            ₹{formatIndianNumber(item.currentPrice)}
-                                        </span>
-                                        <div className={`flex items-center gap-1 text-[10px] font-bold ${item.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                            {item.changePercent >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                                            {Math.abs(item.changePercent).toFixed(2)}%
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-base font-black text-white font-mono tracking-tighter">
+                                                ₹{formatIndianNumber(item.currentPrice)}
+                                            </span>
+                                            <div className={`flex items-center gap-1 text-[10px] font-bold ${item.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {item.changePercent >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                                {Math.abs(item.changePercent).toFixed(2)}%
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            ))}
                         </div>
                     </div>
                 ) : (
@@ -367,11 +376,11 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </section>
 
             {/* SECTION 2: MACRO MONITOR */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                <section className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Coins className="text-amber-400" size={20} />
-                        Hard Assets
+                        Gold & Commodities
                     </h2>
                     <div className="grid grid-cols-1 gap-4">
                         {[
@@ -384,10 +393,10 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     </div>
                 </section>
 
-                <section className="space-y-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Banknote className="text-emerald-400" size={20} />
-                        Currency Monitor
+                        Currency Rates
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[
@@ -403,7 +412,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                     </div>
                 </section>
 
-                <section className="space-y-6">
+                <section className="space-y-4">
                     <h2 className="text-xl font-black text-white font-outfit flex items-center gap-2">
                         <Timer className="text-purple-400" size={20} />
                         US Yield Curve
@@ -422,26 +431,26 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* SECTION 3: INDIAN SECTOR ALPHA (Definitive Grid Alignment) */}
-            <div className="pt-8 md:pt-16 border-t border-white/5">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12 items-stretch">
+            <div className="pt-4 md:pt-6 border-t border-white/5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 items-start">
                     {/* Headers Row */}
                     <div className="lg:col-span-2 flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
                             <Landmark className="text-blue-400" size={24} />
-                            Sector Drift Tracking
+                            Industry Trends
                         </h2>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">NSE SECTORAL INDICES</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Indian Industries</span>
                     </div>
                     <div className="flex items-center justify-between h-10">
                         <h2 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
                             <Zap className="text-indigo-400" size={24} />
-                            Money Flow Hub
+                            Top Gaining Industries
                         </h2>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">FLUX RANKING</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">MARKET ACTIVITY</span>
                     </div>
 
-                    {/* Content Row - Guaranteed Horizontal Alignment */}
-                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Content Row - Compact Grid */}
+                    <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3 content-start auto-rows-max">
                         {sectors.map((sector, i) => (
                             <SectorItem
                                 key={i}
@@ -452,18 +461,18 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                         ))}
                     </div>
 
-                    <div className="lg:col-span-1 glass-card p-6 md:p-8 flex flex-col relative overflow-hidden group border-indigo-500/10 h-full min-h-[320px] sm:min-h-[460px]">
-                        <p className="text-[10px] text-slate-500 mb-8 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
-                        <div className="space-y-8">
+                    <div className="lg:col-span-1 glass-card p-4 md:p-5 flex flex-col relative overflow-hidden group border-indigo-500/10">
+                        <p className="text-[9px] text-slate-500 mb-3 uppercase tracking-widest font-bold">Relative Strength Concentration</p>
+                        <div className="space-y-3">
                             {moneyFlows.map((flow, i) => (
-                                <div key={i} className="flex flex-col gap-3">
+                                <div key={i} className="flex flex-col gap-1.5">
                                     <div className="flex justify-between items-end">
-                                        <span className="text-sm font-bold text-white uppercase tracking-wider">{flow.label}</span>
-                                        <span className={`text-[10px] font-black ${flow.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">{flow.label}</span>
+                                        <span className={`text-[9px] font-black ${flow.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             FLUX: {flow.momentum.toFixed(2)}
                                         </span>
                                     </div>
-                                    <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                                         <div
                                             className={`h-full transition-all duration-1000 ${flow.changePercent > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                             style={{ width: `${Math.min(Math.abs(flow.momentum * 50), 100)}%` }}
@@ -472,14 +481,14 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-auto pt-10">
-                            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Zap size={14} className="text-indigo-400" />
-                                    <span className="text-[10px] font-black text-indigo-400 uppercase">Intelligence Summary</span>
+                        <div className="mt-auto pt-4">
+                            <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <Zap size={12} className="text-indigo-400" />
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase">Quick Summary</span>
                                 </div>
-                                <p className="text-xs text-slate-400 leading-relaxed italic">
-                                    Focus concentrated in <b>{moneyFlows[0]?.label}</b> over the {timeframe} window.
+                                <p className="text-[10px] text-slate-400 leading-relaxed italic">
+                                    Focus concentrated in <b>{moneyFlows[0]?.label}</b>.
                                 </p>
                             </div>
                         </div>
@@ -488,35 +497,61 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
             </div>
 
             {/* Core Health Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-2">
                 <DataPointCard
-                    label="Market Breadth"
-                    mainValue={breadth}
-                    subValue={`${advances} Adv / ${declines} Dec`}
-                    status={parseFloat(breadth) >= 1 ? "positive" : "negative"}
+                    label="Market Participation"
+                    mainValue={`${breadthPercent.toFixed(0)}%`}
+                    subValue={breadthLabel}
+                    description={`Percentage of Nifty 50 constituents currently advancing (${advances}/${activeSample} stocks).`}
+                    status={breadthPercent > 60 ? "positive" : breadthPercent < 40 ? "negative" : "neutral"}
                     icon={<Activity className="text-blue-400" size={24} />}
                 />
                 <DataPointCard
-                    label="INDIA VIX"
+                    label="Market Volatility"
                     mainValue={vixValue.toFixed(2)}
-                    subValue="Volatility Pulse"
-                    status={vixValue < 15 ? "positive" : vixValue > 20 ? "negative" : "neutral"}
+                    subValue={vixValue > 22 ? "HIGH PANIC" : vixValue > 18 ? "VOLATILE" : "CALM"}
+                    description="India VIX index. Levels above 20 indicate high market uncertainty and potential panic."
+                    status={vixValue > 22 ? "negative" : vixValue > 18 ? "neutral" : "positive"}
                     icon={<Gauge className="text-purple-400" size={24} />}
                 />
                 <DataPointCard
-                    label="Bullish Sentiment"
+                    label="Market Confidence"
                     mainValue={`${sentimentScore}%`}
-                    subValue="System Confidence"
-                    status={sentimentScore > 60 ? "positive" : sentimentScore < 40 ? "negative" : "neutral"}
+                    subValue={sentimentScore > 70 ? "OPTIMISTIC" : sentimentScore < 30 ? "PESSIMISTIC" : "NEUTRAL"}
+                    description="Aggregated sentiment across all major sectors. High scores indicate broad buying interest."
+                    status={sentimentScore > 70 ? "positive" : sentimentScore < 30 ? "negative" : "neutral"}
                     icon={<TrendingUp className="text-emerald-400" size={24} />}
                 />
                 <DataPointCard
-                    label="Intelligence Health"
+                    label="System Status"
                     mainValue={`${healthIndex}%`}
-                    subValue="Data Integrity"
-                    status={healthIndex > 70 ? "positive" : healthIndex > 40 ? "neutral" : "negative"}
-                    icon={<Shield className="text-indigo-400" size={24} />}
+                    subValue={healthIndex > 60 ? "STABLE" : healthIndex < 30 ? "CRITICAL" : "CAUTION"}
+                    description="Overall system health combining participation, sentiment, and volatility metrics."
+                    status={healthIndex > 60 ? "positive" : healthIndex < 30 ? "negative" : "neutral"}
+                    icon={<Shield size={24} className="text-indigo-400" />}
                 />
+            </div>
+
+            {/* Data Insights Breakdown */}
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-4 md:p-5 space-y-3 mt-4">
+                <div className="flex items-center gap-2">
+                    <Info size={16} className="text-blue-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">How these scores are calculated</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-[11px] leading-relaxed text-zinc-400">
+                    <div className="space-y-2">
+                        <p className="font-bold text-zinc-200">Participation (Breadth)</p>
+                        <p>Calculated by tracking the price action of the **Nifty 50** constituents. Ideally, high participation (&gt;60%) indicates a healthy, sustainable trend.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-bold text-zinc-200">Confidence (Sentiment)</p>
+                        <p>A weighted average of the 6 major sector indices. It measures how broad the buying interest is across different industries.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <p className="font-bold text-zinc-200">System Health (Overall)</p>
+                        <p>Our proprietary index that balances Participation and Confidence against Volatility (VIX). High VIX (&gt;22) significantly reduces health.</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -525,10 +560,10 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
 function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: any; icon?: React.ReactNode; prefix?: string }) {
     return (
         <motion.div
-            whileHover={{ y: -4, scale: 1.02 }}
-            className="glass-card p-5 md:p-6 flex flex-col gap-2 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
+            whileHover={{ y: -2, scale: 1.02 }}
+            className="glass-card p-3 md:p-4 flex flex-col gap-1.5 border-white/5 hover:border-blue-500/30 transition-all group cursor-pointer"
         >
-            <div className="flex items-center gap-1.5 opacity-50 mb-1">
+            <div className="flex items-center gap-1.5 opacity-50 mb-0.5">
                 {icon || <Globe size={12} className="text-slate-500" />}
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate leading-none">{label}</span>
             </div>
@@ -546,11 +581,11 @@ function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: a
             {data.low !== undefined && data.high !== undefined && (
                 <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
                     <div className="flex flex-col">
-                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Session Low</span>
+                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Today's Low</span>
                         <span className="text-[10px] font-black text-slate-400 leading-none">{data.low?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Session High</span>
+                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Today's High</span>
                         <span className="text-[10px] font-black text-slate-400 leading-none">{data.high?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
@@ -559,35 +594,48 @@ function SymbolCard({ label, data, icon, prefix = "" }: { label: string; data: a
     );
 }
 
-function DataPointCard({ label, mainValue, subValue, status, icon }: { label: string; mainValue: string; subValue: string; status: 'positive' | 'negative' | 'neutral'; icon: React.ReactNode }) {
+const DataPointCard: React.FC<{ 
+    label: string, 
+    mainValue: string, 
+    subValue: string, 
+    status: 'positive' | 'negative' | 'neutral', 
+    icon: React.ReactNode, 
+    description?: string 
+}> = ({ label, mainValue, subValue, status, icon, description }) => {
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
-            className="glass-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group cursor-default"
+            className="glass-card p-4 md:p-5 flex flex-col justify-between h-36 relative overflow-hidden group cursor-default"
         >
-            <div className="absolute top-0 right-0 p-8 -mr-10 -mt-10 opacity-[0.03] group-hover:opacity-[0.2] transition-all duration-500 group-hover:scale-110">
+            <div className="absolute top-0 right-0 p-6 -mr-8 -mt-8 opacity-[0.03] group-hover:opacity-[0.15] transition-all duration-500 group-hover:scale-110">
                 {icon}
             </div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
             <div className="flex flex-col">
-                <span className="text-4xl font-black text-white font-outfit mb-1 group-hover:text-blue-400 transition-colors">{mainValue}</span>
-                <div className={`text-[10px] font-bold uppercase tracking-tight ${status === 'positive' ? 'text-emerald-400' : status === 'negative' ? 'text-rose-400' : 'text-slate-400'}`}>
+                <span className="text-3xl font-black text-white font-outfit mb-1 group-hover:text-blue-400 transition-colors">{mainValue}</span>
+                <div className={`text-[9px] font-bold uppercase tracking-tight ${status === 'positive' ? 'text-emerald-400' : status === 'negative' ? 'text-rose-400' : 'text-slate-400'}`}>
                     {subValue}
                 </div>
             </div>
+            
+            {description && (
+                <div className="absolute inset-0 bg-slate-900/95 p-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 text-center border border-white/10 rounded-3xl">
+                    <p className="text-[10px] leading-relaxed text-slate-300 font-medium">{description}</p>
+                </div>
+            )}
         </motion.div>
     );
-}
+};
 
 function SectorItem({ label, value, status }: { label: string; value: string; status: 'up' | 'down' }) {
     return (
-        <div className="flex items-center justify-between p-6 rounded-2xl bg-white/[0.02] border border-white/5">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</span>
-            <div className="flex items-center gap-4">
-                <span className="text-xl font-black text-white font-outfit">{value}</span>
+        <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight truncate mr-2">{label}</span>
+            <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-white font-outfit">{value}</span>
                 {status === 'up' ?
-                    <ArrowUpRight size={20} className="text-emerald-400" /> :
-                    <ArrowDownRight size={20} className="text-rose-400" />
+                    <ArrowUpRight size={14} className="text-emerald-400" /> :
+                    <ArrowDownRight size={14} className="text-rose-400" />
                 }
             </div>
         </div>

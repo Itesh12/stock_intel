@@ -63,8 +63,19 @@ export default function StockNewsSentiment({ symbol }: { symbol: string }) {
                             <h3 className="text-sm font-bold text-white mb-2 leading-tight group-hover:text-blue-400 transition-colors line-clamp-2">{item.title}</h3>
                             <p className="text-[11px] text-slate-400 line-clamp-2 mb-3 leading-relaxed font-medium">{item.summary}</p>
                             <div className="flex items-center justify-between text-[9px] font-bold text-slate-600 uppercase tracking-widest">
-                                <span>{item.publisher}</span>
-                                <span>{new Date(item.providerPublishTime * 1000).toLocaleDateString()}</span>
+                                <span>{item.publisher || "Global Intelligence"}</span>
+                                <span>{(() => {
+                                    try {
+                                        const date = item.providerPublishTime instanceof Date 
+                                            ? item.providerPublishTime 
+                                            : new Date(typeof item.providerPublishTime === 'number' && item.providerPublishTime < 10000000000 
+                                                ? item.providerPublishTime * 1000 
+                                                : item.providerPublishTime);
+                                        return isNaN(date.getTime()) ? "RECENT" : date.toLocaleDateString();
+                                    } catch {
+                                        return "RECENT";
+                                    }
+                                })()}</span>
                             </div>
                         </motion.a>
                     ))}
@@ -95,19 +106,21 @@ export default function StockNewsSentiment({ symbol }: { symbol: string }) {
                         <div className="mt-8 space-y-4">
                             <div className="flex justify-between items-end mb-1">
                                 <span className="text-[9px] font-black text-slate-500 uppercase">AI Confidence</span>
-                                <span className="text-xs font-black text-white">{aggregate.confidence.toFixed(0)}%</span>
+                                <span className="text-xs font-black text-white">{aggregate?.confidence?.toFixed(0) || "50"}%</span>
                             </div>
                             <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                                 <motion.div 
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${aggregate.confidence}%` }}
-                                    className={cn(
-                                        "h-full transition-all duration-1000",
-                                        aggregate.label === 'BULLISH' ? "bg-emerald-500" :
-                                        aggregate.label === 'BEARISH' ? "bg-rose-500" : "bg-slate-500"
-                                    )} 
+                                    animate={{ width: `${aggregate?.confidence || 50}%` }}
+                                    className="h-full bg-slate-400"
                                 />
                             </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
+                                "{aggregate?.rationale || "Our aggregate intelligence is calibrating sentiment signals based on recent market activity."}"
+                            </p>
                         </div>
 
                         <div className="mt-8 p-4 bg-white/5 border border-white/5 rounded-2xl flex gap-3">

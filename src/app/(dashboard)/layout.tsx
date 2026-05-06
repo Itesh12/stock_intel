@@ -6,9 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
-import { CandleLoader } from "@/components/ui/candle-loader";
+import { GlobalLoader } from "@/components/ui/global-loader";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
-import TerminalFooter from "@/components/ui/terminal-footer";
 import { NotificationsPopover } from "@/components/ui/notifications-popover";
 
 export default function DashboardLayout({
@@ -168,13 +167,12 @@ export default function DashboardLayout({
                             >
                                 <Menu size={18} />
                             </button>
-                            
                             <div className="hidden lg:flex flex-col ml-1">
                                 <span className="text-[9px] font-black text-blue-500/60 uppercase tracking-[0.2em] leading-none mb-1">StockIntel / v5.0</span>
                                 <span className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                                     {getPageTitle()}
                                     <div className="w-1 h-1 rounded-full bg-slate-700" />
-                                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Live Intel</span>
+                                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Market Overview</span>
                                 </span>
                             </div>
                         </div>
@@ -186,7 +184,7 @@ export default function DashboardLayout({
                                     <Search size={16} className="absolute left-4 text-slate-500 group-focus-within/search:text-blue-400 transition-colors pointer-events-none" />
                                     <input
                                         type="text"
-                                        placeholder="Identify Stock Nodes, Sectors, or Intelligence Queries..."
+                                        placeholder="Search for Stocks, Industries, or Market Trends..."
                                         autoComplete="off"
                                         className="h-11 !py-0 !pl-11 !pr-20 !bg-white/[0.04] !border-white/10 focus:!border-blue-500/40 focus:!bg-white/[0.07] transition-all text-[13px] rounded-2xl w-full font-medium placeholder:text-slate-600 shadow-inner"
                                         value={searchQuery}
@@ -197,8 +195,8 @@ export default function DashboardLayout({
                                             <span className="text-[8px] opacity-60">CTRL</span> K
                                         </div>
                                         {isSearching && (
-                                            <div className="scale-[0.35] origin-right opacity-60">
-                                                <CandleLoader />
+                                            <div className="scale-[0.8] origin-right opacity-60">
+                                                <GlobalLoader minimal={true} />
                                             </div>
                                         )}
                                     </div>
@@ -231,12 +229,11 @@ export default function DashboardLayout({
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 <div className="text-[14px] font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight truncate">
-                                                                    {(result.symbol || '').replace(/\.(NS|BO)$/, '')}
+                                                                    {(result.symbol || '').replace(/\.NS$/, '')}
                                                                 </div>
                                                                 <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest group-hover:border-blue-500/30 group-hover:text-blue-400 transition-all">
                                                                     {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                                        result.symbol?.endsWith('.BO') ? 'BSE' :
-                                                                            (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
+                                                                        (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
                                                                 </span>
                                                             </div>
                                                             <div className="text-[10px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity mt-0.5">
@@ -261,9 +258,11 @@ export default function DashboardLayout({
                         <div className="flex items-center gap-4 shrink-0 justify-end">
                             {/* Indian Market Indices */}
                             <div className="hidden min-[1100px]:flex items-center gap-6 text-[11px] font-mono border-x border-white/5 px-6 h-8">
-                                {indices.length > 0 ? indices.map((idx, i) => (
+                                {indices.length > 0 ? indices.filter(idx => idx.symbol === '^NSEI' || idx.symbol === '^BSESN').map((idx, i) => (
                                     <div key={i} className="flex flex-col whitespace-nowrap">
-                                        <span className="text-slate-400 uppercase text-[9px] tracking-tighter leading-none mb-0.5">{idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}</span>
+                                        <span className="text-slate-400 uppercase text-[9px] tracking-tighter leading-none mb-0.5">
+                                            {idx.symbol === '^NSEI' ? 'NIFTY 50' : 'SENSEX'}
+                                        </span>
                                         <span className={`${(idx.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold flex items-center gap-1 leading-none`}>
                                             {idx.price?.toLocaleString()}
                                             <span className="text-[9px] opacity-80 font-medium">
@@ -274,7 +273,7 @@ export default function DashboardLayout({
                                 )) : (
                                     <div className="flex items-center gap-2 text-slate-600 animate-pulse whitespace-nowrap">
                                         <Activity size={12} />
-                                        <span>Syncing Stream...</span>
+                                        <span>Getting Market Data...</span>
                                     </div>
                                 )}
                             </div>
@@ -285,7 +284,7 @@ export default function DashboardLayout({
                                     <div className="flex items-center gap-2">
                                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${marketStatus.isOpen ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`} />
                                         <span className={`text-[9px] font-black tracking-widest uppercase ${marketStatus.isOpen ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                            NSE/BSE {marketStatus.label}
+                                            NSE {marketStatus.label}
                                         </span>
                                     </div>
                                 </div>
@@ -302,9 +301,6 @@ export default function DashboardLayout({
                 <div className="flex-1 px-4 md:px-8 lg:px-12 pt-6 lg:pt-10 pb-16 max-w-[1600px] mx-auto w-full flex flex-col justify-between">
                     <div className="flex-1">
                         {children}
-                    </div>
-                    <div className="mt-32 pt-16 border-t border-white/5">
-                        <TerminalFooter />
                     </div>
                 </div>
             </main>
