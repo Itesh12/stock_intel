@@ -26,24 +26,40 @@ export default function DashboardLayout({
     const searchRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Fetch indices on mount
-        const fetchIndices = async () => {
+        // 1. Fetch market status once
+        const fetchStatus = async () => {
             try {
-                const [indexRes, statusRes] = await Promise.all([
-                    fetch('/api/market/indices'),
-                    fetch('/api/market/status')
-                ]);
-                const indexData = await indexRes.json();
+                const statusRes = await fetch('/api/market/status');
                 const statusData = await statusRes.json();
-                setIndices(indexData);
                 setMarketStatus(statusData);
             } catch (err) {
-                console.error("Failed to fetch market data", err);
+                console.error("Failed to fetch market status", err);
             }
         };
-        fetchIndices();
-        const interval = setInterval(fetchIndices, 60000); // Update every minute
-        return () => clearInterval(interval);
+        fetchStatus();
+
+        // 2. Stream real-time Indian Index prices (Nifty/Sensex) over Server-Sent Events (SSE)
+        const eventSource = new EventSource('/api/market/live');
+        
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (Array.isArray(data)) {
+                    setIndices(data);
+                }
+            } catch (err) {
+                console.error("Failed to parse live index price:", err);
+            }
+        };
+
+        eventSource.onerror = (err) => {
+            console.error("Indices EventSource connection closed or failed:", err);
+            eventSource.close();
+        };
+
+        return () => {
+            eventSource.close();
+        };
     }, []);
 
     useEffect(() => {

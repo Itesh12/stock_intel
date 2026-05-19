@@ -119,5 +119,20 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         market: marketAdapter,
     };
 
+    // Step 1: Background simulation worker daemon running every 15 seconds
+    if (!(global as any).tradeMonitorStarted) {
+        (global as any).tradeMonitorStarted = true;
+        console.log("[TradeMonitor] Background simulation monitor worker successfully initialized.");
+        setInterval(async () => {
+            try {
+                const { TradeMonitorService } = require("../application/trade-monitor-service");
+                const monitor = new TradeMonitorService(cachedInfra);
+                await monitor.monitorAll();
+            } catch (err) {
+                console.error("[TradeMonitor] Background daemon error:", err);
+            }
+        }, 15000);
+    }
+
     return cachedInfra as Infrastructure;
 }

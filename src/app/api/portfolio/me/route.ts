@@ -27,10 +27,6 @@ export async function GET() {
             );
             portfolio = await analyzer.analyze(portfolio);
 
-            // SIM Monitor Heartbeat - Automated execution on fetch
-            const monitor = new (require("@/application/trade-monitor-service").TradeMonitorService)(infra);
-            await monitor.monitorAll();
-            
             return NextResponse.json(portfolio);
         }
 

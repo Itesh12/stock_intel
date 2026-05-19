@@ -3,6 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getInfrastructure } from "@/infrastructure/container";
 import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
+
+const TradeSchema = z.object({
+    symbol: z.string().toUpperCase().regex(/^[A-Z0-9.\-_]+$/),
+    quantity: z.number().int().positive(),
+    type: z.enum(["BUY", "SELL"]),
+    stopLoss: z.number().positive().optional().nullable(),
+    takeProfit: z.number().positive().optional().nullable(),
+});
 
 export async function POST(req: Request) {
     try {
@@ -11,11 +20,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { symbol, quantity, type, stopLoss, takeProfit } = await req.json();
-
-        if (!symbol || !quantity || !type || quantity <= 0) {
-            return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
+        const body = await req.json();
+        const validation = TradeSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ 
+                error: "Invalid trade parameters", 
+                details: validation.error.flatten().fieldErrors 
+            }, { status: 400 });
         }
+
+        const { symbol, quantity, type, stopLoss, takeProfit } = validation.data;
 
         const infra = await getInfrastructure();
         const userId = (session.user as any).id;
@@ -23,6 +37,7 @@ export async function POST(req: Request) {
         // Get Portfolio
         const portfolios = await infra.portfolio.findByUserId(userId);
         let portfolio = portfolios[0];
+        const isNewPortfolio = !portfolio;
 
         if (!portfolio) {
             // Self-healing: create portfolio if missing
@@ -41,6 +56,9 @@ export async function POST(req: Request) {
                 createdAt: new Date()
             };
         }
+
+        // Clone the portfolio state for transactional rollback safety
+        const originalPortfolioState = JSON.parse(JSON.stringify(portfolio));
 
         const initialHolding = portfolio.holdings.find((h: any) => h.symbol === symbol);
 
@@ -121,52 +139,62 @@ export async function POST(req: Request) {
 
         await infra.portfolio.save(portfolio);
 
-        const realizedPL = type === 'SELL' ? (currentPrice - (initialHolding?.averagePrice || currentPrice)) * quantity : undefined;
-        const averagePriceAtSale = type === 'SELL' ? (initialHolding?.averagePrice || currentPrice) : undefined;
+        try {
+            const realizedPL = type === 'SELL' ? (currentPrice - (initialHolding?.averagePrice || currentPrice)) * quantity : undefined;
+            const averagePriceAtSale = type === 'SELL' ? (initialHolding?.averagePrice || currentPrice) : undefined;
 
-        // Record trade in ledger
-        const tradeId = uuidv4();
-        await infra.trade.save({
-            id: tradeId,
-            userId,
-            symbol,
-            quantity,
-            price: currentPrice,
-            totalValue: currentPrice * quantity,
-            type: type as any,
-            timestamp: new Date(),
-            realizedPL,
-            averagePriceAtSale
-        });
+            // Record trade in ledger
+            const tradeId = uuidv4();
+            await infra.trade.save({
+                id: tradeId,
+                userId,
+                symbol,
+                quantity,
+                price: currentPrice,
+                totalValue: currentPrice * quantity,
+                type: type as any,
+                timestamp: new Date(),
+                realizedPL,
+                averagePriceAtSale
+            });
 
-        // Save attached SL/TP orders if BUY
-        if (type === 'BUY') {
-            if (stopLoss) {
-                await infra.limitOrder.save({
-                    id: uuidv4(),
-                    userId,
-                    symbol,
-                    quantity,
-                    targetPrice: stopLoss,
-                    type: 'STOP_LOSS',
-                    status: 'PENDING',
-                    timestamp: new Date(),
-                    parentOrderId: tradeId
-                });
+            // Save attached SL/TP orders if BUY
+            if (type === 'BUY') {
+                if (stopLoss) {
+                    await infra.limitOrder.save({
+                        id: uuidv4(),
+                        userId,
+                        symbol,
+                        quantity,
+                        targetPrice: stopLoss,
+                        type: 'STOP_LOSS',
+                        status: 'PENDING',
+                        timestamp: new Date(),
+                        parentOrderId: tradeId
+                    });
+                }
+                if (takeProfit) {
+                    await infra.limitOrder.save({
+                        id: uuidv4(),
+                        userId,
+                        symbol,
+                        quantity,
+                        targetPrice: takeProfit,
+                        type: 'TAKE_PROFIT',
+                        status: 'PENDING',
+                        timestamp: new Date(),
+                        parentOrderId: tradeId
+                    });
+                }
             }
-            if (takeProfit) {
-                await infra.limitOrder.save({
-                    id: uuidv4(),
-                    userId,
-                    symbol,
-                    quantity,
-                    targetPrice: takeProfit,
-                    type: 'TAKE_PROFIT',
-                    status: 'PENDING',
-                    timestamp: new Date(),
-                    parentOrderId: tradeId
-                });
+        } catch (dbError) {
+            console.error("[ACID Rollback] Trade ledger execution failed. Initiating automated rollback...", dbError);
+            if (isNewPortfolio) {
+                await infra.portfolio.delete(portfolio.id);
+            } else {
+                await infra.portfolio.save(originalPortfolioState);
             }
+            throw new Error("Trade execution database transaction failed. All changes have been safely rolled back.");
         }
 
         return NextResponse.json({

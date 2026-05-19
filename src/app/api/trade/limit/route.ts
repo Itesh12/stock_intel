@@ -3,6 +3,17 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getInfrastructure } from "@/infrastructure/container";
 import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
+
+const LimitOrderSchema = z.object({
+    symbol: z.string().toUpperCase().regex(/^[A-Z0-9.\-_]+$/),
+    quantity: z.number().int().positive(),
+    targetPrice: z.number().positive(),
+    type: z.enum(["BUY", "SELL"]),
+    stopLoss: z.number().positive().optional().nullable(),
+    takeProfit: z.number().positive().optional().nullable(),
+    strategyId: z.string().optional().nullable(),
+});
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -11,11 +22,16 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { symbol, quantity, targetPrice, type, stopLoss, takeProfit, strategyId } = await req.json();
-
-        if (!symbol || !quantity || !targetPrice || !type) {
-            return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+        const body = await req.json();
+        const validation = LimitOrderSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ 
+                error: "Invalid limit order parameters", 
+                details: validation.error.flatten().fieldErrors 
+            }, { status: 400 });
         }
+
+        const { symbol, quantity, targetPrice, type, stopLoss, takeProfit, strategyId } = validation.data;
 
         const infra = await getInfrastructure();
         const userId = (session.user as any).id;
@@ -42,7 +58,7 @@ export async function POST(req: NextRequest) {
             type: type as any,
             status: 'PENDING' as any,
             timestamp: new Date(),
-            strategyId
+            strategyId: strategyId || undefined
         };
 
         await infra.limitOrder.save(order);

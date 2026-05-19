@@ -26,9 +26,6 @@ export default async function PortfolioPage() {
             infra.market
         );
         portfolio = await analyzer.analyze(portfolio);
-
-        const monitor = new (require("@/application/trade-monitor-service").TradeMonitorService)(infra);
-        await monitor.monitorAll();
     }
 
     // 2. Trades
