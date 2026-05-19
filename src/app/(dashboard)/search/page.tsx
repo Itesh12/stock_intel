@@ -1,33 +1,30 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, Target, Zap, ShieldCheck, Trophy, Crown, Activity } from "lucide-react";
+import React from 'react';
+import { ArrowRight, Target, Zap, Crown } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { GlobalLoader } from "@/components/ui/global-loader";
+import { getInfrastructure } from "@/infrastructure/container";
+import { strategies as predefinedStrategies } from "@/data/strategies";
 
-export default function StrategyFinderPage() {
-    const [strategies, setStrategies] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+export const dynamic = "force-dynamic";
 
-    useEffect(() => {
-        const fetchStrategies = async () => {
-            try {
-                const res = await fetch('/api/strategy');
-                const data = await res.json();
-                setStrategies(data);
-            } catch (err) {
-                console.error("Failed to fetch strategies", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchStrategies();
-    }, []);
-
-    if (isLoading) {
-        return <GlobalLoader title="Loading Strategies" />;
+export default async function StrategyFinderPage() {
+    const infra = await getInfrastructure();
+    
+    // Ensure predefined strategies are in the DB
+    for (const s of predefinedStrategies) {
+        const existing = await infra.strategy.findBySlug(s.id);
+        if (!existing) {
+            await infra.strategy.save({
+                ...s,
+                slug: s.id,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            } as any);
+        }
     }
+
+    const strategies = await infra.strategy.list();
+
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
             <div className="flex items-end justify-between border-b border-white/5 pb-8">

@@ -1,245 +1,62 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-    Trophy,
-    Crown,
-    Medal,
-    TrendingUp,
-    TrendingDown,
-    Users,
-    Search,
-    User as UserIcon
-} from "lucide-react";
-import { formatIndianNumber, cn } from "@/lib/utils";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { GlobalLoader } from "@/components/ui/global-loader";
+import React from "react";
+import { getInfrastructure } from "@/infrastructure/container";
+import LeaderboardClient from "./leaderboard-client";
 
-export default function LeaderboardPage() {
-    const [leaderboard, setLeaderboard] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const router = useRouter();
+export const dynamic = 'force-dynamic';
 
-    useEffect(() => {
-        const fetchLeaderboard = async () => {
-            try {
-                const res = await fetch("/api/leaderboard");
-                const data = await res.json();
-                setLeaderboard(data);
-            } catch (err) {
-                console.error("Failed to fetch leaderboard", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+export default async function LeaderboardPage() {
+    const infra = await getInfrastructure();
+    
+    // 1. Fetch all portfolios
+    const portfolios = await infra.portfolio.list();
+    const INITIAL_BALANCE = 1000000;
 
-        fetchLeaderboard();
-    }, []);
+    // 2. Collect all unique symbols
+    const allSymbols = Array.from(new Set(
+        portfolios.flatMap(p => p.holdings.map(h => h.symbol))
+    ));
 
-    const filteredLeaderboard = leaderboard.filter((item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    if (isLoading) {
-        return <GlobalLoader title="Loading Rankings" />;
+    // 3. Fetch current prices
+    const priceMap: Record<string, number> = {};
+    if (allSymbols.length > 0) {
+        await Promise.all(allSymbols.map(async (symbol) => {
+            const stock = await infra.market.getStockPrice(symbol);
+            priceMap[symbol] = stock.price || 0;
+        }));
     }
 
-    return (
-        <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1400px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">
+    // 4. Calculate real-time value for each portfolio
+    const leaderboard = await Promise.all(portfolios.map(async (p) => {
+        const user = await infra.user.findById(p.userId);
+        
+        const currentMarketValue = p.holdings.reduce((sum, h) => {
+            const livePrice = priceMap[h.symbol];
+            const finalPrice = (livePrice && livePrice > 0) ? livePrice : (h.currentPrice || 0);
+            return sum + (h.quantity * finalPrice);
+        }, 0);
 
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-10">
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2.5">
-                        <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">Rankings</div>
-                        <div className="h-1 w-1 rounded-full bg-slate-700"></div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <Users size={12} /> {leaderboard.length} Active Traders
-                        </span>
-                    </div>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tighter font-outfit">Top Players</h1>
-                    <p className="text-slate-500 text-sm font-medium max-w-xl">
-                        The definitive arena for virtual trading. Ranks are determined by past profit from the initial 10L capital.
-                    </p>
-                </div>
+        const totalEquity = p.cashBalance + currentMarketValue;
+        const growth = ((totalEquity - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
 
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search Top Players..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-all w-full md:w-64"
-                        />
-                    </div>
-                </div>
-            </div>
+        return {
+            userId: p.userId,
+            name: user?.name || "Anonymous Alpha",
+            totalValue: totalEquity,
+            growthPercent: growth,
+            tradeCount: 0,
+            rank: 0
+        };
+    }));
 
-            {/* Top 3 Podium */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-end">
-                {filteredLeaderboard.slice(0, 3).map((trader, i) => (
-                    <PodiumCard key={trader.userId} trader={trader} position={i + 1} />
-                ))}
-            </div>
+    // 5. Sort by growth
+    leaderboard.sort((a, b) => b.growthPercent - a.growthPercent);
 
-            {/* Leaderboard Table */}
-            <div className="glass-morphic-card rounded-[32px] overflow-hidden border-white/5 shadow-2xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-white/[0.02] text-slate-500 text-[10px] uppercase tracking-[0.2em] border-b border-white/5">
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-center w-20">Rank</th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Player</th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold">Total Portfolio Value</th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right">Profit Percentage</th>
-                                <th className="px-6 md:px-10 py-4 md:py-6 font-bold text-right w-32">Status</th>
-                            </tr>
-                        </thead>
+    // 6. Assign ranks
+    leaderboard.forEach((item, index) => {
+        item.rank = index + 1;
+    });
 
-                        <tbody className="divide-y divide-white/5">
-                            {filteredLeaderboard.slice(3).map((trader) => (
-                                <LeaderboardRow key={trader.userId} trader={trader} router={router} />
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-}
+    const finalLeaderboard = leaderboard.slice(0, 50);
 
-function PodiumCard({ trader, position }: { trader: any; position: number }) {
-    const colors: any = {
-        1: "from-amber-400 to-yellow-600 shadow-yellow-900/20 shadow-2xl border-yellow-500/20",
-        2: "from-slate-300 to-slate-500 shadow-slate-900/20 shadow-xl border-slate-500/20",
-        3: "from-amber-600 to-rose-700 shadow-rose-900/20 shadow-xl border-rose-500/20"
-    };
-
-    const icons: any = {
-        1: <Crown className="text-yellow-400" size={24} />,
-        2: <Medal className="text-slate-400" size={24} />,
-        3: <Medal className="text-amber-600" size={24} />
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: position * 0.1 }}
-            className={cn(
-                "relative bg-gradient-to-br p-px rounded-[32px] overflow-hidden group/podium hover:scale-[1.02] transition-transform duration-500",
-                colors[position]
-            )}
-        >
-            <Link href={`/profile/${trader.userId}`} className="block">
-                <div className="bg-[#0A0A0B] rounded-[31px] p-6 flex flex-col gap-6 relative overflow-hidden">
-                    {/* Visual Flare */}
-                    <div className={cn(
-                        "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-[60px] opacity-20 transition-opacity group-hover/podium:opacity-40",
-                        position === 1 ? "bg-amber-400" : position === 2 ? "bg-slate-400" : "bg-rose-500"
-                    )} />
-
-                    <div className="flex justify-between items-start relative z-10">
-                        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/podium:border-white/20 transition-colors">
-                            {icons[position]}
-                        </div>
-
-                        <div className="text-right">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                Rank
-                            </span>
-                            <div className="text-3xl font-black text-white tracking-tighter">#{position}</div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-1 relative z-10">
-                        <h3 className="text-xl font-bold text-white font-outfit tracking-tight group-hover/podium:text-blue-400 transition-colors uppercase">{trader.name}</h3>
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                            <UserIcon size={12} className="text-blue-500" /> Top Trader
-                        </div>
-                    </div>
-
-                    <div className="flex justify-between text-base font-mono relative z-10 pt-2 border-t border-white/5">
-                        <span className="text-slate-400">
-                            ₹{formatIndianNumber(trader.totalValue)}
-                        </span>
-
-                        <span
-                            className={cn(
-                                "font-bold",
-                                trader.growthPercent >= 0 ? "text-emerald-400" : "text-rose-400"
-                            )}
-                        >
-                            {trader.growthPercent >= 0 ? "+" : ""}
-                            {trader.growthPercent.toFixed(2)}%
-                        </span>
-                    </div>
-                </div>
-            </Link>
-        </motion.div>
-    );
-}
-
-function LeaderboardRow({ trader, router }: { trader: any; router: any }) {
-    const isPositive = trader.growthPercent >= 0;
-
-    return (
-        <tr 
-            className="hover:bg-white/[0.04] transition-all cursor-pointer group/row border-white/5"
-            onClick={() => router.push(`/profile/${trader.userId}`)}
-        >
-            <td className="px-6 py-6 text-center font-mono text-slate-400 group-hover/row:text-white transition-colors">
-                {trader.rank}
-            </td>
-
-            <td className="px-6 py-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-slate-300 border border-white/5 group-hover/row:border-blue-500/20 group-hover/row:text-blue-400 transition-all">
-                        {trader.name[0]}
-                    </div>
-
-                    <div>
-                        <div className="font-bold text-white text-base tracking-tight leading-none mb-1 group-hover/row:text-blue-400 transition-colors uppercase">{trader.name}</div>
-                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <div className="w-1 h-1 rounded-full bg-slate-700"></div> PLAYER_{trader.userId.slice(0, 4)}
-                        </div>
-                    </div>
-                </div>
-            </td>
-
-            <td className="px-6 py-6 font-mono text-white">
-                ₹{formatIndianNumber(trader.totalValue)}
-            </td>
-
-            <td className="px-6 py-6 text-right">
-                <div
-                    className={cn(
-                        "flex items-center justify-end gap-2 font-bold",
-                        isPositive ? "text-emerald-400" : "text-rose-400"
-                    )}
-                >
-                    {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                    {isPositive ? "+" : ""}
-                    {trader.growthPercent.toFixed(2)}%
-                </div>
-            </td>
-
-            <td className="px-6 py-6 text-right">
-                <span
-                    className={cn(
-                        "px-3 py-1 text-xs rounded-lg border uppercase font-bold",
-                        trader.rank <= 10
-                            ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                            : "bg-white/5 border-white/10 text-slate-500"
-                    )}
-                >
-                    {trader.rank <= 10 ? "Elite" : "Active"}
-                </span>
-            </td>
-        </tr>
-    );
+    return <LeaderboardClient initialLeaderboard={finalLeaderboard} />;
 }

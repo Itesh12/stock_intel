@@ -30,7 +30,6 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
     const [priceData, setPriceData] = useState(initialPriceData || {});
     const [historyData, setHistoryData] = useState(initialHistoryData);
     const [isLoading, setIsLoading] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
     const [portfolio, setPortfolio] = useState<any>(null);
     const [isTrading, setIsTrading] = useState(false);
     const [isWatched, setIsWatched] = useState(false);
@@ -40,7 +39,6 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
     const [earliestTradeDate, setEarliestTradeDate] = useState<Date | null>(null);
 
     useEffect(() => {
-        setIsMounted(true);
         fetchPortfolio();
         fetchWatchlistStatus();
         fetchTradeHistory();
@@ -181,10 +179,6 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
             transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
         }
     };
-
-    if (!isMounted) {
-        return <GlobalLoader title="Loading Stock Details" />;
-    }
 
     return (
         <motion.div
