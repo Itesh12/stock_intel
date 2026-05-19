@@ -134,8 +134,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
             CacheUtils.set(cacheKey, stock);
             return stock;
-        } catch (error) {
-            console.error(`Error fetching price for ${symbol}:`, error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error fetching price for ${symbol}: ${error.message || error}`);
 
             const fallback = CacheUtils.getFallback(cacheKey);
             if (fallback) {
@@ -216,8 +216,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
             CacheUtils.set(cacheKey, formatted);
             return formatted;
-        } catch (error) {
-            console.error(`Error fetching historical data for ${symbol}:`, error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error fetching historical data for ${symbol}: ${error.message || error}`);
             const fallback = CacheUtils.getFallback(cacheKey);
             return fallback || [];
         }
@@ -345,8 +345,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
                     name: bestName
                 };
             });
-        } catch (error) {
-            console.error(`Error searching stocks for ${query}:`, error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error searching stocks for ${query}: ${error.message || error}`);
             return [];
         }
     }
@@ -357,8 +357,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             if (fs.existsSync(dataPath)) {
                 return JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
             }
-        } catch (error) {
-            console.error('[StockIntel] Error loading dynamic symbols:', error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error loading dynamic symbols: ${error.message || error}`);
         }
         return [
             'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
@@ -441,7 +441,7 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             if (error.name === 'FailedYahooValidationError' && error.result) {
                 console.warn(`[StockIntel] Recovered from Yahoo Validation Error for ${scrId}`);
             }
-            console.error(`Error in getScreenerData for ${scrId}:`, error);
+            console.warn(`[StockIntel] Error in getScreenerData for ${scrId}: ${error.message || error}`);
             const fallback = CacheUtils.getFallback(cacheKey);
             return fallback || [];
         }
@@ -457,8 +457,8 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
             const result = await (yahooFinance.search(searchQuery, { newsCount: count }, { validateResult: false }) as any);
             return result.news || [];
-        } catch (error) {
-            console.error(`Error fetching news for ${symbol}:`, error);
+        } catch (error: any) {
+            console.warn(`[StockIntel] Error fetching news for ${symbol}: ${error.message || error}`);
             return [];
         }
     }

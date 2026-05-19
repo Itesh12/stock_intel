@@ -42,12 +42,18 @@ export default async function PortfolioPage() {
     // 4. Limit Orders
     const limitOrders = await infra.limitOrder.findByUserId(userId);
 
+    // Deep-serialize to plain JSON objects for Client Component transfer to avoid Next.js serialization issues
+    const plainPortfolio = portfolio ? JSON.parse(JSON.stringify(portfolio)) : null;
+    const plainTrades = JSON.parse(JSON.stringify(trades || []));
+    const plainAnalytics = JSON.parse(JSON.stringify(analytics || {}));
+    const plainLimitOrders = JSON.parse(JSON.stringify(limitOrders || []));
+
     return (
         <PortfolioClient 
-            initialPortfolio={portfolio}
-            initialTrades={trades}
-            initialAnalytics={analytics}
-            initialLimitOrders={limitOrders}
+            initialPortfolio={plainPortfolio}
+            initialTrades={plainTrades}
+            initialAnalytics={plainAnalytics}
+            initialLimitOrders={plainLimitOrders}
         />
     );
 }
