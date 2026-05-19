@@ -636,3 +636,135 @@ export class IntradayScanner {
     }
 }
 
+export class SwingScanner {
+    constructor(private infra: Infrastructure) { }
+
+    async scan(): Promise<StrategyRecommendation[]> {
+        const strategy = await this.infra.strategy.findBySlug('swing-strategy');
+        if (!strategy) return [];
+
+        console.log("[QuantScanner] Starting SWING CONFLUENCE batch scan...");
+
+        let discoveryPool: string[] = [];
+        try {
+            const fs = await import("fs");
+            const path = await import("path");
+            const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
+            const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
+            discoveryPool = allSymbols;
+        } catch (err) {
+            console.error("[QuantScanner] Failed to load discovery pool:", err);
+        }
+
+        const pools = await Promise.all([
+            this.infra.market.getScreenerData('most_actives', 50),
+            this.infra.market.getScreenerData('day_gainers', 50)
+        ]);
+
+        const uniqueSymbols = Array.from(new Set([
+            ...discoveryPool,
+            ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
+        ])).filter(sym => sym.endsWith('.NS'));
+
+        console.log(`[QuantScanner] Querying quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
+
+        const chunks = chunkArray(uniqueSymbols, 150);
+        const liveBasicQuotes: any[] = [];
+
+        await Promise.all(chunks.map(async (chunk) => {
+            try {
+                const batchResult = await yahooFinance.quote(chunk, undefined, { validateResult: false });
+                const quotes = Array.isArray(batchResult) ? batchResult : [batchResult];
+                liveBasicQuotes.push(...quotes.filter(Boolean));
+            } catch (err) {
+                // Ignore chunk failures
+            }
+        }));
+
+        const candidates = liveBasicQuotes.filter(q => {
+            const price = q.regularMarketPrice || 0;
+            const volume = q.regularMarketVolume || 0;
+            const avgVolume = q.averageDailyVolume3Month || 100000;
+            const marketCap = q.marketCap || 0;
+
+            const isLiquid = volume >= 50000 || avgVolume >= 50000;
+            const isTradeable = price >= 10 && price <= 25000;
+            const isSizable = marketCap >= 30000000000; // 3000 Cr
+            
+            return isLiquid && isTradeable && isSizable;
+        });
+
+        console.log(`[QuantScanner] Pre-screened down to ${candidates.length} candidates. Evaluating swing confluence...`);
+
+        const recommendations: StrategyRecommendation[] = [];
+
+        await parallelPool(candidates, 35, async (q) => {
+            try {
+                const symbol = q.symbol;
+                const price = q.regularMarketPrice || 0;
+                const changePercent = q.regularMarketChangePercent || 0;
+                const volume = q.regularMarketVolume || 0;
+                const avgVolume = q.averageDailyVolume3Month || 1;
+                
+                const fiftyTwoWeekHigh = q.fiftyTwoWeekHigh || price || 1;
+                const distanceToHigh = (fiftyTwoWeekHigh - price) / fiftyTwoWeekHigh;
+
+                // 1. Stage 2 Proxy
+                const isAbove52WLow = price > (q.fiftyTwoWeekLow || 0) * 1.3;
+                
+                // 2. Weekly volume surge proxy
+                const volSurge = volume / avgVolume;
+
+                // 3. Confluence Score estimation (scale to 0-100)
+                let score = 55; // Base score
+                if (isAbove52WLow) score += 15;
+                if (distanceToHigh <= 0.05) score += 15; // Near 52W high
+                if (volSurge >= 1.5) score += 10;
+                if (changePercent > 1.0) score += 5;
+
+                const finalScore = Math.min(100, score);
+
+                if (finalScore >= 65) {
+                    recommendations.push({
+                        id: uuidv4(),
+                        strategyId: strategy.id,
+                        symbol: symbol,
+                        score: finalScore,
+                        matchDetails: {
+                            volSurge,
+                            changePercent,
+                            distanceToHighPercent: distanceToHigh * 100,
+                            price
+                        },
+                        timestamp: new Date()
+                    });
+                }
+            } catch (e) {
+                // Ignore single errors
+            }
+        });
+
+        const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, 10);
+        await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
+
+        // Notify
+        const notificationService = new NotificationService(this.infra.notification);
+        const SYSTEM_USER_ID = "SYSTEM";
+
+        for (const rec of topRecs) {
+            if (rec.score >= 80) {
+                await notificationService.notifySignal(SYSTEM_USER_ID, {
+                    symbol: rec.symbol,
+                    type: "VOLUME_BREAKOUT",
+                    strength: "HIGH",
+                    description: `Swing Positional Breakout setup detected for ${rec.symbol}. Score: ${rec.score}/100.`,
+                    timestamp: new Date()
+                });
+            }
+        }
+
+        return topRecs;
+    }
+}
+
+

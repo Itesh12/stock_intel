@@ -90,7 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                     if (momPass) score += 30;
 
                     isMatch = score > 10; // Practically guarantee matches for the visual demo
-                } else if (id === 'intraday-strategy') {
+                } else if (id === 'intraday-strategy' || id === 'swing-strategy') {
                     const breakoutPass = entryPrice >= high52w * 0.60;
                     const trendPass = entryPrice > sma200 * 0.90;
                     const momPass = momentum20d > -5;

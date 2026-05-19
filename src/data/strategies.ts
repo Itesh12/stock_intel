@@ -248,5 +248,62 @@ export const strategies: Strategy[] = [
             'Let 50% run to Target 2',
             'Hard exit of all positions by 2:15 PM. No trades after 2:30 PM.'
         ]
+    },
+    {
+        id: 'swing-strategy',
+        name: '1-Month Confluence Positional System',
+        trader: 'Minervini & O\'Neil',
+        description: 'A high-probability swing and positional strategy combining Stage 2 Breakouts, 52-Week High Momentum, and Weekly EMA Crossovers.',
+        objective: 'Identify high-probability swing setups with an expected holding period of 3–5 weeks using a 12-signal weekly scoring system requiring a score of 8+.',
+        longDescription: `The 1-Month Confluence Positional System is a swing trading system that blends weekly trend filters, Stage 2 breakouts, volume surges, and relative strength. By requiring a confluence score of at least 8 out of 12 before entering, the strategy achieves a target win rate of 78–82% with an average risk-to-reward ratio of 1:2.5+. Position exits are strictly managed via a weekly trailing stop, a time exit at 5 weeks, or target profit bookings.`,
+        riskLevel: 'MEDIUM',
+        winRate: '78-82%',
+        steps: [
+            {
+                id: '1',
+                title: 'Weekly chart analysis (Sunday evening)',
+                description: 'Every Sunday, scan weekly charts. Look for stocks in Stage 2 (uptrend) with price near a breakout level. This is your only scan window — don\'t chase mid-week entries.',
+                requirements: ['Weekly chart analysis', 'Stage 2 uptrend verification', 'Near breakout level consolidation']
+            },
+            {
+                id: '2',
+                title: 'Score each candidate (8+ to qualify)',
+                description: 'Use the Signal Checker tab. Score must reach 8/12. Lower scores mean the setup is incomplete — wait for next week or skip.',
+                requirements: ['Evaluate 12 scoring signals', 'Strict threshold of 8/12 minimum']
+            },
+            {
+                id: '3',
+                title: 'Entry on Monday or Tuesday only',
+                description: 'Enter at market open on Monday or by Tuesday close. If you miss the entry window, skip — don\'t chase. A missed trade is better than a bad entry.',
+                requirements: ['Strict Monday-Tuesday entry window', 'No mid-week chasing']
+            },
+            {
+                id: '4',
+                title: 'Set hard SL immediately at entry',
+                description: 'Place SL order in your broker the moment you enter. SL = 7–8% below entry (or below the base/consolidation low — whichever is tighter). No mental SLs.',
+                requirements: ['Hard broker SL placed instantly', 'SL at 7-8% or base low']
+            },
+            {
+                id: '5',
+                title: 'Trail stop weekly — never move it down',
+                description: 'Every Sunday, trail your SL up to 7% below the week\'s closing price. Only move SL upward, never loosen it. This locks profits as stock rises.',
+                requirements: ['Sunday weekly stop trailing', 'Only trail upward, never downward']
+            },
+            {
+                id: '6',
+                title: 'Exit rules — 3 triggers',
+                description: 'Exit when: (a) trailing SL is hit, OR (b) Target 2 is reached, OR (c) 5 weeks have passed and stock hasn\'t moved 10%+ — time-based exit. Don\'t hold losers hoping for recovery.',
+                requirements: ['Trailing SL hit', 'Target 2 reached', 'Time-based exit at 5 weeks if < 10% movement']
+            }
+        ],
+        recommendations: ['RELIANCE.NS', 'TCS.NS', 'BHARTIARTL.NS', 'ICICIBANK.NS', 'LTIM.NS'],
+        riskManagement: [
+            'Min score to enter: 8 / 12',
+            'Hold period: 3–5 weeks',
+            'R:R target: 1 : 2.5+',
+            'Hard SL at 7-8% below entry',
+            'Weekly trailing SL 7% below closing price',
+            'Book 40% at +12%, 40% at +20%, trail last 20% with weekly trailing SL'
+        ]
     }
 ];
