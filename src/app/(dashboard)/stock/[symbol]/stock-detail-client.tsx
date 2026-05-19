@@ -208,7 +208,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                     <div className="lg:col-span-8 flex flex-col gap-2">
                         <div className="flex flex-wrap items-center gap-4">
                             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-outfit tracking-tight leading-none">
-                                {priceData.name || symbol}
+                                {priceData.name || displaySymbol}
                             </h1>
                             <div className="flex items-center gap-2">
                                 <span className="px-3 py-1 rounded-md bg-blue-600/20 border border-blue-500/30 text-xs font-bold text-blue-400">

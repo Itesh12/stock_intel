@@ -82,8 +82,7 @@ export default function PortfolioHeatmap({ holdings }: PortfolioHeatmapProps) {
     if (!holdings || holdings.length === 0) return null;
 
     const handleNavigation = (symbol: string) => {
-        const cleanSymbol = symbol.split('.')[0];
-        router.push(`/stock/${cleanSymbol}`);
+        router.push(`/stock/${symbol}`);
     };
 
     return (

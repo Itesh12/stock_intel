@@ -44,3 +44,8 @@ export const formatPercent = (val: number) => {
     // Usually Yahoo returns decimals (0.05 for 5%)
     return (val * 100).toFixed(2) + "%";
 };
+
+export const formatSymbol = (symbol: string) => {
+    if (!symbol) return "";
+    return symbol.replace(/\.NS$/, "");
+};

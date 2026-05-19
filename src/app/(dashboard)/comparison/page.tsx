@@ -32,7 +32,7 @@ const METRIC_CATEGORIES: MetricCategory[] = [
             { label: "Price / Sales", key: "priceToSales", format: (v: number) => v?.toFixed(2) || "--", lowerIsBetter: true },
             { label: "Shares Outstanding", key: "sharesOutstanding", format: (v: number) => formatIndianNumber(v || 0) },
             { label: "Float Shares", key: "floatShares", format: (v: number) => formatIndianNumber(v || 0) },
-            { label: "Symbol", key: "symbol", format: (v: string) => v, noCompare: true },
+            { label: "Symbol", key: "symbol", format: (v: string) => v?.replace(/\.(NS|BO)$/, ''), noCompare: true },
         ]
     },
     {

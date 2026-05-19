@@ -21,7 +21,7 @@ import {
     ArrowUp, 
     ArrowDown 
 } from "lucide-react";
-import { formatCurrency, formatIndianNumber, cn } from "@/lib/utils";
+import { formatCurrency, formatIndianNumber, cn, formatSymbol } from "@/lib/utils";
 import { GlobalLoader } from "@/components/ui/global-loader";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -204,7 +204,7 @@ export default function PortfolioClient({
                                 <div className="grid grid-cols-3 gap-4">
                                     {gainers.length > 0 ? gainers.map(h => (
                                         <div key={h.symbol} className="bg-white/5 rounded-2xl p-3 border border-white/5 group hover:bg-emerald-500/10 transition-colors">
-                                            <div className="text-xs font-black text-white">{h.symbol}</div>
+                                            <div className="text-xs font-black text-white">{formatSymbol(h.symbol)}</div>
                                             <div className="text-[10px] font-bold text-emerald-400">+{h.dayChangePercent.toFixed(2)}%</div>
                                         </div>
                                     )) : <div className="col-span-3 text-[10px] text-slate-600 font-bold uppercase py-2">No High Alphas Found</div>}
@@ -218,7 +218,7 @@ export default function PortfolioClient({
                                 <div className="grid grid-cols-3 gap-4">
                                     {losers.length > 0 ? losers.map(h => (
                                         <div key={h.symbol} className="bg-white/5 rounded-2xl p-3 border border-white/5 group hover:bg-rose-500/10 transition-colors">
-                                            <div className="text-xs font-black text-white">{h.symbol}</div>
+                                            <div className="text-xs font-black text-white">{formatSymbol(h.symbol)}</div>
                                             <div className="text-[10px] font-bold text-rose-400">{h.dayChangePercent.toFixed(2)}%</div>
                                         </div>
                                     )) : <div className="col-span-3 text-[10px] text-slate-600 font-bold uppercase py-2">No Underperformers</div>}
@@ -335,7 +335,7 @@ export default function PortfolioClient({
                                                                     order.type === 'BUY' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
                                                                 )}>{order.type} LIMIT</span>
                                                             </td>
-                                                            <td className="px-8 py-5 font-bold text-white text-sm tracking-tight">{order.symbol}</td>
+                                                            <td className="px-8 py-5 font-bold text-white text-sm tracking-tight">{formatSymbol(order.symbol)}</td>
                                                             <td className="px-8 py-5 text-blue-400 font-mono text-sm">₹{order.targetPrice.toFixed(2)}</td>
                                                             <td className="px-8 py-5 text-center text-slate-300 font-bold font-mono text-sm">{order.quantity}</td>
                                                             <td className="px-8 py-5 text-right font-bold text-white">₹{formatIndianNumber(order.targetPrice * order.quantity)}</td>
@@ -390,7 +390,7 @@ export default function PortfolioClient({
                                             <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Asset Concentration</div>
                                             <div className="h-[140px]">
                                                 <ConcentrationChart 
-                                                    data={holdings.map((h: any) => ({ name: h.symbol, value: (h.marketValue / (portfolio?.totalValue || 1)) * 100 }))} 
+                                                    data={holdings.map((h: any) => ({ name: formatSymbol(h.symbol), value: (h.marketValue / (portfolio?.totalValue || 1)) * 100 }))} 
                                                     colors={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#6366f1']}
                                                 />
                                             </div>
@@ -462,7 +462,7 @@ function TradeItem({ trade }: { trade: any }) {
                         "text-[8px] font-black uppercase px-2 py-0.5 rounded border",
                         isBuy ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
                     )}>{trade.type}</span>
-                    <span className="text-sm font-bold text-white tracking-tight">{trade.symbol}</span>
+                    <span className="text-sm font-bold text-white tracking-tight">{formatSymbol(trade.symbol)}</span>
                 </div>
                 <div className="flex flex-col items-end">
                     <span className="text-[8px] text-slate-600 font-bold uppercase">{new Date(trade.timestamp).toLocaleDateString()}</span>
@@ -603,11 +603,11 @@ function HoldingRow({ holding, portfolioTotalValue, onTradeSuccess }: any) {
             <td className="px-6 py-2">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center font-black text-[10px] text-slate-400 group-hover:from-blue-600/20 group-hover:to-blue-600/5 group-hover:text-blue-400 transition-all duration-500 border border-white/5">
-                        {symbol[0]}
+                        {formatSymbol(symbol)[0]}
                     </div>
                     <div className="min-w-0">
                         <Link href={`/stock/${symbol}`} className="font-black text-white text-[13px] tracking-tight group-hover:text-blue-400 transition-colors uppercase block leading-none">
-                            {symbol}
+                            {formatSymbol(symbol)}
                         </Link>
                         <div className="flex items-center gap-1.5 mt-1">
                             <span className="text-[7px] font-black text-slate-500 bg-white/5 px-1 rounded uppercase tracking-widest">NSE</span>

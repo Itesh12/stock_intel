@@ -154,7 +154,7 @@ export default function TraderJournal() {
                                             {new Date(entry.createdAt).toLocaleDateString()} at {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                         {entry.symbol && (
-                                            <div className="text-xs font-black text-blue-400 uppercase tracking-tighter leading-none">{entry.symbol} Context</div>
+                                            <div className="text-xs font-black text-blue-400 uppercase tracking-tighter leading-none">{entry.symbol.replace(/\.(NS|BO)$/, '')} Context</div>
                                         )}
                                     </div>
                                 </div>

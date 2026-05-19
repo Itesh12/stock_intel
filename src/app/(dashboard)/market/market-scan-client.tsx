@@ -9,7 +9,7 @@ import {
     CircuitBoard, Dna, Info, Shield, X, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatCurrency, formatIndianNumber, cn } from '../../../lib/utils';
+import { formatCurrency, formatIndianNumber, cn, formatSymbol } from '../../../lib/utils';
 import Link from 'next/link';
 import Tooltip from '@/components/ui/tooltip';
 import { useSnackbar } from '@/components/ui/snackbar';
@@ -338,10 +338,10 @@ export default function MarketScanClient({ initialData = [] }: { initialData?: M
                                                     <td className="py-6 px-8">
                                                         <div className="flex items-center gap-4">
                                                             <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center font-bold text-white text-xs group-hover:border-blue-500/30 transition-colors">
-                                                                {stock.symbol.slice(0, 2)}
+                                                                {formatSymbol(stock.symbol).slice(0, 2)}
                                                             </div>
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{stock.symbol}</span>
+                                                                <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{formatSymbol(stock.symbol)}</span>
                                                                 <span className="text-[10px] text-slate-500 font-medium truncate max-w-[150px] uppercase tracking-wider">{stock.name}</span>
                                                             </div>
                                                         </div>
@@ -497,7 +497,7 @@ export default function MarketScanClient({ initialData = [] }: { initialData?: M
                                                             <div className="bg-[#0A0A0B] border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-w-[240px]">
                                                                 <div className="flex items-center justify-between mb-3">
                                                                     <div className="flex flex-col">
-                                                                        <span className="text-blue-400 font-bold text-sm tracking-tighter">{data.symbol}</span>
+                                                                        <span className="text-blue-400 font-bold text-sm tracking-tighter">{formatSymbol(data.symbol)}</span>
                                                                         <span className="text-[8px] text-slate-500 uppercase font-black truncate max-w-[120px]">{data.name}</span>
                                                                     </div>
                                                                     <div className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black text-white">
@@ -610,7 +610,7 @@ function TechnicalAuditModal({ stock, onClose }: { stock: MarketScanResult; onCl
                             <Shield size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white font-outfit uppercase tracking-tight">{stock.symbol} Details</h2>
+                            <h2 className="text-xl font-bold text-white font-outfit uppercase tracking-tight">{formatSymbol(stock.symbol)} Details</h2>
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Company Details & Safety</p>
                         </div>
                     </div>
