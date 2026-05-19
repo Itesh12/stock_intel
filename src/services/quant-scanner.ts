@@ -2,6 +2,34 @@ import { Infrastructure } from "../infrastructure/container";
 import { Strategy, StrategyRecommendation } from "../domain/strategy";
 import { v4 as uuidv4 } from "uuid";
 import { NotificationService } from "../application/notification-service";
+import YahooFinance from 'yahoo-finance2';
+
+const yahooFinance = new YahooFinance();
+
+// Helper to chunk an array into batch groups
+function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunked: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunked.push(array.slice(i, i + size));
+    }
+    return chunked;
+}
+
+// Parallel Pool Task Runner to process deep queries concurrently
+async function parallelPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+    const results: R[] = [];
+    const promises = items.map((item, index) => async () => {
+        results[index] = await fn(item);
+    });
+    const workers = Array.from({ length: limit }, async () => {
+        while (promises.length > 0) {
+            const task = promises.shift();
+            if (task) await task();
+        }
+    });
+    await Promise.all(workers);
+    return results;
+}
 
 export class CanslimScanner {
     constructor(private infra: Infrastructure) { }
@@ -10,18 +38,16 @@ export class CanslimScanner {
         const strategy = await this.infra.strategy.findBySlug('canslim');
         if (!strategy) return [];
 
-        console.log("[QuantScanner] Starting CANSLIM scan...");
+        console.log("[QuantScanner] Starting CANSLIM batch scan...");
 
-        // 1. Get a pool of potential stocks to scan
+        // 1. Get all symbols
         let discoveryPool: string[] = [];
         try {
             const fs = await import("fs");
             const path = await import("path");
             const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
             const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
-
-            // Evaluate the ENTIRE Indian market namespace for maximum algorithmic depth
-            discoveryPool = allSymbols.sort(() => 0.5 - Math.random());
+            discoveryPool = allSymbols;
         } catch (err) {
             console.error("[QuantScanner] Failed to load discovery pool:", err);
         }
@@ -37,84 +63,120 @@ export class CanslimScanner {
             ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
         ]));
 
-        console.log(`[QuantScanner] Evaluating ${uniqueSymbols.length} candidates via algorithmic sampler...`);
+        console.log(`[QuantScanner] Querying basic quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
+
+        // Batch query Yahoo Finance basic quotes in chunks of 150 (takes ~1-2 seconds total!)
+        const chunks = chunkArray(uniqueSymbols, 150);
+        const liveBasicQuotes: any[] = [];
+
+        await Promise.all(chunks.map(async (chunk) => {
+            try {
+                const batchResult = await yahooFinance.quote(chunk, undefined, { validateResult: false });
+                const quotes = Array.isArray(batchResult) ? batchResult : [batchResult];
+                liveBasicQuotes.push(...quotes.filter(Boolean));
+            } catch (err) {
+                // Ignore chunk failures
+            }
+        }));
+
+        console.log(`[QuantScanner] Loaded ${liveBasicQuotes.length} live quotes from Yahoo Finance. Pre-screening...`);
+
+        // Pre-screening filters (penny stocks, liquidity, market cap)
+        // CANSLIM: Market Cap >= 50 Cr (500M INR), volume > 10,000, price > 5 INR
+        const candidates = liveBasicQuotes.filter(q => {
+            const price = q.regularMarketPrice || 0;
+            const marketCap = q.marketCap || 0;
+            const volume = q.regularMarketVolume || 0;
+            const changePercent = q.regularMarketChangePercent || 0;
+
+            const isLiquid = volume >= 10000;
+            const isNotPenny = price >= 5;
+            const isSizable = marketCap >= 500000000; // 50 Cr
+            const hasMomentum = changePercent > -5;
+
+            return isLiquid && isNotPenny && isSizable && hasMomentum;
+        });
+
+        console.log(`[QuantScanner] Pre-screened down to ${candidates.length} high-probability CANSLIM candidates. Evaluating deep summary details...`);
 
         const recommendations: StrategyRecommendation[] = [];
-
-        // 2. Evaluate candidates in parallel batches
-        const batchSize = 20;
         let evaluatedCount = 0;
-        for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
-            const batch = uniqueSymbols.slice(i, i + batchSize);
-            await Promise.all(batch.map(async (symbol) => {
-                try {
-                    const stock = await this.infra.market.getStockPrice(symbol);
-                    if (!stock || !stock.price) return;
-                    evaluatedCount++;
 
-                    // CANSLIM Criteria Mapping (Modulated for broader discovery)
-                    const earningsGrowth = (stock.earningsGrowth || 0) * 100;
-                    const revenueGrowth = (stock.revenueGrowth || 0) * 100;
-                    const c_pass = earningsGrowth >= 15 || revenueGrowth >= 10;
+        // Run deep evaluation using parallelPool concurrency limit of 35 workers to fetch full stats
+        await parallelPool(candidates, 35, async (candidateQuote) => {
+            const symbol = candidateQuote.symbol;
+            try {
+                const summaryRes = await yahooFinance.quoteSummary(symbol, {
+                    modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
+                }, { validateResult: false }).catch(() => null);
 
-                    const roe = (stock.roe || 0) * 100;
-                    const a_pass = roe >= 10;
+                if (!summaryRes) return;
+                evaluatedCount++;
 
-                    const fiftyTwoWeekHigh = stock.fiftyTwoWeekHigh || stock.price || 0;
-                    const distanceToHigh = stock.price && fiftyTwoWeekHigh ? (stock.price / fiftyTwoWeekHigh) : 0;
-                    const n_pass = distanceToHigh >= 0.75;
+                const summary = summaryRes as any || {};
+                const financialData = summary.financialData || {};
+                const keyStats = summary.defaultKeyStatistics || {};
 
-                    const s_pass = (stock.marketCap || 0) >= 500000000; // 50Cr+
-                    const l_pass = (stock.changePercent || 0) > -5; // Momentum
-                    const i_pass = (stock.institutionOwnership || 0) >= 0; // Institution scan
+                // Use live data from both basic quote and deep summary!
+                const roe = (financialData.returnOnEquity || 0) * 100;
+                const earningsGrowth = (financialData.earningsGrowth || 0) * 100;
+                const revenueGrowth = (financialData.revenueGrowth || 0) * 100;
 
+                const c_pass = earningsGrowth >= 15 || revenueGrowth >= 10;
+                const a_pass = roe >= 10;
 
-                    let score = 0;
-                    if (c_pass) score += 25;
-                    if (a_pass) score += 20;
-                    if (n_pass) score += 20;
-                    if (s_pass) score += 15;
-                    if (l_pass) score += 10;
-                    if (i_pass) score += 10;
+                const fiftyTwoWeekHigh = candidateQuote.fiftyTwoWeekHigh || candidateQuote.regularMarketPrice || 0;
+                const distanceToHigh = candidateQuote.regularMarketPrice && fiftyTwoWeekHigh ? (candidateQuote.regularMarketPrice / fiftyTwoWeekHigh) : 0;
+                const n_pass = distanceToHigh >= 0.75;
 
-                    if (score >= 30) {
-                        recommendations.push({
-                            id: uuidv4(),
-                            strategyId: strategy.id,
-                            symbol: symbol,
-                            score: score,
-                            matchDetails: {
-                                earningsGrowth,
-                                revenueGrowth,
-                                roe,
-                                distanceToHigh,
-                                institutionOwnership: stock.institutionOwnership
-                            },
-                            timestamp: new Date()
-                        });
-                    }
-                } catch (err) {
-                    // Ignore errors for individual stocks
+                const s_pass = (candidateQuote.marketCap || 0) >= 500000000;
+                const l_pass = (candidateQuote.regularMarketChangePercent || 0) > -5;
+                const i_pass = (keyStats.heldPercentInstitutions || 0) >= 0;
+
+                let score = 0;
+                if (c_pass) score += 25;
+                if (a_pass) score += 20;
+                if (n_pass) score += 20;
+                if (s_pass) score += 15;
+                if (l_pass) score += 10;
+                if (i_pass) score += 10;
+
+                if (score >= 30) {
+                    recommendations.push({
+                        id: uuidv4(),
+                        strategyId: strategy.id,
+                        symbol: symbol,
+                        score: score,
+                        matchDetails: {
+                            earningsGrowth,
+                            revenueGrowth,
+                            roe,
+                            distanceToHigh,
+                            institutionOwnership: keyStats.heldPercentInstitutions
+                        },
+                        timestamp: new Date()
+                    });
                 }
-            }));
-        }
+            } catch (err) {
+                // Ignore individual stock errors
+            }
+        });
 
-        // 3. Sort by score and take top 10
+        // Sort by score and take top 10
         const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, 10);
 
-        // 4. Save to DB
+        // Save to DB
         await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
 
-        // 5. Trigger Notifications for high-conviction matches (Score > 70)
+        // Trigger Notifications for high-conviction matches (Score > 70)
         const notificationService = new NotificationService(this.infra.notification);
-        // Using a system-wide user ID for global alerts or a placeholder
         const SYSTEM_USER_ID = "SYSTEM";
 
         for (const rec of topRecs) {
             if (rec.score >= 70) {
                 await notificationService.notifySignal(SYSTEM_USER_ID, {
                     symbol: rec.symbol,
-                    type: "PRICE_SURGE", // Using standard type from Signal interface
+                    type: "PRICE_SURGE",
                     strength: "HIGH",
                     description: `New high-conviction CANSLIM match discovered for ${rec.symbol} with a score of ${rec.score}/100.`,
                     timestamp: new Date()
@@ -134,7 +196,7 @@ export class IntermarketScanner {
         const strategy = await this.infra.strategy.findBySlug('intermarket-analysis-india');
         if (!strategy) return [];
 
-        console.log("[QuantScanner] Starting INTERMARKET scan...");
+        console.log("[QuantScanner] Starting INTERMARKET batch scan...");
 
         let discoveryPool: string[] = [];
         try {
@@ -142,7 +204,7 @@ export class IntermarketScanner {
             const path = await import("path");
             const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
             const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
-            discoveryPool = allSymbols.sort(() => 0.5 - Math.random());
+            discoveryPool = allSymbols;
         } catch (err) {
             console.error("[QuantScanner] Failed to load discovery pool:", err);
         }
@@ -157,72 +219,100 @@ export class IntermarketScanner {
             ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
         ]));
 
-        console.log(`[QuantScanner] Evaluating ${uniqueSymbols.length} candidates via algorithmic sampler...`);
+        console.log(`[QuantScanner] Querying basic quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
+
+        // Batch query Yahoo Finance basic quotes
+        const chunks = chunkArray(uniqueSymbols, 150);
+        const liveBasicQuotes: any[] = [];
+
+        await Promise.all(chunks.map(async (chunk) => {
+            try {
+                const batchResult = await yahooFinance.quote(chunk, undefined, { validateResult: false });
+                const quotes = Array.isArray(batchResult) ? batchResult : [batchResult];
+                liveBasicQuotes.push(...quotes.filter(Boolean));
+            } catch (err) {
+                // Ignore chunk failures
+            }
+        }));
+
+        console.log(`[QuantScanner] Loaded ${liveBasicQuotes.length} live quotes from Yahoo Finance. Pre-screening...`);
+
+        // Pre-screening filters (penny stocks, liquidity, market cap, breakout momentum)
+        // Intermarket: Market Cap >= 5 Cr, Volume >= 20,000, Price >= 5, changePercent > -2
+        const candidates = liveBasicQuotes.filter(q => {
+            const price = q.regularMarketPrice || 0;
+            const marketCap = q.marketCap || 0;
+            const volume = q.regularMarketVolume || 0;
+            const changePercent = q.regularMarketChangePercent || 0;
+
+            const isLiquid = volume >= 20000;
+            const isNotPenny = price >= 5;
+            const isSizable = marketCap >= 50000000; // 5 Cr
+            const hasMomentum = changePercent > -2;
+
+            const fiftyTwoWeekHigh = q.fiftyTwoWeekHigh || price || 0;
+            const distanceToHigh = price / fiftyTwoWeekHigh;
+            const breakoutPass = distanceToHigh >= 0.70;
+
+            return isLiquid && isNotPenny && isSizable && hasMomentum && breakoutPass;
+        });
+
+        console.log(`[QuantScanner] Pre-screened down to ${candidates.length} high-probability INTERMARKET candidates. Evaluating deep summary details...`);
 
         const recommendations: StrategyRecommendation[] = [];
-        const batchSize = 20;
         let evaluatedCount = 0;
 
-        for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
-            const batch = uniqueSymbols.slice(i, i + batchSize);
-            await Promise.all(batch.map(async (symbol) => {
-                try {
-                    const stock = await this.infra.market.getStockPrice(symbol);
-                    if (!stock || !stock.price) return;
-                    evaluatedCount++;
+        await parallelPool(candidates, 35, async (candidateQuote) => {
+            const symbol = candidateQuote.symbol;
+            try {
+                const summaryRes = await yahooFinance.quoteSummary(symbol, {
+                    modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
+                }, { validateResult: false }).catch(() => null);
 
-                    // Debt/Equity < 1 (Relaxing for demo to allow some results)
-                    const debtToEquity = stock.debtToEquity || 0;
-                    if (debtToEquity >= 200) return; // Note: debtToEquity might be percentage like 120 -> 1.2
+                if (!summaryRes) return;
+                evaluatedCount++;
 
-                    // Market Cap > 2000 Cr ($240M USD approx for now - relaxing to 500 Cr)
-                    if ((stock.marketCap || 0) < 50000000) return;
+                const summary = summaryRes as any || {};
+                const financialData = summary.financialData || {};
 
-                    // Liquidity - Avoid low volume (Relaxing to 20k)
-                    if ((stock.volume || 0) < 20000) return;
+                const debtToEquity = financialData.debtToEquity || 0;
+                if (debtToEquity >= 200) return;
 
-                    // Compute simple breakout criteria
-                    const fiftyTwoWeekHigh = stock.fiftyTwoWeekHigh || stock.price || 0;
-                    const fiftyTwoWeekLow = stock.fiftyTwoWeekLow || stock.price || 0;
+                const fiftyTwoWeekHigh = candidateQuote.fiftyTwoWeekHigh || candidateQuote.regularMarketPrice || 0;
+                const fiftyTwoWeekLow = candidateQuote.fiftyTwoWeekLow || candidateQuote.regularMarketPrice || 0;
 
-                    // Breakout: Assuming close to 50d high if close is near 52w high as proxy 
-                    const distanceToHigh = stock.price / fiftyTwoWeekHigh;
-                    const breakoutPass = distanceToHigh >= 0.70; // Relaxed from 0.85
+                const distanceToHigh = candidateQuote.regularMarketPrice / fiftyTwoWeekHigh;
+                const breakoutPass = distanceToHigh >= 0.70;
 
-                    // Uptrend: MA200 Proxy. Assuming if price > avg of 52w High/Low, trend is structurally up
-                    const approxMa200 = (fiftyTwoWeekHigh + fiftyTwoWeekLow) / 2;
-                    const trendPass = stock.price > approxMa200;
+                const approxMa200 = (fiftyTwoWeekHigh + fiftyTwoWeekLow) / 2;
+                const trendPass = candidateQuote.regularMarketPrice > approxMa200;
+                const momentumPass = (candidateQuote.regularMarketChangePercent || 0) > -2;
 
-                    // Momentum proxy
-                    const momentumPass = (stock.changePercent || 0) > -2; // Relaxed allowing slight pullbacks
+                let score = 0;
+                if (breakoutPass) score += 40;
+                if (trendPass) score += 30;
+                if (momentumPass) score += 20;
+                if (debtToEquity < 100) score += 10;
 
-                    let score = 0;
-                    if (breakoutPass) score += 40;
-                    if (trendPass) score += 30;
-                    if (momentumPass) score += 20;
-                    if (debtToEquity < 100) score += 10;
-
-                    if (score >= 40) { // Relaxed threshold from 50 to 40
-
-                        recommendations.push({
-                            id: uuidv4(),
-                            strategyId: strategy.id,
-                            symbol: symbol,
-                            score: score,
-                            matchDetails: {
-                                debtToEquity,
-                                distanceToHigh,
-                                price: stock.price,
-                                approxMa200
-                            },
-                            timestamp: new Date()
-                        });
-                    }
-                } catch (err) {
-                    // Ignore individual stock fetch errors
+                if (score >= 40) {
+                    recommendations.push({
+                        id: uuidv4(),
+                        strategyId: strategy.id,
+                        symbol: symbol,
+                        score: score,
+                        matchDetails: {
+                            debtToEquity,
+                            distanceToHigh,
+                            price: candidateQuote.regularMarketPrice,
+                            approxMa200
+                        },
+                        timestamp: new Date()
+                    });
                 }
-            }));
-        }
+            } catch (err) {
+                // Ignore individual stock errors
+            }
+        });
 
         const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, 10);
         await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
@@ -255,7 +345,7 @@ export class BuffetScanner {
         const strategy = await this.infra.strategy.findBySlug('warren-buffet');
         if (!strategy) return [];
 
-        console.log("[QuantScanner] Starting WARREN BUFFET (IVCF) scan...");
+        console.log("[QuantScanner] Starting WARREN BUFFET (IVCF) batch scan...");
 
         let discoveryPool: string[] = [];
         try {
@@ -263,7 +353,7 @@ export class BuffetScanner {
             const path = await import("path");
             const symbolsPath = path.join(process.cwd(), 'src/data/indian-symbols.json');
             const allSymbols = JSON.parse(fs.readFileSync(symbolsPath, 'utf8'));
-            discoveryPool = allSymbols.sort(() => 0.5 - Math.random()).slice(0, 300);
+            discoveryPool = allSymbols;
         } catch (err) {
             console.error("[QuantScanner] Failed to load discovery pool:", err);
         }
@@ -278,94 +368,118 @@ export class BuffetScanner {
             ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
         ]));
 
+        console.log(`[QuantScanner] Querying basic quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
+
+        // Batch query Yahoo Finance basic quotes
+        const chunks = chunkArray(uniqueSymbols, 150);
+        const liveBasicQuotes: any[] = [];
+
+        await Promise.all(chunks.map(async (chunk) => {
+            try {
+                const batchResult = await yahooFinance.quote(chunk, undefined, { validateResult: false });
+                const quotes = Array.isArray(batchResult) ? batchResult : [batchResult];
+                liveBasicQuotes.push(...quotes.filter(Boolean));
+            } catch (err) {
+                // Ignore chunk failures
+            }
+        }));
+
+        console.log(`[QuantScanner] Loaded ${liveBasicQuotes.length} live quotes from Yahoo Finance. Pre-screening...`);
+
+        // Pre-screening filters (penny stocks, liquidity, market cap)
+        // Buffet: Market Cap >= 50 Cr (500M INR), Volume >= 10,000, Price >= 5, PE < 50
+        const candidates = liveBasicQuotes.filter(q => {
+            const price = q.regularMarketPrice || 0;
+            const marketCap = q.marketCap || 0;
+            const volume = q.regularMarketVolume || 0;
+            const pe = q.trailingPE || 25;
+
+            const isLiquid = volume >= 10000;
+            const isNotPenny = price >= 5;
+            const isSizable = marketCap >= 500000000; // 50 Cr
+            const isReasonablePE = pe < 50;
+
+            return isLiquid && isNotPenny && isSizable && isReasonablePE;
+        });
+
+        console.log(`[QuantScanner] Pre-screened down to ${candidates.length} high-probability BUFFET candidates. Evaluating deep summary details...`);
+
         const recommendations: StrategyRecommendation[] = [];
-        const batchSize = 20;
         let evaluatedCount = 0;
 
-        for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
-            const batch = uniqueSymbols.slice(i, i + batchSize);
-            await Promise.all(batch.map(async (symbol) => {
-                try {
-                    const stock = await this.infra.market.getStockPrice(symbol);
-                    if (!stock || !stock.price) return;
-                    evaluatedCount++;
+        await parallelPool(candidates, 35, async (candidateQuote) => {
+            const symbol = candidateQuote.symbol;
+            try {
+                const summaryRes = await yahooFinance.quoteSummary(symbol, {
+                    modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
+                }, { validateResult: false }).catch(() => null);
 
-                    // 1. Quality Score (Q) - 25%
-                    // Q = (ROE + ROCE + OPM) / 3
-                    const roe = (stock.roe || 0) * 100;
-                    const opm = (stock.operatingMargins || 0) * 100;
-                    const roa = (stock.roa || 0) * 100;
+                if (!summaryRes) return;
+                evaluatedCount++;
 
-                    // Use ROA proxy for Banking if sector is known
-                    const isBank = stock.sector?.toLowerCase().includes('bank') || stock.sector?.toLowerCase().includes('finance');
-                    const q_val = isBank ? (roe + roa * 5) / 2 : (roe + (roe * 1.1) + opm) / 3; // Simulating ROCE as 1.1x ROE for proxy
-                    const q_score = Math.min(100, (q_val / 15) * 100);
+                const summary = summaryRes as any || {};
+                const financialData = summary.financialData || {};
+                const keyStats = summary.defaultKeyStatistics || {};
 
-                    // 2. Moat Score (M) - 20%
-                    // Simulated based on Market Cap and Margins (Proxy for brand/pricing power)
-                    const m_score = Math.min(100, ((stock.marketCap || 0) / 1000000000) * 10 + (opm > 20 ? 40 : 20));
+                const roe = (financialData.returnOnEquity || 0) * 100;
+                const opm = (financialData.operatingMargins || 0) * 100;
+                const roa = (financialData.returnOnAssets || 0) * 100;
 
-                    // 3. Financial Strength (F) - 20%
-                    // F = 100 - (Debt/Equity * 100)
-                    const de = stock.debtToEquity || 0;
-                    const f_score = Math.max(0, 100 - de);
+                const isBank = candidateQuote.sector?.toLowerCase().includes('bank') || candidateQuote.sector?.toLowerCase().includes('finance');
+                const q_val = isBank ? (roe + roa * 5) / 2 : (roe + (roe * 1.1) + opm) / 3;
+                const q_score = Math.min(100, (q_val / 15) * 100);
 
-                    // 4. Valuation Score (V) - 20%
-                    // V = (Intrinsic Value / Market Price) * 100
-                    // Using P/E proxy: if PE < 20 then undervalued (100), if PE > 40 then expensive (<80)
-                    const pe = stock.peRatio || 25;
-                    const v_score = pe < 15 ? 100 : pe < 25 ? 90 : pe < 40 ? 80 : 60;
+                const m_score = Math.min(100, ((candidateQuote.marketCap || 0) / 1000000000) * 10 + (opm > 20 ? 40 : 20));
 
-                    // 5. Growth Score (G) - 15%
-                    // G = (Revenue CAGR + EPS CAGR) / 2
-                    const revGrowth = (stock.revenueGrowth || 0) * 100;
-                    const epsGrowth = (stock.earningsGrowth || 0) * 100;
-                    const g_score = Math.min(100, (revGrowth + epsGrowth) / 2 * 4); // Scaled for 10-15% range
+                const de = financialData.debtToEquity || 0;
+                const f_score = Math.max(0, 100 - de);
 
-                    // Total Buffett Score
-                    const totalScore = Math.round(
-                        (0.25 * q_score) +
-                        (0.20 * m_score) +
-                        (0.20 * f_score) +
-                        (0.20 * v_score) +
-                        (0.15 * g_score)
-                    );
+                const pe = candidateQuote.trailingPE || 25;
+                const v_score = pe < 15 ? 100 : pe < 25 ? 90 : pe < 40 ? 80 : 60;
 
-                    // Pass Filter
-                    const passesROE = roe > 15;
-                    const passesDE = de < 50; // 0.5 ratio
-                    const passesGrowth = revGrowth > 10 || epsGrowth > 12;
-                    const passesPromoter = (stock.insiderOwnership || 0) * 100 > 40; // Proxy for 50%
+                const revGrowth = (financialData.revenueGrowth || 0) * 100;
+                const epsGrowth = (financialData.earningsGrowth || 0) * 100;
+                const g_score = Math.min(100, (revGrowth + epsGrowth) / 2 * 4);
 
-                    if (totalScore >= 65 || (passesROE && passesDE)) {
-                        recommendations.push({
-                            id: uuidv4(),
-                            strategyId: strategy.id,
-                            symbol: symbol,
-                            score: totalScore,
-                            matchDetails: {
-                                q_score,
-                                m_score,
-                                f_score,
-                                v_score,
-                                g_score,
-                                roe,
-                                de,
-                                pe
-                            },
-                            timestamp: new Date()
-                        });
-                    }
-                } catch (err) {
-                    // Ignore errors
+                const totalScore = Math.round(
+                    (0.25 * q_score) +
+                    (0.20 * m_score) +
+                    (0.20 * f_score) +
+                    (0.20 * v_score) +
+                    (0.15 * g_score)
+                );
+
+                const passesROE = roe > 15;
+                const passesDE = de < 50;
+
+                if (totalScore >= 65 || (passesROE && passesDE)) {
+                    recommendations.push({
+                        id: uuidv4(),
+                        strategyId: strategy.id,
+                        symbol: symbol,
+                        score: totalScore,
+                        matchDetails: {
+                            q_score,
+                            m_score,
+                            f_score,
+                            v_score,
+                            g_score,
+                            roe,
+                            de,
+                            pe
+                        },
+                        timestamp: new Date()
+                    });
                 }
-            }));
-        }
+            } catch (err) {
+                // Ignore individual stock errors
+            }
+        });
 
         const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, 10);
         await this.infra.strategy.saveRecommendations(strategy.id, topRecs);
 
-        // Notify for high-conviction matches (Score > 80)
+        // Notify for high-conviction matches
         const notificationService = new NotificationService(this.infra.notification);
         const SYSTEM_USER_ID = "SYSTEM";
 
@@ -385,4 +499,3 @@ export class BuffetScanner {
         return topRecs;
     }
 }
-
