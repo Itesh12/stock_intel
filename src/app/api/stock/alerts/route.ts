@@ -34,10 +34,15 @@ export async function POST(req: NextRequest) {
         const userId = (session.user as any).id;
         const body = await req.json();
 
+        const symbol = (body.symbol || '').toUpperCase();
+        if (!symbol.endsWith('.NS')) {
+            return NextResponse.json({ error: "Only NSE (.NS) symbols are allowed for alerts" }, { status: 400 });
+        }
+
         const alert = {
             id: uuidv4(),
             userId,
-            symbol: body.symbol,
+            symbol,
             targetPrice: body.targetPrice,
             condition: body.condition,
             isActive: true,

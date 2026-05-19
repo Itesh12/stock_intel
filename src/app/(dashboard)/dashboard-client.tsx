@@ -318,8 +318,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                                         {(result.symbol || '').replace(/\.(NS|BO)$/, '')}
                                                     </div>
                                                     <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest">
-                                                        {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                            (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQ')}
+                                                        NSE
                                                     </span>
                                                 </div>
                                                 <div className="text-[9px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity">
@@ -345,7 +344,7 @@ export default function DashboardClient({ initialData }: { initialData: MarketDa
                                                     {item.symbol.replace(/\.(NS|BO)$/, '')}
                                                 </span>
                                                 <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-bold uppercase tracking-widest">
-                                                    {item.symbol.endsWith('.NS') ? 'NSE' : 'EQUITY'}
+                                                    NSE
                                                 </span>
                                             </div>
                                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 truncate max-w-[120px]">

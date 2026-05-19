@@ -420,11 +420,7 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
             // Map and return results
             const stocks: Partial<Stock>[] = quotes
                 .filter((quote: any) =>
-                    quote && quote.symbol && (
-                        quote.symbol.endsWith('.NS') ||
-                        quote.currency === 'INR' ||
-                        quote.fullExchangeName?.includes('NSE')
-                    )
+                    quote && quote.symbol && quote.symbol.endsWith('.NS')
                 )
                 .slice(0, count)
                 .map((quote: any) => ({

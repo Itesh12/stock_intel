@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
 const TradeSchema = z.object({
-    symbol: z.string().toUpperCase().regex(/^[A-Z0-9.\-_]+$/),
+    symbol: z.string().toUpperCase().regex(/^[A-Z0-9\-_]+\.NS$/),
     quantity: z.number().int().positive(),
     type: z.enum(["BUY", "SELL"]),
     stopLoss: z.number().positive().optional().nullable(),

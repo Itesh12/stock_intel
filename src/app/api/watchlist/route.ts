@@ -31,9 +31,12 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     if (action === 'ADD') {
-        await infra.watchlist.addSymbol(user.id, symbol);
+        if (!symbol.toUpperCase().endsWith('.NS')) {
+            return NextResponse.json({ error: "Only NSE (.NS) symbols can be added to watchlist" }, { status: 400 });
+        }
+        await infra.watchlist.addSymbol(user.id, symbol.toUpperCase());
     } else if (action === 'REMOVE') {
-        await infra.watchlist.removeSymbol(user.id, symbol);
+        await infra.watchlist.removeSymbol(user.id, symbol.toUpperCase());
     }
 
     return NextResponse.json({ success: true });

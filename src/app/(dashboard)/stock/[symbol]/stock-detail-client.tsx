@@ -215,7 +215,7 @@ export default function StockDetailClient({ symbol, initialPriceData, initialHis
                                     {displaySymbol}
                                 </span>
                                 <span className="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-bold text-slate-400">
-                                    {symbol.endsWith('.NS') ? 'NSE' : 'EQUITY'}
+                                    NSE
                                 </span>
                                 <button
                                     onClick={toggleWatchlist}

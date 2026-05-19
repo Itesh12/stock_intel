@@ -17,13 +17,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Symbol is required" }, { status: 400 });
         }
 
+        const upperSymbol = symbol.toUpperCase();
+        if (!upperSymbol.endsWith('.NS')) {
+            return NextResponse.json({ error: "Only NSE (.NS) symbols are allowed for backtesting" }, { status: 400 });
+        }
+
         const infra = await getInfrastructure();
         const backtestService = new BacktestService(infra);
         const userId = (session.user as any).id;
 
         const result = await backtestService.runSimpleBacktest(
             userId,
-            symbol,
+            upperSymbol,
             initialCapital || 1000000,
             days || 365
         );

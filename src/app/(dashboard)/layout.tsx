@@ -248,8 +248,7 @@ export default function DashboardLayout({
                                                                     {(result.symbol || '').replace(/\.NS$/, '')}
                                                                 </div>
                                                                 <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-500 font-black uppercase tracking-widest group-hover:border-blue-500/30 group-hover:text-blue-400 transition-all">
-                                                                    {result.symbol?.endsWith('.NS') ? 'NSE' :
-                                                                        (result.symbol?.includes('.') ? result.symbol.split('.').pop() : 'EQUITY')}
+                                                                    NSE
                                                                 </span>
                                                             </div>
                                                             <div className="text-[10px] text-slate-500 font-bold truncate opacity-80 group-hover:opacity-100 transition-opacity mt-0.5">

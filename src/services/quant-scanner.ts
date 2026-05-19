@@ -61,7 +61,7 @@ export class CanslimScanner {
         const uniqueSymbols = Array.from(new Set([
             ...discoveryPool,
             ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
-        ]));
+        ])).filter(sym => sym.endsWith('.NS'));
 
         console.log(`[QuantScanner] Querying basic quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
 
@@ -217,7 +217,7 @@ export class IntermarketScanner {
         const uniqueSymbols = Array.from(new Set([
             ...discoveryPool,
             ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
-        ]));
+        ])).filter(sym => sym.endsWith('.NS'));
 
         console.log(`[QuantScanner] Querying basic quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
 
@@ -366,7 +366,7 @@ export class BuffetScanner {
         const uniqueSymbols = Array.from(new Set([
             ...discoveryPool,
             ...pools.flat().map(s => s.symbol).filter(Boolean) as string[]
-        ]));
+        ])).filter(sym => sym.endsWith('.NS'));
 
         console.log(`[QuantScanner] Querying basic quotes for ${uniqueSymbols.length} stocks in batch chunks...`);
 
