@@ -7,3 +7,5 @@ coverage/
 dist/
 build/
 output/
+.vercel
+.env*.local
