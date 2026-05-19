@@ -12,6 +12,7 @@ export default async function AutoTradePage() {
         redirect('/login');
     }
 
+    //
     const userId = (session.user as any).id;
     const infra = await getInfrastructure();
 
@@ -26,13 +27,13 @@ export default async function AutoTradePage() {
     // 3. Fetch strategies list
     // Pre-market scan dynamic seeding is in search page, but we can query them from database safely.
     const dbStrategies = await infra.strategy.list();
-    
+
     // Deep-serialize to plain JSON objects for client boundary compatibility
     const plainBots = JSON.parse(JSON.stringify(bots || []));
     const plainStrategies = JSON.parse(JSON.stringify(dbStrategies || []));
 
     return (
-        <AutoTradeClient 
+        <AutoTradeClient
             initialBots={plainBots}
             initialStrategies={plainStrategies}
             cashBalance={cashBalance}
