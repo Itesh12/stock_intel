@@ -37,33 +37,42 @@ export class IntelligenceService {
 
     public async generateDeepDive(symbol: string): Promise<IntelligenceMemo | null> {
         let stock = await this.infra.stock.findBySymbol(symbol);
+        const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
         
-        // FIND-OR-FETCH: If missing from DB, fetch from Market Adapter and save
-        if (!stock) {
-            console.info(`[StockIntel] Intelligence cache miss for ${symbol}. Fetching from Market Adapter...`);
-            const fetched = await this.infra.market.getStockPrice(symbol);
-            
-            if (!fetched || !fetched.name || fetched.price === 0) {
-                return null;
+        const isStale = stock && (!stock.lastUpdated || (Date.now() - new Date(stock.lastUpdated).getTime() > CACHE_TTL));
+        
+        // FIND-OR-FETCH: If missing or stale in DB, fetch from Market Adapter and save
+        if (!stock || isStale) {
+            console.info(`[StockIntel] Cache miss or stale data for ${symbol}. Fetching from Market Adapter...`);
+            try {
+                const fetched = await this.infra.market.getStockPrice(symbol);
+                
+                if (fetched && fetched.name && fetched.price !== 0) {
+                    const stockId = stock?.id || crypto.randomUUID();
+                    const updatedStock: Stock = {
+                        ...stock,
+                        ...fetched,
+                        id: stockId,
+                        symbol: fetched.symbol || symbol,
+                        name: fetched.name || stock?.name || symbol,
+                        sector: fetched.sector || stock?.sector || 'General',
+                        marketCap: fetched.marketCap || stock?.marketCap || 0,
+                        price: fetched.price || stock?.price || 0,
+                        change: fetched.change || stock?.change || 0,
+                        changePercent: fetched.changePercent || stock?.changePercent || 0,
+                        lastUpdated: new Date(),
+                        createdAt: stock?.createdAt || new Date(),
+                    } as Stock;
+
+                    await this.infra.stock.save(updatedStock);
+                    stock = updatedStock;
+                } else if (!stock) {
+                    return null; // No cache and fetch failed
+                }
+            } catch (err) {
+                console.error(`[StockIntel] Failed to refresh market data for ${symbol}:`, err);
+                if (!stock) return null; // No cache to fall back to
             }
-
-            // Map and Save to DB
-            const newStock: Stock = {
-                id: crypto.randomUUID(),
-                symbol: fetched.symbol!,
-                name: fetched.name!,
-                sector: fetched.sector || 'General',
-                marketCap: fetched.marketCap || 0,
-                price: fetched.price || 0,
-                change: fetched.change || 0,
-                changePercent: fetched.changePercent || 0,
-                lastUpdated: new Date(),
-                createdAt: new Date(),
-                ...fetched
-            } as Stock;
-
-            await this.infra.stock.save(newStock);
-            stock = newStock;
         }
 
         const score = this.scoringService.calculateScore(stock, {});

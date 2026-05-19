@@ -13,8 +13,8 @@ export async function POST(req: Request) {
 
         const { amount } = await req.json();
 
-        if (amount === undefined || amount <= 0) {
-            return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+        if (amount === undefined || amount <= 0 || amount > 100000000) {
+            return NextResponse.json({ error: "Invalid amount. Maximum single deposit is ₹10 Crore." }, { status: 400 });
         }
 
         const infra = await getInfrastructure();
