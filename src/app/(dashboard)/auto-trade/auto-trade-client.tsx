@@ -240,6 +240,9 @@ export default function AutoTradeClient({
                         <div className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                             <Activity size={10} className="animate-pulse" /> Live Simulation
                         </div>
+                        <div className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-semibold text-indigo-400 uppercase tracking-wider">
+                            v1.1.0-beta
+                        </div>
                         <div className="h-1 w-1 rounded-full bg-slate-700"></div>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                             <Bot size={12} /> {bots.length} Active Bots
