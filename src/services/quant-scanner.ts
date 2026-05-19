@@ -2,7 +2,6 @@ import { Infrastructure } from "../infrastructure/container";
 import { Strategy, StrategyRecommendation } from "../domain/strategy";
 import { v4 as uuidv4 } from "uuid";
 import { NotificationService } from "../application/notification-service";
-import { ScoringService } from "../application/scoring-service";
 
 export class CanslimScanner {
     constructor(private infra: Infrastructure) { }

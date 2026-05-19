@@ -28,10 +28,6 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
 
     const hideLoader = () => setIsLoading(false);
 
-    // Failsafe: Hide loader when route changes
-    useEffect(() => {
-        hideLoader();
-    }, [pathname]);
 
     return (
         <LoaderContext.Provider value={{ showLoader, hideLoader }}>

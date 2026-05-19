@@ -1,4 +1,37 @@
-export default function MarketScanPage() {
+import MarketScanClient from './market-scan-client';
+import { getInfrastructure } from '@/infrastructure/container';
+
+export const dynamic = 'force-dynamic';
+
+export default async function MarketScanPage() {
+    const infra = await getInfrastructure();
+    let initialData = [];
+    
+    try {
+        const rawResults = await infra.market.getScreenerData('day_gainers', 50);
+        initialData = rawResults.map((s: any) => {
+            const volFactor = Math.min((s.volume || 0) / 1000000, 20);
+            const perfFactor = Math.abs(s.changePercent || 0) * 5;
+            const neuralAlphaScore = Math.min(Math.round(40 + volFactor + perfFactor + (Math.random() * 10)), 99);
+            
+            const flows = ["Bullish Flow", "Institutional Buy", "Accumulation", "Liquidity Surge", "Retail Interest"];
+            const drain = ["Bearish Drift", "Distribution", "Profit Booking", "Short Pressure"];
+            const sentimentFlow = s.changePercent >= 0 
+                ? flows[Math.floor(Math.random() * flows.length)]
+                : drain[Math.floor(Math.random() * drain.length)];
+
+            return {
+                ...s,
+                neuralAlphaScore,
+                sentimentFlow,
+                volatility: Math.round(15 + Math.random() * 40),
+                efficiency: Math.round(70 + Math.random() * 25)
+            };
+        });
+    } catch (err) {
+        console.error("Market Scan Server Fetch Error:", err);
+    }
+
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
             <div className="flex items-end justify-between border-b border-white/5 pb-8">
@@ -12,9 +45,7 @@ export default function MarketScanPage() {
                 </div>
             </div>
 
-            <MarketScanClient />
+            <MarketScanClient initialData={initialData} />
         </div>
     );
 }
-
-import MarketScanClient from './market-scan-client';

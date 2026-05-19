@@ -6,7 +6,7 @@ import {
     ArrowUpRight, ArrowDownRight, Search, Filter,
     ChevronRight, ArrowLeft, Signal,
     Globe, Terminal, Cpu, ShieldAlert, BarChart3,
-    CircuitBoard, Dna, Info, Shield, X
+    CircuitBoard, Dna, Info, Shield, X, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatIndianNumber, cn } from '../../../lib/utils';
@@ -65,12 +65,12 @@ const scanners = [
     }
 ];
 
-export default function MarketScanClient() {
+export default function MarketScanClient({ initialData = [] }: { initialData?: MarketScanResult[] }) {
     const { showSnackbar } = useSnackbar();
-    const [isConnected, setIsConnected] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
     const [isEstablishing, setIsEstablishing] = useState(false);
     const [activeScanner, setActiveScanner] = useState(scanners[0]);
-    const [results, setResults] = useState<MarketScanResult[]>([]);
+    const [results, setResults] = useState<MarketScanResult[]>(initialData);
     const [isLoading, setIsLoading] = useState(false);
     const [connectionProgress, setConnectionProgress] = useState(0);
     const [displayCount, setDisplayCount] = useState(25);
@@ -113,15 +113,12 @@ export default function MarketScanClient() {
         setDisplayCount(prev => prev + 25);
     };
 
+    const isInitialMount = React.useRef(true);
     useEffect(() => {
-        // Auto-trigger connection on mount for seamless UX
-        // Only trigger if we haven't started yet
-        if (!isConnected && !isEstablishing && connectionProgress === 0) {
-            establishConnection();
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
         }
-    }, [establishConnection, isConnected, isEstablishing, connectionProgress]);
-
-    useEffect(() => {
         if (isConnected) {
             fetchScanData(activeScanner.id);
         }
@@ -246,11 +243,9 @@ export default function MarketScanClient() {
                         </div>
                         <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                             {isLoading ? (
-                                <div className="scale-75 origin-left mr-2">
-                                    <GlobalLoader minimal={true} />
-                                </div>
+                                <Loader2 size={12} className="animate-spin mr-1" />
                             ) : (
-                                <RefreshCcw size={12} />
+                                <RefreshCcw size={12} className="mr-1" />
                             )}
                             {isLoading ? "Fetching" : "Ready"}
                         </div>
