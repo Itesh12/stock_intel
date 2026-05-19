@@ -11,11 +11,12 @@ export async function GET(req: NextRequest) {
     const writer = responseStream.writable.getWriter();
     const encoder = new TextEncoder();
 
-    const sendEvent = (data: any) => {
+    const sendEvent = async (data: any) => {
         try {
-            writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+            await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch (err) {
             console.error("SSE writer failed:", err);
+            clearInterval(intervalId);
         }
     };
 

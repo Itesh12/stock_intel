@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight } from "lucide-react";
+import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight, Bot } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
 import { GlobalLoader } from "@/components/ui/global-loader";
@@ -163,6 +163,7 @@ export default function DashboardLayout({
                                 <NavItem icon={<Scale size={18} />} label="Stock Duel" href="/comparison" setOpen={setIsSidebarOpen} />
                                 <NavItem icon={<FlaskConical size={18} />} label="Backtesting Lab" href="/backtesting" setOpen={setIsSidebarOpen} />
                                 <NavItem icon={<BookOpen size={18} />} label="Trader Journal" href="/journal" setOpen={setIsSidebarOpen} />
+                                <NavItem icon={<Bot size={18} />} label="Auto Trade" href="/auto-trade" setOpen={setIsSidebarOpen} />
                             </nav>
                         </div>
                     </div>

@@ -11,4 +11,5 @@ export interface Trade {
     timestamp: Date;
     realizedPL?: number;
     averagePriceAtSale?: number;
+    botId?: string;              // Links to AutoTradeBot if auto-executed
 }

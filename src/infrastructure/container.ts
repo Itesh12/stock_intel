@@ -23,6 +23,8 @@ import { MongoJournalRepository } from "../adapters/mongodb/journal-repo";
 import { MongoAlertRepository } from "../adapters/mongodb/alert-repo";
 import { NotificationRepository } from "../ports/notification-repository";
 import { MongoNotificationRepository } from "../adapters/mongodb/notification-repo";
+import { AutoTradeBotRepository } from "../domain/auto-trade-bot";
+import { MongoAutoTradeBotRepository } from "../adapters/mongodb/auto-trade-bot-repo";
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -46,6 +48,7 @@ export interface Infrastructure {
     alert: MongoAlertRepository;
     notification: NotificationRepository;
     market: MarketDataPort;
+    autoTradeBot: AutoTradeBotRepository;
 }
 
 let cachedInfra: Infrastructure | null = null;
@@ -67,6 +70,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let journalRepo: MongoJournalRepository;
     let alertRepo: MongoAlertRepository;
     let notificationRepo: NotificationRepository;
+    let autoTradeBotRepo: AutoTradeBotRepository;
 
     // Use Yahoo Finance as primary for free real-time support (NSE/BSE)
     // Finnhub can be used if API key is provided for US stocks
@@ -88,6 +92,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         journalRepo = new MongoJournalRepository(db);
         alertRepo = new MongoAlertRepository(db);
         notificationRepo = new MongoNotificationRepository(db);
+        autoTradeBotRepo = new MongoAutoTradeBotRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -102,6 +107,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         journalRepo = new MongoJournalRepository({} as any);
         alertRepo = new MongoAlertRepository({} as any);
         notificationRepo = new MongoNotificationRepository({} as any);
+        autoTradeBotRepo = new MongoAutoTradeBotRepository({} as any);
     }
 
     cachedInfra = {
@@ -117,6 +123,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         alert: alertRepo,
         notification: notificationRepo,
         market: marketAdapter,
+        autoTradeBot: autoTradeBotRepo!,
     };
 
     // Step 1: Background simulation worker daemon running every 15 seconds
@@ -132,6 +139,21 @@ export async function getInfrastructure(): Promise<Infrastructure> {
                 console.error("[TradeMonitor] Background daemon error:", err);
             }
         }, 15000);
+    }
+
+    // Step 2: Auto Trade bot engine — runs every 30 seconds
+    if (!(global as any).autoTradeStarted) {
+        (global as any).autoTradeStarted = true;
+        console.log("[AutoTrade] Bot engine daemon initialized.");
+        setInterval(async () => {
+            try {
+                const { AutoTradeService } = require("../application/auto-trade-service");
+                const service = new AutoTradeService(cachedInfra);
+                await service.runAllBots();
+            } catch (err) {
+                console.error("[AutoTrade] Daemon error:", err);
+            }
+        }, 30000);
     }
 
     return cachedInfra as Infrastructure;

@@ -1,0 +1,19 @@
+name: Auto-Trade Bot Cron
+
+on:
+  schedule:
+    # Run every 5 minutes during market hours (approx. 4:00 AM UTC to 9:30 AM UTC is 9:30 AM IST to 3:00 PM IST)
+    # The cron syntax: "*/5 4-9 * * 1-5" (every 5 mins, hours 4-9, Mon-Fri)
+    # We can also just run it every 15 minutes 24/7 or every 5 minutes.
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  trigger-auto-trade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger StockIntel Auto-Trade Engine
+        run: |
+          curl -X POST https://stock-intel-two.vercel.app/api/auto-trade/trigger \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
