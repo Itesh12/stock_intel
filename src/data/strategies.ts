@@ -197,5 +197,56 @@ export const strategies: Strategy[] = [
             'Hold as long as business quality is intact',
             'Exit if governance issues emerge'
         ]
+    },
+    {
+        id: 'intraday-strategy',
+        name: 'Intraday Confluence System',
+        trader: 'Confluence Quant',
+        description: 'A high-probability multi-strategy scoring system that enters trades only when 7 or more out of 10 entry signals align.',
+        objective: 'Align 4 individual strategies (ORB, VWAP Reversion, EMA Pullback, Gap Fill) and score candidates out of 10 to filter for 75–80% win-rate setups.',
+        longDescription: `The Intraday Confluence System focuses on high-probability intraday setups. Instead of trading a single strategy, it tracks 10 individual technical signals across 4 strategy types (Opening Range Breakout, VWAP Reversion, EMA Pullback, and Gap Fill). It scores each stock from 0 to 10; trades are only executed when the score reaches 7 or above. This strict filter maximizes the edge, driving historical win rates to the 75–80% range.`,
+        riskLevel: 'MEDIUM',
+        winRate: '75-80%',
+        steps: [
+            {
+                id: '1',
+                title: 'Pre-market scan (9:00–9:15 AM)',
+                description: 'Run the 4-filter stock scanner. Pick 4–6 stocks that pass liquidity, ATR, RVOL, and gap filters. These are your candidates.',
+                requirements: ['Passing liquidity filter', 'ATR volatility check', 'RVOL > 1.2', 'Gap size check']
+            },
+            {
+                id: '2',
+                title: 'Score each stock (9:15–9:30 AM)',
+                description: 'Use the Signal Checker tab to score each candidate. Each signal adds points. Stocks scoring ≥ 7 go on your trade list. Others are skipped — no exceptions.',
+                requirements: ['Evaluate 10 technical signals', 'Accumulate confluence points', 'Strict threshold ≥ 7']
+            },
+            {
+                id: '3',
+                title: 'Identify entry type category',
+                description: 'Every high-score stock falls into one of 4 types: Trend-Momentum, Mean Reversion, Gap Fill, or VWAP Reclaim. Each type has its own exact entry rule.',
+                requirements: ['Trend-Momentum', 'Mean Reversion', 'Gap Fill', 'VWAP Reclaim']
+            },
+            {
+                id: '4',
+                title: 'Enter after 9:30 AM with confirmation',
+                description: 'Never enter during 9:15–9:30 ORB formation window. Wait for the first 5-min candle close after 9:30 to confirm the signal. Volume must be ≥ 1.5× average.',
+                requirements: ['Wait for first 5-min candle close after 9:30', 'Volume ≥ 1.5x average']
+            },
+            {
+                id: '5',
+                title: 'Manage with 2-target system',
+                description: 'Book 50% at Target 1. Move SL to cost. Let 50% run to Target 2. Hard exit of all positions by 2:15 PM. No trades after 2:30 PM.',
+                requirements: ['Target 1: Book 50% & SL to cost', 'Target 2: Let remaining run', 'Hard exit by 2:15 PM']
+            }
+        ],
+        recommendations: ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'TATAMOTORS.NS', 'SBIN.NS'],
+        riskManagement: [
+            'Min score to trade: 7 / 10',
+            'Avg R:R: 1 : 1.5',
+            'Trades/day: 1–3',
+            'Book 50% at Target 1 and move SL to cost',
+            'Let 50% run to Target 2',
+            'Hard exit of all positions by 2:15 PM. No trades after 2:30 PM.'
+        ]
     }
 ];
