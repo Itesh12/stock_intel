@@ -211,8 +211,8 @@ export default function DashboardLayout({
                                             <span className="text-[8px] opacity-60">CTRL</span> K
                                         </div>
                                         {isSearching && (
-                                            <div className="scale-[0.8] origin-right opacity-60">
-                                                <GlobalLoader minimal={true} />
+                                            <div className="w-4 h-4 shrink-0 opacity-60">
+                                                <GlobalLoader minimal={true} className="w-full h-full" />
                                             </div>
                                         )}
                                     </div>

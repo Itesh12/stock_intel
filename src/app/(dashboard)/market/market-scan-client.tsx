@@ -405,7 +405,7 @@ export default function MarketScanClient({ initialData = [] }: { initialData?: M
                                                                     className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-600 hover:text-blue-500 transition-colors"
                                                                 >
                                                                     {refreshingRows[stock.symbol] ? (
-                                                                        <div className="scale-[0.5]"><GlobalLoader minimal={true} /></div>
+                                                                        <div className="w-4 h-4"><GlobalLoader minimal={true} className="w-full h-full" /></div>
                                                                     ) : (
                                                                         <CircuitBoard size={14} />
                                                                     )}
