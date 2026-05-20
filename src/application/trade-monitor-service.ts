@@ -116,6 +116,9 @@ export class TradeMonitorService {
                     return false;
                 }
 
+                const averagePriceAtSale = holding.averagePrice;
+                const realizedPL = (executionPrice - averagePriceAtSale) * order.quantity;
+
                 await this.infra.portfolio.executeTrade(
                     portfolio.id,
                     order.symbol,
@@ -135,6 +138,8 @@ export class TradeMonitorService {
                     type: 'SELL',
                     timestamp: new Date(),
                     botId: order.botId,
+                    realizedPL,
+                    averagePriceAtSale
                 });
             }
 

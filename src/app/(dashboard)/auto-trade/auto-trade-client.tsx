@@ -77,6 +77,7 @@ export default function AutoTradeClient({
     cashBalance: number;
 }) {
     const [bots, setBots] = useState<BotData[]>(initialBots);
+    const [currentCashBalance, setCurrentCashBalance] = useState(cashBalance);
     const [activeTab, setActiveTab] = useState<'bots' | 'create' | 'history'>('bots');
     const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
     const [historyTrades, setHistoryTrades] = useState<Trade[]>([]);
@@ -114,10 +115,17 @@ export default function AutoTradeClient({
     const handleRefreshStats = async () => {
         setIsRefreshing(true);
         try {
-            const listRes = await fetch("/api/auto-trade");
+            const [listRes, portRes] = await Promise.all([
+                fetch("/api/auto-trade"),
+                fetch("/api/portfolio/me")
+            ]);
             if (listRes.ok) {
                 const refreshedBots = await listRes.json();
                 setBots(refreshedBots);
+            }
+            if (portRes.ok) {
+                const portData = await portRes.json();
+                setCurrentCashBalance(portData.cashBalance);
             }
         } catch (err) {
             console.error("Manual refresh failed:", err);
@@ -130,10 +138,17 @@ export default function AutoTradeClient({
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const listRes = await fetch("/api/auto-trade");
+                const [listRes, portRes] = await Promise.all([
+                    fetch("/api/auto-trade"),
+                    fetch("/api/portfolio/me")
+                ]);
                 if (listRes.ok) {
                     const refreshedBots = await listRes.json();
                     setBots(refreshedBots);
+                }
+                if (portRes.ok) {
+                    const portData = await portRes.json();
+                    setCurrentCashBalance(portData.cashBalance);
                 }
             } catch (err) {
                 console.error("Auto-refresh failed:", err);
@@ -160,8 +175,8 @@ export default function AutoTradeClient({
         setIsSavingEdit(true);
         setEditError(null);
 
-        if (editCapital > cashBalance) {
-            setEditError(`Capital allocated exceeds current portfolio cash balance (${formatCurrency(cashBalance)})`);
+        if (editCapital > currentCashBalance) {
+            setEditError(`Capital allocated exceeds current portfolio cash balance (${formatCurrency(currentCashBalance)})`);
             setIsSavingEdit(false);
             return;
         }
@@ -188,6 +203,13 @@ export default function AutoTradeClient({
 
             setBots(prev => prev.map(b => b.id === editingBot.id ? data : b));
             setEditingBot(null);
+
+            // Fetch updated cash balance
+            const portRes = await fetch("/api/portfolio/me");
+            if (portRes.ok) {
+                const portData = await portRes.json();
+                setCurrentCashBalance(portData.cashBalance);
+            }
         } catch (err: any) {
             setEditError(err.message);
         } finally {
@@ -220,8 +242,8 @@ export default function AutoTradeClient({
         setFormError(null);
         setFormSuccess(null);
 
-        if (formCapital > cashBalance) {
-            setFormError(`Capital allocated exceeds current portfolio cash balance (${formatCurrency(cashBalance)})`);
+        if (formCapital > currentCashBalance) {
+            setFormError(`Capital allocated exceeds current portfolio cash balance (${formatCurrency(currentCashBalance)})`);
             setIsSubmitting(false);
             return;
         }
@@ -252,6 +274,14 @@ export default function AutoTradeClient({
             setFormSuccess(`Bot "${formName}" successfully deployed and activated!`);
             // Reset
             setFormName("");
+
+            // Fetch updated cash balance
+            const portRes = await fetch("/api/portfolio/me");
+            if (portRes.ok) {
+                const portData = await portRes.json();
+                setCurrentCashBalance(portData.cashBalance);
+            }
+
             setTimeout(() => {
                 setActiveTab('bots');
                 setFormSuccess(null);
@@ -299,6 +329,13 @@ export default function AutoTradeClient({
                 if (selectedBotId === botId) {
                     setSelectedBotId(null);
                 }
+
+                // Fetch updated cash balance
+                const portRes = await fetch("/api/portfolio/me");
+                if (portRes.ok) {
+                    const portData = await portRes.json();
+                    setCurrentCashBalance(portData.cashBalance);
+                }
             }
         } catch (err) {
             console.error(err);
@@ -317,11 +354,18 @@ export default function AutoTradeClient({
             const data = await res.json();
             alert(`Trigger complete!\nLimit order checks: Executed ${data.limitOrders?.executed || 0}, Failed ${data.limitOrders?.failed || 0}`);
             
-            // Refresh bot list to show updated stats
-            const listRes = await fetch("/api/auto-trade");
+            // Refresh bot list and cash balance
+            const [listRes, portRes] = await Promise.all([
+                fetch("/api/auto-trade"),
+                fetch("/api/portfolio/me")
+            ]);
             if (listRes.ok) {
                 const refreshedBots = await listRes.json();
                 setBots(refreshedBots);
+            }
+            if (portRes.ok) {
+                const portData = await portRes.json();
+                setCurrentCashBalance(portData.cashBalance);
             }
         } catch (err) {
             console.error(err);
@@ -383,7 +427,7 @@ export default function AutoTradeClient({
                             <DollarSign size={16} />
                         </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-white tracking-tight">{formatCurrency(cashBalance)}</h3>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">{formatCurrency(currentCashBalance)}</h3>
                     <p className="text-xs text-slate-500 mt-2 font-medium">Virtual cash balance available for bot allocation</p>
                 </div>
 
@@ -588,18 +632,18 @@ export default function AutoTradeClient({
                                             type="number"
                                             required
                                             min={5000}
-                                            max={Math.max(5000, cashBalance)}
+                                            max={Math.max(5000, currentCashBalance)}
                                             value={formCapital}
                                             onChange={(e) => setFormCapital(Number(e.target.value))}
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm font-medium"
                                         />
-                                        {cashBalance < 5000 ? (
+                                        {currentCashBalance < 5000 ? (
                                             <div className="text-xs text-rose-400 font-semibold mt-2 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2">
                                                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                                                <span>Your portfolio's cash balance ({formatCurrency(cashBalance)}) is below the minimum required ₹5,000. Go to the <Link href="/portfolio" className="text-indigo-400 underline hover:text-indigo-300">Portfolio</Link> page to inject capital.</span>
+                                                <span>Your portfolio's cash balance ({formatCurrency(currentCashBalance)}) is below the minimum required ₹5,000. Go to the <Link href="/portfolio" className="text-indigo-400 underline hover:text-indigo-300">Portfolio</Link> page to inject capital.</span>
                                             </div>
                                         ) : (
-                                            <span className="text-[10px] text-slate-500 font-medium block mt-1">Max budget available to this bot for purchases. Available cash: {formatCurrency(cashBalance)}</span>
+                                            <span className="text-[10px] text-slate-500 font-medium block mt-1">Max budget available to this bot for purchases. Available cash: {formatCurrency(currentCashBalance)}</span>
                                         )}
                                     </div>
 

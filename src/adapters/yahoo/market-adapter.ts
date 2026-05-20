@@ -29,6 +29,10 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
     async getStockPrice(symbol: string): Promise<Partial<Stock>> {
         const cacheKey = `price_${symbol}`;
+        const cached = CacheUtils.get(cacheKey, 15000); // 15 seconds TTL
+        if (cached && cached.price && cached.price > 0) {
+            return cached;
+        }
         try {
             // Catch errors individually to prevent Promise.all from failing completely
             const [quoteRes, summaryRes] = await Promise.all([
