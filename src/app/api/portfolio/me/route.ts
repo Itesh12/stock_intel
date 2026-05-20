@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getInfrastructure } from "@/infrastructure/container";
+
+export const dynamic = "force-dynamic";
 import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {

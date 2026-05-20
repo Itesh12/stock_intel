@@ -139,9 +139,14 @@ export default function AutoTradeClient({
     const handleRefreshStats = async () => {
         setIsRefreshing(true);
         try {
+            // Silently run limit order monitoring & engine checks on demand
+            await fetch(`/api/auto-trade/trigger?t=${Date.now()}`, {
+                method: "POST"
+            });
+
             const [listRes, portRes] = await Promise.all([
-                fetch("/api/auto-trade"),
-                fetch("/api/portfolio/me")
+                fetch(`/api/auto-trade?t=${Date.now()}`),
+                fetch(`/api/portfolio/me?t=${Date.now()}`)
             ]);
             if (listRes.ok) {
                 const refreshedBots = await listRes.json();
@@ -162,9 +167,14 @@ export default function AutoTradeClient({
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
+                // Silently run limit order monitoring & engine checks in background
+                await fetch(`/api/auto-trade/trigger?t=${Date.now()}`, {
+                    method: "POST"
+                });
+
                 const [listRes, portRes] = await Promise.all([
-                    fetch("/api/auto-trade"),
-                    fetch("/api/portfolio/me")
+                    fetch(`/api/auto-trade?t=${Date.now()}`),
+                    fetch(`/api/portfolio/me?t=${Date.now()}`)
                 ]);
                 if (listRes.ok) {
                     const refreshedBots = await listRes.json();
@@ -229,7 +239,7 @@ export default function AutoTradeClient({
             setEditingBot(null);
 
             // Fetch updated cash balance
-            const portRes = await fetch("/api/portfolio/me");
+            const portRes = await fetch(`/api/portfolio/me?t=${Date.now()}`);
             if (portRes.ok) {
                 const portData = await portRes.json();
                 setCurrentCashBalance(portData.cashBalance);
@@ -245,7 +255,7 @@ export default function AutoTradeClient({
     useEffect(() => {
         if (selectedBotId) {
             setLoadingHistory(true);
-            fetch(`/api/auto-trade/${selectedBotId}/history`)
+            fetch(`/api/auto-trade/${selectedBotId}/history?t=${Date.now()}`)
                 .then(res => res.json())
                 .then(data => {
                     if (Array.isArray(data)) {
@@ -300,7 +310,7 @@ export default function AutoTradeClient({
             setFormName("");
 
             // Fetch updated cash balance
-            const portRes = await fetch("/api/portfolio/me");
+            const portRes = await fetch(`/api/portfolio/me?t=${Date.now()}`);
             if (portRes.ok) {
                 const portData = await portRes.json();
                 setCurrentCashBalance(portData.cashBalance);
@@ -355,7 +365,7 @@ export default function AutoTradeClient({
                 }
 
                 // Fetch updated cash balance
-                const portRes = await fetch("/api/portfolio/me");
+                const portRes = await fetch(`/api/portfolio/me?t=${Date.now()}`);
                 if (portRes.ok) {
                     const portData = await portRes.json();
                     setCurrentCashBalance(portData.cashBalance);
@@ -372,7 +382,7 @@ export default function AutoTradeClient({
     const handleManualTrigger = async () => {
         setActionLoading("trigger");
         try {
-            const res = await fetch("/api/auto-trade/trigger", {
+            const res = await fetch(`/api/auto-trade/trigger?t=${Date.now()}`, {
                 method: "POST"
             });
             const data = await res.json();
@@ -380,8 +390,8 @@ export default function AutoTradeClient({
             
             // Refresh bot list and cash balance
             const [listRes, portRes] = await Promise.all([
-                fetch("/api/auto-trade"),
-                fetch("/api/portfolio/me")
+                fetch(`/api/auto-trade?t=${Date.now()}`),
+                fetch(`/api/portfolio/me?t=${Date.now()}`)
             ]);
             if (listRes.ok) {
                 const refreshedBots = await listRes.json();
