@@ -22,6 +22,7 @@ import {
 import { formatCurrency, formatSymbol } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 interface Strategy {
     id: string;
@@ -477,12 +478,19 @@ export default function AutoTradeClient({
                                             type="number"
                                             required
                                             min={5000}
-                                            max={cashBalance}
+                                            max={Math.max(5000, cashBalance)}
                                             value={formCapital}
                                             onChange={(e) => setFormCapital(Number(e.target.value))}
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm font-medium"
                                         />
-                                        <span className="text-[10px] text-slate-500 font-medium">Max budget available to this bot for purchases.</span>
+                                        {cashBalance < 5000 ? (
+                                            <div className="text-xs text-rose-400 font-semibold mt-2 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                                                <span>Your portfolio's cash balance ({formatCurrency(cashBalance)}) is below the minimum required ₹5,000. Go to the <Link href="/portfolio" className="text-indigo-400 underline hover:text-indigo-300">Portfolio</Link> page to inject capital.</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[10px] text-slate-500 font-medium block mt-1">Max budget available to this bot for purchases. Available cash: {formatCurrency(cashBalance)}</span>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
