@@ -50,6 +50,35 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         await infra.autoTradeBot.save(updatedBot);
 
+        // Fetch stats to enrich the response
+        const portfolios = await infra.portfolio.findByUserId(userId);
+        const portfolio = portfolios[0] || null;
+        let holdings: any[] = [];
+        if (portfolio) {
+            const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
+                infra.stock, 
+                infra.notification, 
+                infra.trade,
+                infra.market
+            );
+            const analyzed = await analyzer.analyze(portfolio);
+            holdings = analyzed.holdings;
+        }
+
+        const trades = await infra.trade.findByUserId(userId);
+        const { calculateBotStats } = require("@/application/bot-stats-calculator");
+        const stats = calculateBotStats(updatedBot, trades, holdings);
+
+        // Save calculated stats back to DB asynchronously
+        infra.autoTradeBot.updateStats(updatedBot.id, stats).catch(err => {
+            console.error(`[API AutoTrade ID PATCH] Failed to update bot stats in DB:`, err);
+        });
+
+        const enrichedBot = {
+            ...updatedBot,
+            ...stats
+        };
+
         // Notify user about bot status change if toggled
         if (data.status && data.status !== bot.status) {
             try {
@@ -67,7 +96,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             }
         }
 
-        return NextResponse.json(updatedBot);
+        return NextResponse.json(enrichedBot);
     } catch (error: any) {
         console.error("Update bot error:", error);
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

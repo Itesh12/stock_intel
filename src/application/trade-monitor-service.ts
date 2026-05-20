@@ -1,6 +1,7 @@
 import { Infrastructure } from "../infrastructure/container";
 import { LimitOrder, OrderStatus } from "../domain/limit-order";
 import { NotificationService } from "./notification-service";
+import { v4 as uuidv4 } from "uuid";
 
 export class TradeMonitorService {
     constructor(private infra: Infrastructure) { }
@@ -94,6 +95,19 @@ export class TradeMonitorService {
                     executionPrice,
                     'BUY'
                 );
+
+                // Save trade record
+                await this.infra.trade.save({
+                    id: uuidv4(),
+                    userId: order.userId,
+                    symbol: order.symbol,
+                    quantity: order.quantity,
+                    price: executionPrice,
+                    totalValue: totalCost,
+                    type: 'BUY',
+                    timestamp: new Date(),
+                    botId: order.botId,
+                });
             } else {
                 // SELL, STOP_LOSS, TAKE_PROFIT all act as SELLs
                 const holding = portfolio.holdings.find(h => h.symbol === order.symbol);
@@ -109,10 +123,44 @@ export class TradeMonitorService {
                     executionPrice,
                     'SELL'
                 );
+
+                // Save trade record
+                await this.infra.trade.save({
+                    id: uuidv4(),
+                    userId: order.userId,
+                    symbol: order.symbol,
+                    quantity: order.quantity,
+                    price: executionPrice,
+                    totalValue: order.quantity * executionPrice,
+                    type: 'SELL',
+                    timestamp: new Date(),
+                    botId: order.botId,
+                });
             }
 
             // 3. Update order status
             await this.infra.limitOrder.updateStatus(order.id, 'EXECUTED', executionPrice);
+
+            // Cancel OCO partner order if it exists
+            try {
+                if (order.type === 'STOP_LOSS') {
+                    // Find TAKE_PROFIT where parentOrderId === order.id
+                    const pending = await this.infra.limitOrder.findPending();
+                    const partner = pending.find(o => o.parentOrderId === order.id && o.status === 'PENDING');
+                    if (partner) {
+                        await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED');
+                    }
+                } else if (order.type === 'TAKE_PROFIT' && order.parentOrderId) {
+                    // Find STOP_LOSS where id === order.parentOrderId
+                    const pending = await this.infra.limitOrder.findPending();
+                    const partner = pending.find(o => o.id === order.parentOrderId && o.status === 'PENDING');
+                    if (partner) {
+                        await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED');
+                    }
+                }
+            } catch (ocoErr) {
+                console.error("[TradeMonitor] Failed to cancel OCO partner order:", ocoErr);
+            }
 
             // 4. Notify user
             const notificationService = new NotificationService(this.infra.notification);

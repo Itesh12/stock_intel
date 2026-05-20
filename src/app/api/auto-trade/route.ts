@@ -28,7 +28,37 @@ export async function GET() {
         const userId = (session.user as any).id;
 
         const bots = await infra.autoTradeBot.findByUserId(userId);
-        return NextResponse.json(bots);
+
+        const portfolios = await infra.portfolio.findByUserId(userId);
+        const portfolio = portfolios[0] || null;
+        let holdings: any[] = [];
+        if (portfolio) {
+            const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
+                infra.stock, 
+                infra.notification, 
+                infra.trade,
+                infra.market
+            );
+            const analyzed = await analyzer.analyze(portfolio);
+            holdings = analyzed.holdings;
+        }
+
+        const trades = await infra.trade.findByUserId(userId);
+        const { calculateBotStats } = require("@/application/bot-stats-calculator");
+
+        const enrichedBots = bots.map(bot => {
+            const stats = calculateBotStats(bot, trades, holdings);
+            // Async update DB cache
+            infra.autoTradeBot.updateStats(bot.id, stats).catch(err => {
+                console.error(`[API AutoTrade] Failed to update bot stats in DB:`, err);
+            });
+            return {
+                ...bot,
+                ...stats
+            };
+        });
+
+        return NextResponse.json(enrichedBots);
     } catch (error: any) {
         console.error("Fetch bots error:", error);
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
