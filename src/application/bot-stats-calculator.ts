@@ -20,6 +20,7 @@ export function calculateBotStats(
     let totalPnL = 0;
     let winCount = 0;
     let lossCount = 0;
+    const activeHoldings: any[] = [];
 
     for (const [symbol, symbolTrades] of Object.entries(tradesBySymbol)) {
         // Sort chronologically
@@ -50,7 +51,17 @@ export function calculateBotStats(
                 if (holding && holding.quantity > 0) {
                     const currentPrice = holding.currentPrice || buy.price;
                     const unrealizedPnL = (currentPrice - buy.price) * buy.quantity;
+                    const unrealizedPnLPercent = buy.price > 0 ? ((currentPrice - buy.price) / buy.price) * 100 : 0;
                     totalPnL += unrealizedPnL;
+                    activeHoldings.push({
+                        symbol,
+                        quantity: buy.quantity,
+                        buyPrice: buy.price,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        purchaseDate: buy.timestamp
+                    });
                 } else {
                     // Manual sell check
                     const manualSell = userTrades.find(t => 
@@ -75,5 +86,6 @@ export function calculateBotStats(
         winCount,
         lossCount,
         totalTradesExecuted: botTrades.length,
+        activeHoldings
     };
 }
