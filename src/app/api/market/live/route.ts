@@ -11,53 +11,64 @@ export async function GET(req: NextRequest) {
     const writer = responseStream.writable.getWriter();
     const encoder = new TextEncoder();
 
+    let intervalId: NodeJS.Timeout;
+
     const sendEvent = async (data: any) => {
         try {
             await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch (err) {
             console.error("SSE writer failed:", err);
             clearInterval(intervalId);
+            try {
+                writer.close();
+            } catch (closeErr) {
+                // Ignore close errors
+            }
         }
     };
 
-    let intervalId: NodeJS.Timeout;
+    // Start pushing updates
+    (async () => {
+        // Initial payload push
+        try {
+            const data = await Promise.all(
+                indices.map(symbol => infra.market.getStockPrice(symbol))
+            );
+            await sendEvent(data);
+        } catch (err) {
+            console.error("SSE initial fetch error:", err);
+        }
 
-    // We build the stream to push updates to the client
-    const stream = new ReadableStream({
-        async start() {
-            // Initial payload push
+        // Periodic push every 5 seconds
+        intervalId = setInterval(async () => {
             try {
                 const data = await Promise.all(
                     indices.map(symbol => infra.market.getStockPrice(symbol))
                 );
-                sendEvent(data);
+                await sendEvent(data);
             } catch (err) {
-                console.error("SSE initial fetch error:", err);
-            }
-
-            // Periodic push every 5 seconds
-            intervalId = setInterval(async () => {
+                console.error("SSE fetch interval error:", err);
+                clearInterval(intervalId);
                 try {
-                    const data = await Promise.all(
-                        indices.map(symbol => infra.market.getStockPrice(symbol))
-                    );
-                    sendEvent(data);
-                } catch (err) {
-                    console.error("SSE fetch interval error:", err);
+                    writer.close();
+                } catch (closeErr) {
+                    // Ignore close errors
                 }
-            }, 5000);
-        },
-        cancel() {
-            clearInterval(intervalId);
-            try {
-                writer.close();
-            } catch (err) {
-                // Ignore close errors
             }
+        }, 5000);
+    })();
+
+    // Handle connection close / abort
+    req.signal.addEventListener("abort", () => {
+        clearInterval(intervalId);
+        try {
+            writer.close();
+        } catch (err) {
+            // Ignore close errors
         }
     });
 
-    return new Response(stream, {
+    return new Response(responseStream.readable, {
         headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache, no-transform",
