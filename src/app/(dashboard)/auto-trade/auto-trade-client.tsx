@@ -17,7 +17,9 @@ import {
     CheckCircle2, 
     Info,
     RefreshCw,
-    TrendingUp
+    TrendingUp,
+    Edit3,
+    X
 } from "lucide-react";
 import { formatCurrency, formatSymbol } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -95,6 +97,103 @@ export default function AutoTradeClient({
     const [formError, setFormError] = useState<string | null>(null);
     const [formSuccess, setFormSuccess] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    // Edit Modal State
+    const [editingBot, setEditingBot] = useState<BotData | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editCapital, setEditCapital] = useState(0);
+    const [editMinScore, setEditMinScore] = useState(0);
+    const [editMaxPosPercent, setEditMaxPosPercent] = useState(0);
+    const [editMaxTrades, setEditMaxTrades] = useState(0);
+    const [editStopLoss, setEditStopLoss] = useState(0);
+    const [editTakeProfit, setEditTakeProfit] = useState(0);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefreshStats = async () => {
+        setIsRefreshing(true);
+        try {
+            const listRes = await fetch("/api/auto-trade");
+            if (listRes.ok) {
+                const refreshedBots = await listRes.json();
+                setBots(refreshedBots);
+            }
+        } catch (err) {
+            console.error("Manual refresh failed:", err);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    // Auto-refresh stats every 10 seconds
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            try {
+                const listRes = await fetch("/api/auto-trade");
+                if (listRes.ok) {
+                    const refreshedBots = await listRes.json();
+                    setBots(refreshedBots);
+                }
+            } catch (err) {
+                console.error("Auto-refresh failed:", err);
+            }
+        }, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleStartEdit = (bot: BotData) => {
+        setEditingBot(bot);
+        setEditName(bot.name);
+        setEditCapital(bot.capitalAllocated);
+        setEditMinScore(bot.minConfluenceScore);
+        setEditMaxPosPercent(bot.maxPositionSizePercent);
+        setEditMaxTrades(bot.maxTradesPerDay);
+        setEditStopLoss(bot.stopLossPercent);
+        setEditTakeProfit(bot.takeProfitPercent);
+        setEditError(null);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingBot) return;
+        setIsSavingEdit(true);
+        setEditError(null);
+
+        if (editCapital > cashBalance) {
+            setEditError(`Capital allocated exceeds current portfolio cash balance (${formatCurrency(cashBalance)})`);
+            setIsSavingEdit(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/auto-trade/${editingBot.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: editName,
+                    capitalAllocated: Number(editCapital),
+                    maxPositionSizePercent: Number(editMaxPosPercent),
+                    maxTradesPerDay: Number(editMaxTrades),
+                    stopLossPercent: Number(editStopLoss),
+                    takeProfitPercent: Number(editTakeProfit),
+                    minConfluenceScore: Number(editMinScore),
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to update bot");
+            }
+
+            setBots(prev => prev.map(b => b.id === editingBot.id ? data : b));
+            setEditingBot(null);
+        } catch (err: any) {
+            setEditError(err.message);
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
 
     // Fetch history for selected bot
     useEffect(() => {
@@ -332,36 +431,46 @@ export default function AutoTradeClient({
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 border-b border-white/5 pb-2">
-                <button
-                    onClick={() => setActiveTab('bots')}
-                    className={cn(
-                        "px-6 py-3 font-semibold text-sm rounded-xl transition-all flex items-center gap-2",
-                        activeTab === 'bots' ? "bg-white/5 text-white border border-white/10" : "text-slate-500 hover:text-slate-300"
-                    )}
-                >
-                    <Bot size={16} /> My Trading Bots
-                </button>
-                <button
-                    onClick={() => setActiveTab('create')}
-                    className={cn(
-                        "px-6 py-3 font-semibold text-sm rounded-xl transition-all flex items-center gap-2",
-                        activeTab === 'create' ? "bg-white/5 text-white border border-white/10" : "text-slate-500 hover:text-slate-300"
-                    )}
-                >
-                    <Plus size={16} /> Deploy Configuration
-                </button>
-                {selectedBotId && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-2">
+                <div className="flex gap-2">
                     <button
-                        onClick={() => setActiveTab('history')}
+                        onClick={() => setActiveTab('bots')}
                         className={cn(
                             "px-6 py-3 font-semibold text-sm rounded-xl transition-all flex items-center gap-2",
-                            activeTab === 'history' ? "bg-white/5 text-white border border-white/10" : "text-slate-500 hover:text-slate-300"
+                            activeTab === 'bots' ? "bg-white/5 text-white border border-white/10" : "text-slate-500 hover:text-slate-300"
                         )}
                     >
-                        <History size={16} /> Bot History: {bots.find(b => b.id === selectedBotId)?.name}
+                        <Bot size={16} /> My Trading Bots
                     </button>
-                )}
+                    <button
+                        onClick={() => setActiveTab('create')}
+                        className={cn(
+                            "px-6 py-3 font-semibold text-sm rounded-xl transition-all flex items-center gap-2",
+                            activeTab === 'create' ? "bg-white/5 text-white border border-white/10" : "text-slate-500 hover:text-slate-300"
+                        )}
+                    >
+                        <Plus size={16} /> Deploy Configuration
+                    </button>
+                    {selectedBotId && (
+                        <button
+                            onClick={() => setActiveTab('history')}
+                            className={cn(
+                                "px-6 py-3 font-semibold text-sm rounded-xl transition-all flex items-center gap-2",
+                                activeTab === 'history' ? "bg-white/5 text-white border border-white/10" : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            <History size={16} /> Bot History: {bots.find(b => b.id === selectedBotId)?.name}
+                        </button>
+                    )}
+                </div>
+                <button
+                    onClick={handleRefreshStats}
+                    disabled={isRefreshing}
+                    className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-2 self-start sm:self-auto shadow-md"
+                >
+                    <RefreshCw size={12} className={cn(isRefreshing && "animate-spin")} />
+                    {isRefreshing ? "Refreshing..." : "Refresh Stats"}
+                </button>
             </div>
 
             {/* Content Area */}
@@ -397,6 +506,7 @@ export default function AutoTradeClient({
                                             bot={bot} 
                                             onToggleStatus={handleToggleStatus} 
                                             onDelete={handleDeleteBot}
+                                            onEdit={handleStartEdit}
                                             onViewHistory={(id) => {
                                                 setSelectedBotId(id);
                                                 setActiveTab('history');
@@ -723,20 +833,175 @@ export default function AutoTradeClient({
                     )}
                 </AnimatePresence>
             </div>
-        </div>
-    );
+
+        {/* Edit Bot Modal */}
+        <AnimatePresence>
+            {editingBot && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setEditingBot(null)}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] z-10 glass-morphic-card"
+                    >
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Settings className="text-indigo-400" size={20} /> Edit Bot Configuration
+                            </h3>
+                            <button
+                                onClick={() => setEditingBot(null)}
+                                className="p-1 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        {editError && (
+                            <div className="p-4 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold flex items-center gap-2">
+                                <AlertTriangle size={14} /> {editError}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Bot Name</label>
+                                <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={e => setEditName(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all text-sm font-medium"
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Allocated Capital (₹)</label>
+                                    <input
+                                        type="number"
+                                        value={editCapital}
+                                        onChange={e => setEditCapital(Number(e.target.value))}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm font-mono font-bold"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Min Confluence Score</label>
+                                    <input
+                                        type="number"
+                                        value={editMinScore}
+                                        onChange={e => setEditMinScore(Number(e.target.value))}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm font-mono font-bold"
+                                        min="0"
+                                        max="100"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Max Position Size (%)</label>
+                                    <input
+                                        type="number"
+                                        value={editMaxPosPercent}
+                                        onChange={e => setEditMaxPosPercent(Number(e.target.value))}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm font-mono font-bold"
+                                        min="5"
+                                        max="100"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Max Trades / Day</label>
+                                    <input
+                                        type="number"
+                                        value={editMaxTrades}
+                                        onChange={e => setEditMaxTrades(Number(e.target.value))}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm font-mono font-bold"
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Stop Loss (%)</label>
+                                    <input
+                                        type="number"
+                                        value={editStopLoss}
+                                        onChange={e => setEditStopLoss(Number(e.target.value))}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-rose-400 focus:outline-none focus:border-indigo-500 transition-all text-sm font-mono font-bold"
+                                        min="0.1"
+                                        step="0.1"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Take Profit (%)</label>
+                                    <input
+                                        type="number"
+                                        value={editTakeProfit}
+                                        onChange={e => setEditTakeProfit(Number(e.target.value))}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-all text-sm font-mono font-bold"
+                                        min="0.1"
+                                        step="0.1"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-4 border-t border-white/5">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingBot(null)}
+                                    className="flex-1 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-sm transition-all border border-white/10"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSavingEdit}
+                                    className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium text-sm shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all"
+                                >
+                                    {isSavingEdit ? (
+                                        <>
+                                            <RefreshCw className="animate-spin" size={14} /> Saving...
+                                        </>
+                                    ) : (
+                                        "Save Changes"
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    </div>
+);
 }
 
 function BotCard({ 
     bot, 
     onToggleStatus, 
     onDelete, 
+    onEdit,
     onViewHistory, 
     actionLoading 
 }: { 
     bot: BotData; 
     onToggleStatus: (id: string, stat: string) => void;
     onDelete: (id: string) => void;
+    onEdit: (bot: BotData) => void;
     onViewHistory: (id: string) => void;
     actionLoading: string | null;
 }) {
@@ -764,6 +1029,14 @@ function BotCard({
                     </div>
 
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => onEdit(bot)}
+                            disabled={actionLoading === bot.id}
+                            title="Edit Bot Settings"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all"
+                        >
+                            <Edit3 size={14} />
+                        </button>
                         <button
                             onClick={() => onToggleStatus(bot.id, bot.status)}
                             disabled={actionLoading === bot.id}
