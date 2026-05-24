@@ -200,6 +200,10 @@ export class PortfolioAnalyzer {
 
     async generateAnalytics(portfolio: any): Promise<any> {
         try {
+            if (!portfolio || !portfolio.userId) {
+                return { sharpeRatio: 0, maxDrawdown: 0, volatility: 0, history: [] };
+            }
+
             const { getInfrastructure } = require("@/infrastructure/container");
             const infra = await getInfrastructure();
             const userId = portfolio.userId;

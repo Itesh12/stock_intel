@@ -19,25 +19,36 @@ export default async function PortfolioPage() {
     const portfolios = await infra.portfolio.findByUserId(userId);
     let portfolio = portfolios[0] || null;
     if (portfolio) {
-        const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
-            infra.stock, 
-            infra.notification, 
-            infra.trade,
-            infra.market
-        );
-        portfolio = await analyzer.analyze(portfolio);
+        try {
+            const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
+                infra.stock, 
+                infra.notification, 
+                infra.trade,
+                infra.market
+            );
+            portfolio = await analyzer.analyze(portfolio);
+        } catch (err) {
+            console.error("Portfolio analyze error:", err);
+        }
     }
 
     // 2. Trades
     const trades = await infra.trade.findByUserId(userId);
 
-    // 3. Analytics
-    const analytics = await new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
-        infra.stock, 
-        infra.notification, 
-        infra.trade,
-        infra.market
-    ).generateAnalytics(portfolio);
+    // 3. Analytics — only if user has a portfolio
+    let analytics: any = { sharpeRatio: 0, maxDrawdown: 0, volatility: 0, history: [] };
+    if (portfolio) {
+        try {
+            analytics = await new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
+                infra.stock, 
+                infra.notification, 
+                infra.trade,
+                infra.market
+            ).generateAnalytics(portfolio);
+        } catch (err) {
+            console.error("Portfolio analytics error:", err);
+        }
+    }
 
     // 4. Limit Orders
     const limitOrders = await infra.limitOrder.findByUserId(userId);
