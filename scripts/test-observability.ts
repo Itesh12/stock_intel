@@ -4,6 +4,20 @@
  * Run: npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/test-observability.ts
  */
 
+// Mock server-only module to prevent throwing error under ts-node/Node.js
+try {
+  const Module = require('module');
+  const mockPath = require.resolve('server-only');
+  Module._cache[mockPath] = {
+    id: mockPath,
+    filename: mockPath,
+    exports: {},
+    loaded: true
+  };
+} catch (e) {
+  // Ignore errors if server-only is not installed or resolvable
+}
+
 // Suppress Next.js globals for test environment
 (global as any).__stockintel_metrics_registry__ = undefined;
 
