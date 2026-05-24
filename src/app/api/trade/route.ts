@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { getInfrastructure } from "@/infrastructure/container";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { MetricsRegistry } from "@/infrastructure/metrics";
+import { Logger } from "@/infrastructure/logger";
+import { withMetrics } from "@/middleware-metrics";
 
 const TradeSchema = z.object({
     symbol: z.string().toUpperCase().regex(/^[A-Z0-9\-_]+\.NS$/),
@@ -22,6 +25,7 @@ class TradeValidationError extends Error {
 }
 
 export async function POST(req: Request) {
+    return withMetrics('trade', 'POST', async () => {
     let idempotencyKey: string | null = null;
     let idempotencyCollection: any = null;
 
@@ -281,8 +285,22 @@ export async function POST(req: Request) {
         }
 
         if (success) {
+            MetricsRegistry.recordTrade(validation.data.type as 'BUY' | 'SELL', true, attempt - 1);
+            Logger.info('TradeAPI', 'trade_executed', {
+                type: validation.data.type,
+                symbol: validation.data.symbol,
+                quantity: validation.data.quantity,
+                occRetries: attempt - 1,
+            });
             const { CacheUtils } = require("@/infrastructure/cache-utils");
             CacheUtils.delete(`portfolio_analytics_${userId}`);
+        } else {
+            MetricsRegistry.recordTrade(validation.data.type as 'BUY' | 'SELL', false, attempt - 1);
+            Logger.warn('TradeAPI', 'trade_failed', {
+                type: validation.data.type,
+                symbol: validation.data.symbol,
+                attempts: attempt,
+            });
         }
 
         if (success && idempotencyKey && idempotencyCollection && responseJson) {
@@ -295,13 +313,14 @@ export async function POST(req: Request) {
         return NextResponse.json(responseJson);
 
     } catch (error: any) {
-        console.error("Trade error:", error);
-        if (idempotencyKey && idempotencyCollection) {
-            await idempotencyCollection.updateOne(
-                { key: idempotencyKey },
-                { $set: { status: "FAILED", failedAt: new Date() } }
-            ).catch(() => {});
+            Logger.error('TradeAPI', 'trade_error', error);
+            if (idempotencyKey && idempotencyCollection) {
+                await idempotencyCollection.updateOne(
+                    { key: idempotencyKey },
+                    { $set: { status: "FAILED", failedAt: new Date() } }
+                ).catch(() => {});
+            }
+            return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
         }
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
-    }
+    }); // end withMetrics
 }

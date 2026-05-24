@@ -2,6 +2,8 @@ import { Infrastructure } from "../infrastructure/container";
 import { StrategyRecommendation } from "../domain/strategy";
 import { v4 as uuidv4 } from "uuid";
 import { NotificationService } from "../application/notification-service";
+import { MetricsRegistry } from "../infrastructure/metrics";
+import { Logger } from "../infrastructure/logger";
 import YahooFinance from 'yahoo-finance2';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -217,7 +219,8 @@ export abstract class BaseScanner {
         const strategy = await this.infra.strategy.findBySlug(config.strategySlug);
         if (!strategy) return [];
 
-        console.log(`[QuantScanner] Starting ${config.label} batch scan...`);
+        const scanStart = Date.now();
+        Logger.started('Scanner', config.strategySlug, { label: config.label });
 
         const [discoveryPool, screenerSymbols] = await Promise.all([
             this.loadSymbolPool(),
@@ -225,13 +228,8 @@ export abstract class BaseScanner {
         ]);
 
         const symbols = this.buildSymbolSet(discoveryPool, screenerSymbols);
-        console.log(`[QuantScanner] Querying basic quotes for ${symbols.length} stocks in batch chunks...`);
-
         const allQuotes = await this.fetchBatchQuotes(symbols);
-        console.log(`[QuantScanner] Loaded ${allQuotes.length} live quotes. Pre-screening...`);
-
         const candidates = this.preScreen(allQuotes, config.preScreenOpts);
-        console.log(`[QuantScanner] Pre-screened to ${candidates.length} ${config.label} candidates. Evaluating...`);
 
         let evaluatedCount = 0;
         const recommendations = await this.deepEval(
@@ -251,7 +249,20 @@ export abstract class BaseScanner {
             config.notify
         );
 
-        console.log(`[QuantScanner] ${config.label} scan complete. Evaluated ${evaluatedCount} stocks. Found ${topRecs.length} matches.`);
+        const durationMs = Date.now() - scanStart;
+        MetricsRegistry.recordScan(
+            config.strategySlug,
+            symbols.length,
+            candidates.length,
+            topRecs.length,
+            durationMs
+        );
+        Logger.info('Scanner', config.strategySlug, {
+            symbolsScanned: symbols.length,
+            symbolsFiltered: candidates.length,
+            recommendations: topRecs.length,
+        }, durationMs);
+
         return topRecs;
     }
 

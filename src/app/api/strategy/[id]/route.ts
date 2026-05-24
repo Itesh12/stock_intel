@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getInfrastructure } from "@/infrastructure/container";
 import { CacheUtils } from "@/infrastructure/cache-utils";
 import { getScannerForSlug } from "@/services/scanner-registry";
+import { withMetrics } from "@/middleware-metrics";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id: slug } = await params;
+    return withMetrics(`strategy/${slug}`, 'GET', async () => {
     try {
         const infra = await getInfrastructure();
-        const { id: slug } = await params;
         const cacheKey = `strategy_${slug}`;
         const TTL = 5 * 60 * 1000; // 5 minutes TTL
 
@@ -46,4 +48,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         console.error("Strategy fetch error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
+    }); // end withMetrics
 }

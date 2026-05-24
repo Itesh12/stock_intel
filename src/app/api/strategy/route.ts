@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getInfrastructure } from "@/infrastructure/container";
 import { strategies as predefinedStrategies } from "@/data/strategies";
 import { CacheUtils } from "@/infrastructure/cache-utils";
+import { withMetrics } from "@/middleware-metrics";
 
 export async function GET() {
+    return withMetrics('strategy', 'GET', async () => {
     try {
         const infra = await getInfrastructure();
         const cacheKey = "strategy_list";
@@ -26,4 +28,5 @@ export async function GET() {
         console.error("Strategies fetch error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
+    }); // end withMetrics
 }

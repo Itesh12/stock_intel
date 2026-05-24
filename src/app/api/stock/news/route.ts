@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInfrastructure } from "@/infrastructure/container";
 import { CacheUtils } from "@/infrastructure/cache-utils";
+import { withMetrics } from "@/middleware-metrics";
 
 function calculateSentiment(title: string, summary: string): { score: number, label: 'BULLISH' | 'BEARISH' | 'NEUTRAL', reasoning: string } {
     const text = (title + " " + summary).toLowerCase();
@@ -27,6 +28,7 @@ function calculateSentiment(title: string, summary: string): { score: number, la
 }
 
 export async function GET(req: NextRequest) {
+    return withMetrics('stock/news', 'GET', async () => {
     try {
         const { searchParams } = new URL(req.url);
         const symbol = searchParams.get('symbol');
@@ -101,4 +103,5 @@ export async function GET(req: NextRequest) {
         console.error("News API failed", err);
         return NextResponse.json({ error: "Failed to analyze news" }, { status: 500 });
     }
+    }); // end withMetrics
 }

@@ -3,10 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getInfrastructure } from "@/infrastructure/container";
 import { CacheUtils } from "@/infrastructure/cache-utils";
+import { withMetrics } from "@/middleware-metrics";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+    return withMetrics('portfolio/analytics', 'GET', async () => {
     try {
         const session = await getServerSession(authOptions);
         if (!session) {
@@ -81,4 +83,5 @@ export async function GET() {
         console.error("Analytics fetch error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
+    }); // end withMetrics
 }

@@ -40,6 +40,8 @@ import { NoOpMarketAdapter } from "../adapters/noop/market-data-adapter";
 import { HybridMarketAdapter } from "../adapters/hybrid/market-adapter";
 import { TradeMonitorService } from "../application/trade-monitor-service";
 import { AutoTradeService } from "../application/auto-trade-service";
+import { MetricsRegistry } from "./metrics";
+import { Logger } from "./logger";
 
 // Detect if running during Next.js compilation/build phase
 const isBuildPhase =
@@ -81,15 +83,22 @@ function startWorkerLoop(
     const run = async () => {
         if (isShuttingDown) return;
         if (isExecuting) {
-            console.warn(`[Worker] ${name} execution overlapped. Skipping current run.`);
+            Logger.skipped('Worker', name, 'previous execution still running');
             return;
         }
 
         isExecuting = true;
+        const workerStart = Date.now();
+        Logger.started('Worker', name);
         try {
             await task();
+            const durationMs = Date.now() - workerStart;
+            MetricsRegistry.recordWorkerEnd(name, true, durationMs);
+            Logger.info('Worker', name, undefined, durationMs);
         } catch (err) {
-            console.error(`[Worker] ${name} execution error:`, err);
+            const durationMs = Date.now() - workerStart;
+            MetricsRegistry.recordWorkerEnd(name, false, durationMs);
+            Logger.error('Worker', name, err, undefined, durationMs);
         } finally {
             isExecuting = false;
             if (!isShuttingDown) {

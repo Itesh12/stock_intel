@@ -3,10 +3,12 @@ import { getInfrastructure } from "@/infrastructure/container";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { CacheUtils } from "@/infrastructure/cache-utils";
+import { withMetrics } from "@/middleware-metrics";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+    return withMetrics('market/all-data', 'GET', async () => {
     const session = await getServerSession(authOptions);
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -56,4 +58,5 @@ export async function GET(request: Request) {
         console.error("API data fetch failed", err);
         return NextResponse.json({ error: "Failed to fetch market data" }, { status: 500 });
     }
+    }); // end withMetrics
 }
