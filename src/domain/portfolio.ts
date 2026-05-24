@@ -33,6 +33,7 @@ export interface Portfolio {
     avgLoss?: number;
     maxDrawdown?: number;
     performanceHistory?: { date: string, nav: number }[];
+    version?: number; // Optimistic Concurrency Control version
     updatedAt: Date;
     createdAt: Date;
 }

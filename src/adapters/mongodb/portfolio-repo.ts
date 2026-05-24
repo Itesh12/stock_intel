@@ -1,4 +1,4 @@
-import { Db, Collection } from "mongodb";
+import { Db, Collection, ClientSession } from "mongodb";
 import { Portfolio } from "../../domain/portfolio";
 import { PortfolioRepository } from "../../ports/portfolio-repository";
 
@@ -7,28 +7,51 @@ export class MongoPortfolioRepository implements PortfolioRepository {
 
     constructor(db: Db) {
         this.collection = db.collection<Portfolio>("portfolios");
+        // Ensure index for performance and unique constraint to prevent duplicate portfolio creations
+        this.collection.createIndex({ userId: 1 }, { unique: true }).catch(err => {
+            console.error("[MongoPortfolioRepository] Failed to create unique index on userId:", err);
+        });
     }
 
-    async findById(id: string): Promise<Portfolio | null> {
-        const doc = await this.collection.findOne({ id } as any);
+    async findById(id: string, session?: ClientSession): Promise<Portfolio | null> {
+        const doc = await this.collection.findOne({ id } as any, { session });
         return doc ? (doc as unknown as Portfolio) : null;
     }
 
-    async findByUserId(userId: string): Promise<Portfolio[]> {
-        const docs = await this.collection.find({ userId } as any).toArray();
+    async findByUserId(userId: string, session?: ClientSession): Promise<Portfolio[]> {
+        const docs = await this.collection.find({ userId } as any, { session }).toArray();
         return docs as unknown as Portfolio[];
     }
 
-    async save(portfolio: Portfolio): Promise<void> {
-        await this.collection.updateOne(
-            { id: portfolio.id } as any,
-            { $set: portfolio },
-            { upsert: true }
+    async save(portfolio: Portfolio, session?: ClientSession): Promise<void> {
+        const currentVersion = portfolio.version || 0;
+        const nextVersion = currentVersion + 1;
+
+        const filter: any = { id: portfolio.id };
+        if (currentVersion > 0) {
+            filter.version = currentVersion;
+        }
+
+        const result = await this.collection.updateOne(
+            filter,
+            { 
+                $set: { 
+                    ...portfolio, 
+                    version: nextVersion 
+                } 
+            },
+            { upsert: currentVersion === 0, session }
         );
+
+        if (result.matchedCount === 0 && currentVersion > 0) {
+            throw new Error("VersionConflictError: Portfolio document was modified concurrently.");
+        }
+
+        portfolio.version = nextVersion;
     }
 
-    async delete(id: string): Promise<void> {
-        await this.collection.deleteOne({ id } as any);
+    async delete(id: string, session?: ClientSession): Promise<void> {
+        await this.collection.deleteOne({ id } as any, { session });
     }
 
     async list(): Promise<Portfolio[]> {
@@ -36,8 +59,15 @@ export class MongoPortfolioRepository implements PortfolioRepository {
         return docs as unknown as Portfolio[];
     }
 
-    async executeTrade(portfolioId: string, symbol: string, quantity: number, price: number, type: 'BUY' | 'SELL'): Promise<void> {
-        const portfolio = await this.findById(portfolioId);
+    async executeTrade(
+        portfolioId: string, 
+        symbol: string, 
+        quantity: number, 
+        price: number, 
+        type: 'BUY' | 'SELL',
+        session?: ClientSession
+    ): Promise<void> {
+        const portfolio = await this.findById(portfolioId, session);
         if (!portfolio) throw new Error("Portfolio not found");
 
         const totalValue = price * quantity;
@@ -97,6 +127,6 @@ export class MongoPortfolioRepository implements PortfolioRepository {
         portfolio.totalValue = portfolio.cashBalance + portfolio.holdings.reduce((sum, h) => sum + h.marketValue, 0);
         portfolio.updatedAt = new Date();
 
-        await this.save(portfolio);
+        await this.save(portfolio, session);
     }
 }

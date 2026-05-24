@@ -74,18 +74,27 @@ export class TradeMonitorService {
     private async executeOrder(order: LimitOrder, executionPrice: number): Promise<boolean> {
         console.log(`[TradeMonitor] Executing ${order.type} for ${order.symbol} @ ${executionPrice} (Target: ${order.targetPrice})`);
         
-        try {
+        const maxRetries = 3;
+        let attempt = 0;
+        let success = false;
+
+        const executeOrderTransaction = async (session?: any) => {
             // 1. Fetch user's portfolio
-            const portfolios = await this.infra.portfolio.findByUserId(order.userId);
-            if (!portfolios.length) return false;
+            const portfolios = await this.infra.portfolio.findByUserId(order.userId, session);
+            if (!portfolios.length) throw new Error("Portfolio not found");
             const portfolio = portfolios[0];
+
+            // Map order type to TradeSource tracking
+            let tradeSource: any = 'limit_order';
+            if (order.type === 'STOP_LOSS') tradeSource = 'stop_loss';
+            else if (order.type === 'TAKE_PROFIT') tradeSource = 'take_profit';
 
             // 2. Perform the trade logic
             if (order.type === 'BUY') {
                 const totalCost = order.quantity * executionPrice;
                 if (portfolio.cashBalance < totalCost) {
-                    await this.infra.limitOrder.updateStatus(order.id, 'EXPIRED'); // Or 'FAILED_FUNDS'
-                    return false;
+                    await this.infra.limitOrder.updateStatus(order.id, 'EXPIRED', undefined, session);
+                    return;
                 }
                 
                 await this.infra.portfolio.executeTrade(
@@ -93,7 +102,8 @@ export class TradeMonitorService {
                     order.symbol,
                     order.quantity,
                     executionPrice,
-                    'BUY'
+                    'BUY',
+                    session
                 );
 
                 // Save trade record
@@ -105,15 +115,16 @@ export class TradeMonitorService {
                     price: executionPrice,
                     totalValue: totalCost,
                     type: 'BUY',
+                    source: tradeSource,
                     timestamp: new Date(),
                     botId: order.botId,
-                });
+                }, session);
             } else {
                 // SELL, STOP_LOSS, TAKE_PROFIT all act as SELLs
                 const holding = portfolio.holdings.find(h => h.symbol === order.symbol);
                 if (!holding || holding.quantity < order.quantity) {
-                    await this.infra.limitOrder.updateStatus(order.id, 'EXPIRED');
-                    return false;
+                    await this.infra.limitOrder.updateStatus(order.id, 'EXPIRED', undefined, session);
+                    return;
                 }
 
                 const averagePriceAtSale = holding.averagePrice;
@@ -124,7 +135,8 @@ export class TradeMonitorService {
                     order.symbol,
                     order.quantity,
                     executionPrice,
-                    'SELL'
+                    'SELL',
+                    session
                 );
 
                 // Save trade record
@@ -136,51 +148,84 @@ export class TradeMonitorService {
                     price: executionPrice,
                     totalValue: order.quantity * executionPrice,
                     type: 'SELL',
+                    source: tradeSource,
                     timestamp: new Date(),
                     botId: order.botId,
                     realizedPL,
                     averagePriceAtSale
-                });
+                }, session);
             }
 
             // 3. Update order status
-            await this.infra.limitOrder.updateStatus(order.id, 'EXECUTED', executionPrice);
+            await this.infra.limitOrder.updateStatus(order.id, 'EXECUTED', executionPrice, session);
 
             // Cancel OCO partner order if it exists
-            try {
-                if (order.type === 'STOP_LOSS') {
-                    // Find TAKE_PROFIT where parentOrderId === order.id
-                    const pending = await this.infra.limitOrder.findPending();
-                    const partner = pending.find(o => o.parentOrderId === order.id && o.status === 'PENDING');
-                    if (partner) {
-                        await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED');
-                    }
-                } else if (order.type === 'TAKE_PROFIT' && order.parentOrderId) {
-                    // Find STOP_LOSS where id === order.parentOrderId
-                    const pending = await this.infra.limitOrder.findPending();
-                    const partner = pending.find(o => o.id === order.parentOrderId && o.status === 'PENDING');
-                    if (partner) {
-                        await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED');
-                    }
+            if (order.type === 'STOP_LOSS') {
+                // Find TAKE_PROFIT where parentOrderId === order.id
+                const pending = await this.infra.limitOrder.findPending();
+                const partner = pending.find(o => o.parentOrderId === order.id && o.status === 'PENDING');
+                if (partner) {
+                    await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED', undefined, session);
                 }
-            } catch (ocoErr) {
-                console.error("[TradeMonitor] Failed to cancel OCO partner order:", ocoErr);
+            } else if (order.type === 'TAKE_PROFIT' && order.parentOrderId) {
+                // Find STOP_LOSS where id === order.parentOrderId
+                const pending = await this.infra.limitOrder.findPending();
+                const partner = pending.find(o => o.id === order.parentOrderId && o.status === 'PENDING');
+                if (partner) {
+                    await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED', undefined, session);
+                }
             }
+        };
 
-            // 4. Notify user
-            const notificationService = new NotificationService(this.infra.notification);
-            await notificationService.notifySignal(order.userId, {
-                symbol: order.symbol,
-                type: 'ORDER_EXECUTED',
-                strength: 'MEDIUM',
-                description: `Simulated ${order.type} order executed for ${order.quantity} shares of ${order.symbol} at ₹${executionPrice.toFixed(2)}.`,
-                timestamp: new Date()
-            });
-
-            return true;
-        } catch (err) {
-            console.error(`[TradeMonitor] Execution failed for order ${order.id}:`, err);
-            return false;
+        while (attempt < maxRetries) {
+            attempt++;
+            const session = this.infra.mongoClient ? this.infra.mongoClient.startSession() : null;
+            try {
+                if (session) {
+                    await session.withTransaction(async () => {
+                        await executeOrderTransaction(session);
+                    });
+                } else {
+                    await executeOrderTransaction();
+                }
+                success = true;
+                break;
+            } catch (err: any) {
+                if (session && session.inTransaction()) {
+                    await session.abortTransaction();
+                }
+                const isVersionConflict = err.message?.includes("VersionConflictError");
+                if (isVersionConflict && attempt < maxRetries) {
+                    console.warn(`[TradeMonitor] VersionConflictError on attempt ${attempt}. Retrying limit order trade execution...`);
+                    await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+                    continue;
+                }
+                console.error(`[TradeMonitor] Order execution failed permanently for ${order.id}:`, err.message || err);
+                break;
+            } finally {
+                if (session) {
+                    await session.endSession();
+                }
+            }
         }
+
+        if (success) {
+            // Notify user
+            try {
+                const notificationService = new NotificationService(this.infra.notification);
+                await notificationService.notifySignal(order.userId, {
+                    symbol: order.symbol,
+                    type: 'ORDER_EXECUTED',
+                    strength: 'MEDIUM',
+                    description: `Simulated ${order.type} order executed for ${order.quantity} shares of ${order.symbol} at ₹${executionPrice.toFixed(2)}.`,
+                    timestamp: new Date()
+                });
+            } catch (notifyErr) {
+                console.error("[TradeMonitor] Failed to send notification:", notifyErr);
+            }
+        }
+
+        return success;
     }
 }
+

@@ -18,10 +18,10 @@ export interface LimitOrder {
 }
 
 export interface LimitOrderRepository {
-    save(order: LimitOrder): Promise<void>;
+    save(order: LimitOrder, session?: any): Promise<void>;
     findById(id: string): Promise<LimitOrder | null>;
     findByUserId(userId: string): Promise<LimitOrder[]>;
     findPendingBySymbol(symbol: string): Promise<LimitOrder[]>;
     findPending(): Promise<LimitOrder[]>;
-    updateStatus(id: string, status: OrderStatus, executedPrice?: number): Promise<void>;
+    updateStatus(id: string, status: OrderStatus, executedPrice?: number, session?: any): Promise<void>;
 }

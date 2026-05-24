@@ -1,4 +1,4 @@
-import { Db, Collection } from "mongodb";
+import { Db, Collection, ClientSession } from "mongodb";
 import { Trade } from "../../domain/trade";
 import { TradeRepository } from "../../ports/trade-repository";
 
@@ -11,8 +11,8 @@ export class MongoTradeRepository implements TradeRepository {
         this.collection.createIndex({ userId: 1, timestamp: -1 });
     }
 
-    async save(trade: Trade): Promise<void> {
-        await this.collection.insertOne(trade);
+    async save(trade: Trade, session?: ClientSession): Promise<void> {
+        await this.collection.insertOne(trade, { session });
     }
 
     async findByUserId(userId: string): Promise<Trade[]> {

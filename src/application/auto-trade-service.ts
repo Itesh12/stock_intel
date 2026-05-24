@@ -79,20 +79,11 @@ export class AutoTradeService {
         const qualifiedRecs = recommendations.filter(r => r.score >= bot.minConfluenceScore);
         if (qualifiedRecs.length === 0) return;
 
-        // 6. Get user portfolio
-        const portfolios = await this.infra.portfolio.findByUserId(bot.userId);
-        if (!portfolios.length) return;
-        const portfolio = portfolios[0];
-
         // 7. Try each qualified recommendation until we find one we can trade
         for (const rec of qualifiedRecs) {
             if (bot.todayTradeCount >= bot.maxTradesPerDay) break;
 
             const symbol = rec.symbol;
-
-            // Guard: Already holding this symbol?
-            const alreadyHolding = portfolio.holdings.find(h => h.symbol === symbol);
-            if (alreadyHolding) continue;
 
             // Guard: Already have a pending BUY for this symbol from this bot?
             const pendingBotOrders = await this.infra.limitOrder.findPendingBySymbol(symbol);
@@ -109,24 +100,60 @@ export class AutoTradeService {
                 continue;
             }
 
-            // Calculate position size
-            const maxPositionValue = bot.capitalAllocated * (bot.maxPositionSizePercent / 100);
-            const availableCash = Math.min(portfolio.cashBalance, maxPositionValue);
-            if (availableCash < currentPrice) continue; // Can't afford even 1 share
+            // Create bot execution idempotency key
+            const idempotencyKey = `bot-exec-${bot.id}-${symbol}-${today}-${bot.todayTradeCount}`;
 
-            const quantity = Math.floor(availableCash / currentPrice);
-            if (quantity <= 0) continue;
+            if (this.infra.mongoClient) {
+                const db = this.infra.mongoClient.db(process.env.MONGO_DB || "market");
+                const idempotencyCollection = db.collection("idempotency_keys");
+                try {
+                    await idempotencyCollection.insertOne({
+                        key: idempotencyKey,
+                        status: "PROCESSING",
+                        createdAt: new Date(),
+                    });
+                } catch {
+                    // Already processed this trade step
+                    continue;
+                }
+            }
 
-            const positionCost = quantity * currentPrice;
+            const maxRetries = 3;
+            let attempt = 0;
+            let success = false;
+            let finalQty = 0;
+            let slPrice = 0;
+            let tpPrice = 0;
 
-            // Guard: Portfolio cash check
-            if (portfolio.cashBalance < positionCost) continue;
+            const executeBotTradeTransaction = async (session?: any) => {
+                // 1. Reload latest portfolio
+                const portfolios = await this.infra.portfolio.findByUserId(bot.userId, session);
+                if (!portfolios.length) throw new Error("Portfolio not found");
+                const portfolio = portfolios[0];
 
-            // 8. Execute the BUY immediately (market price)
-            try {
-                await this.infra.portfolio.executeTrade(portfolio.id, symbol, quantity, currentPrice, 'BUY');
+                // 2. Revalidate balance and portfolio state
+                const maxPositionValue = bot.capitalAllocated * (bot.maxPositionSizePercent / 100);
+                const availableCash = Math.min(portfolio.cashBalance, maxPositionValue);
+                if (availableCash < currentPrice) {
+                    throw new Error("Bot allocation limits: Portfolio cash balance or position size limits exceeded");
+                }
 
-                // 9. Record the trade in trade history
+                const quantity = Math.floor(availableCash / currentPrice);
+                if (quantity <= 0) {
+                    throw new Error("Calculated quantity is 0");
+                }
+
+                const positionCost = quantity * currentPrice;
+                if (portfolio.cashBalance < positionCost) {
+                    throw new Error("Portfolio cash balance is insufficient for bot execution");
+                }
+
+                finalQty = quantity;
+
+                // 3. Execute trade
+                await this.infra.portfolio.executeTrade(portfolio.id, symbol, quantity, currentPrice, 'BUY', session);
+
+                // 4. Save ledger trade (with source: "bot")
                 const tradeId = uuidv4();
                 await this.infra.trade.save({
                     id: tradeId,
@@ -136,12 +163,13 @@ export class AutoTradeService {
                     price: currentPrice,
                     totalValue: positionCost,
                     type: 'BUY',
+                    source: 'bot', // Tracking source
                     timestamp: new Date(),
                     botId: bot.id,
-                });
+                }, session);
 
-                // 10. Place Stop-Loss order
-                const slPrice = parseFloat((currentPrice * (1 - bot.stopLossPercent / 100)).toFixed(2));
+                // 5. Place Stop-Loss and Take-Profit orders
+                slPrice = parseFloat((currentPrice * (1 - bot.stopLossPercent / 100)).toFixed(2));
                 const slOrder: LimitOrder = {
                     id: uuidv4(),
                     userId: bot.userId,
@@ -154,10 +182,9 @@ export class AutoTradeService {
                     strategyId: strategy.id,
                     botId: bot.id,
                 };
-                await this.infra.limitOrder.save(slOrder);
+                await this.infra.limitOrder.save(slOrder, session);
 
-                // 11. Place Take-Profit order
-                const tpPrice = parseFloat((currentPrice * (1 + bot.takeProfitPercent / 100)).toFixed(2));
+                tpPrice = parseFloat((currentPrice * (1 + bot.takeProfitPercent / 100)).toFixed(2));
                 const tpOrder: LimitOrder = {
                     id: uuidv4(),
                     userId: bot.userId,
@@ -171,38 +198,80 @@ export class AutoTradeService {
                     parentOrderId: slOrder.id,
                     botId: bot.id,
                 };
-                await this.infra.limitOrder.save(tpOrder);
+                await this.infra.limitOrder.save(tpOrder, session);
 
-                // 12. Update bot stats
+                // 6. Update bot stats
                 const newTodayCount = bot.todayTradeCount + 1;
                 const newTotal = bot.totalTradesExecuted + 1;
                 await this.infra.autoTradeBot.updateStats(bot.id, {
                     todayTradeCount: newTodayCount,
                     totalTradesExecuted: newTotal,
                     todayDate: today,
-                });
-                bot.todayTradeCount = newTodayCount;
+                }, session);
+                
+                bot.todayTradeCount = newTodayCount; // update in-memory
+            };
+
+            while (attempt < maxRetries) {
+                attempt++;
+                const session = this.infra.mongoClient ? this.infra.mongoClient.startSession() : null;
+                try {
+                    if (session) {
+                        await session.withTransaction(async () => {
+                            await executeBotTradeTransaction(session);
+                        });
+                    } else {
+                        await executeBotTradeTransaction();
+                    }
+                    success = true;
+                    break;
+                } catch (err: any) {
+                    if (session && session.inTransaction()) {
+                        await session.abortTransaction();
+                    }
+                    const isVersionConflict = err.message?.includes("VersionConflictError");
+                    if (isVersionConflict && attempt < maxRetries) {
+                        console.warn(`[AutoTrade Bot] VersionConflictError on attempt ${attempt}. Retrying trade...`);
+                        await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+                        continue;
+                    }
+                    // Failed permanently or retries exhausted
+                    console.error(`[AutoTrade Bot] Trade execution failed permanently:`, err.message || err);
+                    break;
+                } finally {
+                    if (session) {
+                        await session.endSession();
+                    }
+                }
+            }
+
+            if (success) {
+                if (this.infra.mongoClient) {
+                    const db = this.infra.mongoClient.db(process.env.MONGO_DB || "market");
+                    await db.collection("idempotency_keys").updateOne(
+                        { key: idempotencyKey },
+                        { $set: { status: "COMPLETED", completedAt: new Date() } }
+                    ).catch(() => {});
+                }
 
                 // 13. Notify user
                 await this.notificationService.notifySignal(bot.userId, {
                     symbol,
                     type: 'ORDER_EXECUTED',
                     strength: 'HIGH',
-                    description: `🤖 Auto-Trade [${bot.name}]: Bought ${quantity} shares of ${symbol.replace('.NS', '')} @ ₹${currentPrice.toFixed(2)}. SL: ₹${slPrice} | TP: ₹${tpPrice}`,
+                    description: `🤖 Auto-Trade [${bot.name}]: Bought ${finalQty} shares of ${symbol.replace('.NS', '')} @ ₹${currentPrice.toFixed(2)}. SL: ₹${slPrice} | TP: ₹${tpPrice}`,
                     timestamp: new Date(),
                 });
 
-                console.log(`[AutoTrade] Bot "${bot.name}" bought ${quantity}x ${symbol} @ ₹${currentPrice}`);
-
-                // Refresh portfolio for next iteration
-                const updatedPortfolios = await this.infra.portfolio.findByUserId(bot.userId);
-                if (updatedPortfolios.length) {
-                    portfolio.cashBalance = updatedPortfolios[0].cashBalance;
-                    portfolio.holdings = updatedPortfolios[0].holdings;
+                console.log(`[AutoTrade] Bot "${bot.name}" bought ${finalQty}x ${symbol} @ ₹${currentPrice}`);
+            } else {
+                if (this.infra.mongoClient) {
+                    const db = this.infra.mongoClient.db(process.env.MONGO_DB || "market");
+                    await db.collection("idempotency_keys").updateOne(
+                        { key: idempotencyKey },
+                        { $set: { status: "FAILED", failedAt: new Date() } }
+                    ).catch(() => {});
                 }
-
-            } catch (err: any) {
-                console.error(`[AutoTrade] Trade failed for ${symbol}:`, err?.message || err);
             }
         }
     }

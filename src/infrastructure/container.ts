@@ -34,6 +34,69 @@ import { PostgresPortfolioRepository } from "../adapters/postgres/portfolio-repo
 import { FinnhubMarketAdapter } from "../adapters/finnhub/market-adapter";
 import { YahooFinanceMarketAdapter } from "../adapters/yahoo/market-adapter";
 import { NoOpMarketAdapter } from "../adapters/noop/market-data-adapter";
+import { TradeMonitorService } from "../application/trade-monitor-service";
+import { AutoTradeService } from "../application/auto-trade-service";
+
+// Detect if running during Next.js compilation/build phase
+const isBuildPhase =
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.IS_BUILD === "true" ||
+    (process.env.NODE_ENV === "production" && !process.env.NEXT_RUNTIME);
+
+let isShuttingDown = false;
+
+if (!isBuildPhase) {
+    const shutdown = () => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        console.log("[Worker] Gracefully stopping all background loops...");
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+}
+
+function startWorkerLoop(
+    name: string,
+    task: () => Promise<void>,
+    intervalMs: number,
+    globalFlag: string
+) {
+    if (isBuildPhase) {
+        return;
+    }
+
+    if ((global as any)[globalFlag]) {
+        return;
+    }
+    (global as any)[globalFlag] = true;
+
+    console.log(`[Worker] ${name} successfully initialized.`);
+
+    let isExecuting = false;
+
+    const run = async () => {
+        if (isShuttingDown) return;
+        if (isExecuting) {
+            console.warn(`[Worker] ${name} execution overlapped. Skipping current run.`);
+            return;
+        }
+
+        isExecuting = true;
+        try {
+            await task();
+        } catch (err) {
+            console.error(`[Worker] ${name} execution error:`, err);
+        } finally {
+            isExecuting = false;
+            if (!isShuttingDown) {
+                setTimeout(run, intervalMs);
+            }
+        }
+    };
+
+    // 5-second initial boot delay to prioritize HTTP server startup
+    setTimeout(run, 5000);
+}
 
 export interface Infrastructure {
     stock: StockRepository;
@@ -49,6 +112,7 @@ export interface Infrastructure {
     notification: NotificationRepository;
     market: MarketDataPort;
     autoTradeBot: AutoTradeBotRepository;
+    mongoClient: MongoClient | null;
 }
 
 let cachedInfra: Infrastructure | null = null;
@@ -78,8 +142,11 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         ? new FinnhubMarketAdapter(apiKey)
         : new YahooFinanceMarketAdapter();
 
+    let mongoClient: MongoClient | null = null;
+
     if (dbDriver === "mongo") {
         const client = await MongoClient.connect(process.env.MONGO_URI || "mongodb://localhost:27017");
+        mongoClient = client;
         const db = client.db(process.env.MONGO_DB || "market");
         stockRepo = new MongoStockRepository(db);
         portfolioRepo = new MongoPortfolioRepository(db);
@@ -124,37 +191,30 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         notification: notificationRepo,
         market: marketAdapter,
         autoTradeBot: autoTradeBotRepo!,
+        mongoClient: mongoClient,
     };
 
-    // Step 1: Background simulation worker daemon running every 15 seconds
-    if (!(global as any).tradeMonitorStarted) {
-        (global as any).tradeMonitorStarted = true;
-        console.log("[TradeMonitor] Background simulation monitor worker successfully initialized.");
-        setInterval(async () => {
-            try {
-                const { TradeMonitorService } = require("../application/trade-monitor-service");
-                const monitor = new TradeMonitorService(cachedInfra);
-                await monitor.monitorAll();
-            } catch (err) {
-                console.error("[TradeMonitor] Background daemon error:", err);
-            }
-        }, 15000);
-    }
+    // Step 1: Background simulation monitor loop (runs every 15 seconds)
+    startWorkerLoop(
+        "TradeMonitor",
+        async () => {
+            const monitor = new TradeMonitorService(cachedInfra!);
+            await monitor.monitorAll();
+        },
+        15000,
+        "tradeMonitorStarted"
+    );
 
-    // Step 2: Auto Trade bot engine — runs every 30 seconds
-    if (!(global as any).autoTradeStarted) {
-        (global as any).autoTradeStarted = true;
-        console.log("[AutoTrade] Bot engine daemon initialized.");
-        setInterval(async () => {
-            try {
-                const { AutoTradeService } = require("../application/auto-trade-service");
-                const service = new AutoTradeService(cachedInfra);
-                await service.runAllBots();
-            } catch (err) {
-                console.error("[AutoTrade] Daemon error:", err);
-            }
-        }, 30000);
-    }
+    // Step 2: Auto Trade bot engine loop (runs every 30 seconds)
+    startWorkerLoop(
+        "AutoTrade",
+        async () => {
+            const service = new AutoTradeService(cachedInfra!);
+            await service.runAllBots();
+        },
+        30000,
+        "autoTradeStarted"
+    );
 
     return cachedInfra as Infrastructure;
 }

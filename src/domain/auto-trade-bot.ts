@@ -38,6 +38,6 @@ export interface AutoTradeBotRepository {
     findById(id: string): Promise<AutoTradeBot | null>;
     findByUserId(userId: string): Promise<AutoTradeBot[]>;
     findAllActive(): Promise<AutoTradeBot[]>;
-    updateStats(id: string, stats: Partial<AutoTradeBot>): Promise<void>;
+    updateStats(id: string, stats: Partial<AutoTradeBot>, session?: any): Promise<void>;
     delete(id: string): Promise<void>;
 }

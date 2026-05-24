@@ -33,10 +33,11 @@ export class MongoAutoTradeBotRepository implements AutoTradeBotRepository {
         return docs.map(d => this.map(d));
     }
 
-    async updateStats(id: string, stats: Partial<AutoTradeBot>): Promise<void> {
+    async updateStats(id: string, stats: Partial<AutoTradeBot>, session?: any): Promise<void> {
         await this.collection.updateOne(
             { id },
-            { $set: { ...stats, updatedAt: new Date() } }
+            { $set: { ...stats, updatedAt: new Date() } },
+            { session }
         );
     }
 

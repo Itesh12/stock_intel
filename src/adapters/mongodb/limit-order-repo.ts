@@ -1,4 +1,4 @@
-import { Collection, Db } from "mongodb";
+import { Collection, Db, ClientSession } from "mongodb";
 import { LimitOrder, LimitOrderRepository, OrderStatus } from "../../domain/limit-order";
 import { v4 as uuidv4 } from "uuid";
 
@@ -9,12 +9,12 @@ export class MongoLimitOrderRepository implements LimitOrderRepository {
         this.collection = db.collection("limit_orders");
     }
 
-    async save(order: LimitOrder): Promise<void> {
+    async save(order: LimitOrder, session?: ClientSession): Promise<void> {
         const id = order.id || uuidv4();
         await this.collection.updateOne(
             { id },
             { $set: { ...order, id, timestamp: order.timestamp || new Date() } },
-            { upsert: true }
+            { upsert: true, session }
         );
     }
 
@@ -38,13 +38,13 @@ export class MongoLimitOrderRepository implements LimitOrderRepository {
         return docs.map(doc => this.mapToDomain(doc));
     }
 
-    async updateStatus(id: string, status: OrderStatus, executedPrice?: number): Promise<void> {
+    async updateStatus(id: string, status: OrderStatus, executedPrice?: number, session?: ClientSession): Promise<void> {
         const update: any = { $set: { status } };
         if (executedPrice) {
             update.$set.executedPrice = executedPrice;
             update.$set.executedAt = new Date();
         }
-        await this.collection.updateOne({ id }, update);
+        await this.collection.updateOne({ id }, update, { session });
     }
 
     private mapToDomain(doc: any): LimitOrder {
