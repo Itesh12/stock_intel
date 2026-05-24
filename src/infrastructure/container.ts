@@ -37,6 +37,7 @@ import { PostgresPortfolioRepository } from "../adapters/postgres/portfolio-repo
 import { FinnhubMarketAdapter } from "../adapters/finnhub/market-adapter";
 import { YahooFinanceMarketAdapter } from "../adapters/yahoo/market-adapter";
 import { NoOpMarketAdapter } from "../adapters/noop/market-data-adapter";
+import { HybridMarketAdapter } from "../adapters/hybrid/market-adapter";
 import { TradeMonitorService } from "../application/trade-monitor-service";
 import { AutoTradeService } from "../application/auto-trade-service";
 
@@ -187,11 +188,9 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let notificationRepo: NotificationRepository;
     let autoTradeBotRepo: AutoTradeBotRepository;
 
-    // Use Yahoo Finance as primary for free real-time support (NSE/BSE)
-    // Finnhub can be used if API key is provided for US stocks
-    const marketAdapter = apiKey
-        ? new FinnhubMarketAdapter(apiKey)
-        : new YahooFinanceMarketAdapter();
+    const yahooAdapter = new YahooFinanceMarketAdapter();
+    const finnhubAdapter = apiKey ? new FinnhubMarketAdapter(apiKey) : null;
+    const marketAdapter = new HybridMarketAdapter(yahooAdapter, finnhubAdapter);
 
     let mongoClient: MongoClient | null = null;
 
