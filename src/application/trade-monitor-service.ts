@@ -1,17 +1,23 @@
 import { Infrastructure } from "../infrastructure/container";
 import { LimitOrder, OrderStatus } from "../domain/limit-order";
 import { NotificationService } from "./notification-service";
+import { globalEvents } from "../infrastructure/events";
 import { v4 as uuidv4 } from "uuid";
 
 export class TradeMonitorService {
-    constructor(private infra: Infrastructure) { }
+    private notificationService: NotificationService;
+
+    constructor(private infra: Infrastructure) {
+        this.notificationService = new NotificationService(infra.notification);
+    }
 
     /**
-     * Scans all pending orders and executes them if conditions are met.
-     * This is the engine of the "SIM" environment.
+     * Scans all pending orders, handles trailing stops, and executes them if conditions are met.
      */
     public async monitorAll(): Promise<{ executed: number; failed: number }> {
         const pendingOrders = await this.infra.limitOrder.findPending();
+        if (pendingOrders.length === 0) return { executed: 0, failed: 0 };
+
         console.log(`[TradeMonitor] Scanning ${pendingOrders.length} pending orders...`);
         
         let executed = 0;
@@ -28,11 +34,40 @@ export class TradeMonitorService {
                 const currentPrice = stock.price;
 
                 for (const order of orders) {
-                    const shouldExecute = this.checkCondition(order, currentPrice);
-                    if (shouldExecute) {
-                        const success = await this.executeOrder(order, currentPrice);
-                        if (success) executed++;
-                        else failed++;
+                    try {
+                        // 1. Handle Trailing Stop-Loss adjustments if applicable
+                        if (order.type === 'STOP_LOSS' && order.botId) {
+                            const bot = await this.infra.autoTradeBot.findById(order.botId);
+                            if (bot && bot.useTrailingStop) {
+                                const theoreticalStopPrice = parseFloat(
+                                    (currentPrice * (1 - bot.stopLossPercent / 100)).toFixed(2)
+                                );
+                                if (theoreticalStopPrice > order.targetPrice) {
+                                    const oldStop = order.targetPrice;
+                                    order.targetPrice = theoreticalStopPrice;
+                                    await this.infra.limitOrder.save(order);
+                                    
+                                    const trailMsg = `📈 Trailing SL Adjusted: Raised stop price for ${order.symbol.replace('.NS', '')} from ₹${oldStop.toFixed(2)} to ₹${theoreticalStopPrice.toFixed(2)} based on stock price rising to ₹${currentPrice.toFixed(2)}.`;
+                                    await this.auditLog(bot.id, 'INFO', 'TRADE_EXIT', trailMsg, {
+                                        symbol: order.symbol,
+                                        oldStop,
+                                        newStop: theoreticalStopPrice,
+                                        currentPrice
+                                    });
+                                }
+                            }
+                        }
+
+                        // 2. Check and execute trigger conditions
+                        const shouldExecute = this.checkCondition(order, currentPrice);
+                        if (shouldExecute) {
+                            const success = await this.executeOrder(order, currentPrice);
+                            if (success) executed++;
+                            else failed++;
+                        }
+                    } catch (orderErr) {
+                        console.error(`[TradeMonitor] Failed processing order ${order.id}:`, orderErr);
+                        failed++;
                     }
                 }
             } catch (err) {
@@ -55,16 +90,12 @@ export class TradeMonitorService {
     private checkCondition(order: LimitOrder, currentPrice: number): boolean {
         switch (order.type) {
             case 'BUY':
-                // Limit BUY: Price falls to or below target
                 return currentPrice <= order.targetPrice;
             case 'SELL':
-                // Limit SELL: Price rises to or above target
                 return currentPrice >= order.targetPrice;
             case 'STOP_LOSS':
-                // SELL order triggered when price falls below threshold
                 return currentPrice <= order.targetPrice;
             case 'TAKE_PROFIT':
-                // SELL order triggered when price rises above threshold
                 return currentPrice >= order.targetPrice;
             default:
                 return false;
@@ -77,6 +108,7 @@ export class TradeMonitorService {
         const maxRetries = 3;
         let attempt = 0;
         let success = false;
+        let realizedPL = 0;
 
         const executeOrderTransaction = async (session?: any) => {
             // 1. Fetch user's portfolio
@@ -84,7 +116,6 @@ export class TradeMonitorService {
             if (!portfolios.length) throw new Error("Portfolio not found");
             const portfolio = portfolios[0];
 
-            // Map order type to TradeSource tracking
             let tradeSource: any = 'limit_order';
             if (order.type === 'STOP_LOSS') tradeSource = 'stop_loss';
             else if (order.type === 'TAKE_PROFIT') tradeSource = 'take_profit';
@@ -106,7 +137,6 @@ export class TradeMonitorService {
                     session
                 );
 
-                // Save trade record
                 await this.infra.trade.save({
                     id: uuidv4(),
                     userId: order.userId,
@@ -128,7 +158,7 @@ export class TradeMonitorService {
                 }
 
                 const averagePriceAtSale = holding.averagePrice;
-                const realizedPL = (executionPrice - averagePriceAtSale) * order.quantity;
+                realizedPL = (executionPrice - averagePriceAtSale) * order.quantity;
 
                 await this.infra.portfolio.executeTrade(
                     portfolio.id,
@@ -139,7 +169,6 @@ export class TradeMonitorService {
                     session
                 );
 
-                // Save trade record
                 await this.infra.trade.save({
                     id: uuidv4(),
                     userId: order.userId,
@@ -154,21 +183,72 @@ export class TradeMonitorService {
                     realizedPL,
                     averagePriceAtSale
                 }, session);
+
+                // Handle Bot stats & Progressive budget release
+                if (order.botId) {
+                    const bot = await this.infra.autoTradeBot.findById(order.botId);
+                    if (bot) {
+                        const positionCost = order.quantity * averagePriceAtSale;
+                        const newDeployed = Math.max(0, bot.deployedCash - positionCost);
+                        const isWin = realizedPL > 0;
+
+                        // Increment bot metrics
+                        const updatedBotStats: Partial<any> = {
+                            deployedCash: newDeployed,
+                            totalPnL: bot.totalPnL + realizedPL,
+                            winCount: bot.winCount + (isWin ? 1 : 0),
+                            lossCount: bot.lossCount + (isWin ? 0 : 1),
+                        };
+
+                        await this.infra.autoTradeBot.updateStats(bot.id, updatedBotStats, session);
+
+                        // Progressive Reservation Cash release if bot is PAUSED or STOPPED
+                        if (bot.status === 'PAUSED' || bot.status === 'STOPPED') {
+                            const updatedPortfolio = await this.infra.portfolio.findById(portfolio.id, session);
+                            if (updatedPortfolio) {
+                                updatedPortfolio.reservedCash = Math.max(0, (updatedPortfolio.reservedCash || 0) - positionCost);
+                                await this.infra.portfolio.save(updatedPortfolio, session);
+                                
+                                const releaseMsg = `🔓 Progressive Release: Released ₹${positionCost.toFixed(2)} from portfolio reservedCash as position in ${order.symbol.replace('.NS', '')} was closed (Remaining reserved: ₹${(updatedPortfolio.reservedCash || 0).toFixed(2)}).`;
+                                await this.auditLog(bot.id, 'INFO', 'TRADE_EXIT', releaseMsg, {
+                                    symbol: order.symbol,
+                                    releasedCash: positionCost,
+                                    reservedCash: updatedPortfolio.reservedCash
+                                });
+                            }
+                        }
+
+                        // Log exit execution in terminal audit logs
+                        const exitMsg = `📉 Exit Execution: Closed position for ${order.quantity} shares of ${order.symbol.replace('.NS', '')} @ ₹${executionPrice.toFixed(2)} via ${order.type} (Realized PnL: ₹${realizedPL.toFixed(2)} | Net Return: ${((realizedPL / positionCost) * 100).toFixed(2)}%).`;
+                        await this.auditLog(bot.id, isWin ? 'INFO' : 'WARN', 'TRADE_EXIT', exitMsg, {
+                            symbol: order.symbol,
+                            qty: order.quantity,
+                            exitPrice: executionPrice,
+                            pnl: realizedPL
+                        });
+                    } else {
+                        // Bot was deleted! Release the reserved cash progressively
+                        const positionCost = order.quantity * averagePriceAtSale;
+                        const updatedPortfolio = await this.infra.portfolio.findById(portfolio.id, session);
+                        if (updatedPortfolio) {
+                            updatedPortfolio.reservedCash = Math.max(0, (updatedPortfolio.reservedCash || 0) - positionCost);
+                            await this.infra.portfolio.save(updatedPortfolio, session);
+                        }
+                    }
+                }
             }
 
-            // 3. Update order status
+            // 3. Update order status to EXECUTED
             await this.infra.limitOrder.updateStatus(order.id, 'EXECUTED', executionPrice, session);
 
             // Cancel OCO partner order if it exists
             if (order.type === 'STOP_LOSS') {
-                // Find TAKE_PROFIT where parentOrderId === order.id
                 const pending = await this.infra.limitOrder.findPending();
                 const partner = pending.find(o => o.parentOrderId === order.id && o.status === 'PENDING');
                 if (partner) {
                     await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED', undefined, session);
                 }
             } else if (order.type === 'TAKE_PROFIT' && order.parentOrderId) {
-                // Find STOP_LOSS where id === order.parentOrderId
                 const pending = await this.infra.limitOrder.findPending();
                 const partner = pending.find(o => o.id === order.parentOrderId && o.status === 'PENDING');
                 if (partner) {
@@ -212,12 +292,11 @@ export class TradeMonitorService {
         if (success) {
             // Notify user
             try {
-                const notificationService = new NotificationService(this.infra.notification);
-                await notificationService.notifySignal(order.userId, {
+                await this.notificationService.notifySignal(order.userId, {
                     symbol: order.symbol,
                     type: 'ORDER_EXECUTED',
                     strength: 'MEDIUM',
-                    description: `Simulated ${order.type} order executed for ${order.quantity} shares of ${order.symbol} at ₹${executionPrice.toFixed(2)}.`,
+                    description: `Simulated ${order.type} order executed for ${order.quantity} shares of ${order.symbol.replace('.NS', '')} at ₹${executionPrice.toFixed(2)} (PnL: ₹${realizedPL.toFixed(2)}).`,
                     timestamp: new Date()
                 });
             } catch (notifyErr) {
@@ -227,5 +306,28 @@ export class TradeMonitorService {
 
         return success;
     }
-}
 
+    private async auditLog(
+        botId: string,
+        level: "INFO" | "WARN" | "ERROR",
+        category: "SCAN" | "TRADE_ENTRY" | "TRADE_EXIT" | "RISK_GUARD" | "SYSTEM",
+        message: string,
+        metadata?: any
+    ): Promise<void> {
+        try {
+            await this.infra.autoTradeLog.save({
+                id: "",
+                botId,
+                timestamp: new Date(),
+                level,
+                category,
+                message,
+                metadata,
+                createdAt: new Date()
+            });
+            globalEvents.emitLog(botId, level, category, message, metadata);
+        } catch (err) {
+            console.error("[TradeMonitorService] Failed to write audit log:", err);
+        }
+    }
+}

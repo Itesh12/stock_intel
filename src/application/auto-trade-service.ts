@@ -2,6 +2,8 @@ import { Infrastructure } from "../infrastructure/container";
 import { AutoTradeBot } from "../domain/auto-trade-bot";
 import { LimitOrder } from "../domain/limit-order";
 import { NotificationService } from "./notification-service";
+import { RiskGuardService } from "./risk-guard-service";
+import { globalEvents } from "../infrastructure/events";
 import { v4 as uuidv4 } from "uuid";
 
 // IST market hours: 9:30 AM - 2:30 PM
@@ -31,9 +33,11 @@ function todayStr(): string {
 
 export class AutoTradeService {
     private notificationService: NotificationService;
+    private riskGuard: RiskGuardService;
 
     constructor(private infra: Infrastructure) {
         this.notificationService = new NotificationService(infra.notification);
+        this.riskGuard = new RiskGuardService(infra);
     }
 
     async runAllBots(): Promise<void> {
@@ -45,13 +49,15 @@ export class AutoTradeService {
                 await this.runBot(bot);
             } catch (err) {
                 console.error(`[AutoTrade] Bot ${bot.id} (${bot.name}) failed:`, err);
+                await this.auditLog(bot.id, 'ERROR', 'SYSTEM', `Bot loop error: ${err instanceof Error ? err.message : String(err)}`);
             }
         }
     }
 
     private async runBot(bot: AutoTradeBot): Promise<void> {
-        // 1. Daily trade count reset
         const today = todayStr();
+
+        // 1. Daily trade count reset
         if (bot.todayDate !== today) {
             await this.infra.autoTradeBot.updateStats(bot.id, { todayTradeCount: 0, todayDate: today });
             bot.todayTradeCount = 0;
@@ -70,14 +76,34 @@ export class AutoTradeService {
 
         // 4. Fetch scanner recommendations for this strategy
         const strategy = await this.infra.strategy.findBySlug(bot.strategySlug);
-        if (!strategy) return;
+        if (!strategy) {
+            await this.auditLog(bot.id, 'WARN', 'SCAN', `Associated strategy "${bot.strategySlug}" not found in database.`);
+            return;
+        }
 
         const recommendations = await this.infra.strategy.getRecommendations(strategy.id);
+        
+        // Audit log scanner run
+        await this.auditLog(
+            bot.id,
+            'INFO',
+            'SCAN',
+            `Strategy scan complete. Found ${recommendations.length} signals for ${bot.strategyName || bot.strategySlug}.`
+        );
+
         if (recommendations.length === 0) return;
 
         // 5. Filter by bot's minimum confluence score
         const qualifiedRecs = recommendations.filter(r => r.score >= bot.minConfluenceScore);
-        if (qualifiedRecs.length === 0) return;
+        if (qualifiedRecs.length === 0) {
+            await this.auditLog(
+                bot.id,
+                'INFO',
+                'SCAN',
+                `No signals met the minimum confluence score threshold of ${bot.minConfluenceScore}.`
+            );
+            return;
+        }
 
         // 7. Try each qualified recommendation until we find one we can trade
         for (const rec of qualifiedRecs) {
@@ -124,6 +150,7 @@ export class AutoTradeService {
             let finalQty = 0;
             let slPrice = 0;
             let tpPrice = 0;
+            let executionCost = 0;
 
             const executeBotTradeTransaction = async (session?: any) => {
                 // 1. Reload latest portfolio
@@ -132,28 +159,38 @@ export class AutoTradeService {
                 const portfolio = portfolios[0];
 
                 // 2. Revalidate balance and portfolio state
-                const maxPositionValue = bot.capitalAllocated * (bot.maxPositionSizePercent / 100);
-                const availableCash = Math.min(portfolio.cashBalance, maxPositionValue);
+                const maxPositionValue = bot.allocatedCash * (bot.maxPositionSizePercent / 100);
+                const availableBotCash = bot.allocatedCash - bot.deployedCash;
+                const availablePortfolioCash = portfolio.cashBalance - (portfolio.reservedCash || 0);
+                
+                const availableCash = Math.min(availablePortfolioCash, availableBotCash, maxPositionValue);
                 if (availableCash < currentPrice) {
-                    throw new Error("Bot allocation limits: Portfolio cash balance or position size limits exceeded");
+                    throw new Error(`Insufficient funds: Portfolio cash limits or max position size exceeded. (Avail Portfolio Cash: ₹${availablePortfolioCash.toFixed(2)}, Avail Bot Cash: ₹${availableBotCash.toFixed(2)}, Position Limit: ₹${maxPositionValue.toFixed(2)})`);
                 }
 
                 const quantity = Math.floor(availableCash / currentPrice);
                 if (quantity <= 0) {
-                    throw new Error("Calculated quantity is 0");
+                    throw new Error("Calculated purchase quantity is 0 shares based on available funds.");
                 }
 
                 const positionCost = quantity * currentPrice;
                 if (portfolio.cashBalance < positionCost) {
-                    throw new Error("Portfolio cash balance is insufficient for bot execution");
+                    throw new Error("Portfolio cash balance is insufficient for execution");
+                }
+
+                // 3. Evaluate Risk Guard constraints!
+                const riskResult = await this.riskGuard.evaluateRisk(bot, symbol, positionCost);
+                if (!riskResult.allowed) {
+                    throw new Error(riskResult.reason || "Risk guard validation check failed");
                 }
 
                 finalQty = quantity;
+                executionCost = positionCost;
 
-                // 3. Execute trade
+                // 4. Execute trade
                 await this.infra.portfolio.executeTrade(portfolio.id, symbol, quantity, currentPrice, 'BUY', session);
 
-                // 4. Save ledger trade (with source: "bot")
+                // 5. Save ledger trade (with source: "bot")
                 const tradeId = uuidv4();
                 await this.infra.trade.save({
                     id: tradeId,
@@ -163,12 +200,12 @@ export class AutoTradeService {
                     price: currentPrice,
                     totalValue: positionCost,
                     type: 'BUY',
-                    source: 'bot', // Tracking source
+                    source: 'bot',
                     timestamp: new Date(),
                     botId: bot.id,
                 }, session);
 
-                // 5. Place Stop-Loss and Take-Profit orders
+                // 6. Place Stop-Loss and Take-Profit orders
                 slPrice = parseFloat((currentPrice * (1 - bot.stopLossPercent / 100)).toFixed(2));
                 const slOrder: LimitOrder = {
                     id: uuidv4(),
@@ -200,16 +237,21 @@ export class AutoTradeService {
                 };
                 await this.infra.limitOrder.save(tpOrder, session);
 
-                // 6. Update bot stats
+                // 7. Increment deployedCash and update bot stats
+                const newDeployedCash = bot.deployedCash + positionCost;
                 const newTodayCount = bot.todayTradeCount + 1;
                 const newTotal = bot.totalTradesExecuted + 1;
+
                 await this.infra.autoTradeBot.updateStats(bot.id, {
                     todayTradeCount: newTodayCount,
                     totalTradesExecuted: newTotal,
                     todayDate: today,
+                    deployedCash: newDeployedCash
                 }, session);
                 
+                bot.deployedCash = newDeployedCash; // update in-memory
                 bot.todayTradeCount = newTodayCount; // update in-memory
+                bot.totalTradesExecuted = newTotal;  // update in-memory
             };
 
             while (attempt < maxRetries) {
@@ -235,8 +277,16 @@ export class AutoTradeService {
                         await new Promise(resolve => setTimeout(resolve, 100 * attempt));
                         continue;
                     }
-                    // Failed permanently or retries exhausted
-                    console.error(`[AutoTrade Bot] Trade execution failed permanently:`, err.message || err);
+                    
+                    console.error(`[AutoTrade Bot] Trade execution failed:`, err.message || err);
+                    
+                    // Permanent failure audit logging
+                    await this.auditLog(
+                        bot.id,
+                        'WARN',
+                        'TRADE_ENTRY',
+                        `Trade execution rejected for ${symbol.replace('.NS', '')}: ${err.message || err}`
+                    );
                     break;
                 } finally {
                     if (session) {
@@ -254,12 +304,23 @@ export class AutoTradeService {
                     ).catch(() => {});
                 }
 
-                // 13. Notify user
+                // Log entry success
+                const successMsg = `🤖 Execution Success: Bought ${finalQty} shares of ${symbol.replace('.NS', '')} @ ₹${currentPrice.toFixed(2)} (Total: ₹${executionCost.toFixed(2)}). Attached SL: ₹${slPrice} | TP: ₹${tpPrice}.`;
+                await this.auditLog(bot.id, 'INFO', 'TRADE_ENTRY', successMsg, {
+                    symbol,
+                    qty: finalQty,
+                    price: currentPrice,
+                    total: executionCost,
+                    sl: slPrice,
+                    tp: tpPrice
+                });
+
+                // Notify user
                 await this.notificationService.notifySignal(bot.userId, {
                     symbol,
                     type: 'ORDER_EXECUTED',
                     strength: 'HIGH',
-                    description: `🤖 Auto-Trade [${bot.name}]: Bought ${finalQty} shares of ${symbol.replace('.NS', '')} @ ₹${currentPrice.toFixed(2)}. SL: ₹${slPrice} | TP: ₹${tpPrice}`,
+                    description: successMsg,
                     timestamp: new Date(),
                 });
 
@@ -273,6 +334,30 @@ export class AutoTradeService {
                     ).catch(() => {});
                 }
             }
+        }
+    }
+
+    private async auditLog(
+        botId: string,
+        level: "INFO" | "WARN" | "ERROR",
+        category: "SCAN" | "TRADE_ENTRY" | "TRADE_EXIT" | "RISK_GUARD" | "SYSTEM",
+        message: string,
+        metadata?: any
+    ): Promise<void> {
+        try {
+            await this.infra.autoTradeLog.save({
+                id: "",
+                botId,
+                timestamp: new Date(),
+                level,
+                category,
+                message,
+                metadata,
+                createdAt: new Date()
+            });
+            globalEvents.emitLog(botId, level, category, message, metadata);
+        } catch (err) {
+            console.error("[AutoTradeService] Failed to write audit log:", err);
         }
     }
 }

@@ -24,6 +24,7 @@ export interface Portfolio {
     dayPnL?: number;
     dayPnLPercent?: number;
     cashBalance: number;
+    reservedCash?: number;                  // Capital reserved across all active bots
     riskScore: number; // 0-100
     sectorExposure: Record<string, number>; // Sector -> Percentage
     // Institutional SIM Metrics

@@ -28,6 +28,8 @@ import { NotificationRepository } from "../ports/notification-repository";
 import { MongoNotificationRepository } from "../adapters/mongodb/notification-repo";
 import { AutoTradeBotRepository } from "../domain/auto-trade-bot";
 import { MongoAutoTradeBotRepository } from "../adapters/mongodb/auto-trade-bot-repo";
+import { AutoTradeLogRepository } from "../domain/auto-trade-log";
+import { MongoAutoTradeLogRepository } from "../adapters/mongodb/auto-trade-log-repo";
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -125,6 +127,7 @@ export interface Infrastructure {
     notification: NotificationRepository;
     market: MarketDataPort;
     autoTradeBot: AutoTradeBotRepository;
+    autoTradeLog: AutoTradeLogRepository;
     mongoClient: MongoClient | null;
 }
 
@@ -212,6 +215,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let alertRepo: MongoAlertRepository;
     let notificationRepo: NotificationRepository;
     let autoTradeBotRepo: AutoTradeBotRepository;
+    let autoTradeLogRepo: AutoTradeLogRepository;
 
     const yahooAdapter = new YahooFinanceMarketAdapter();
     const finnhubAdapter = apiKey ? new FinnhubMarketAdapter(apiKey) : null;
@@ -239,6 +243,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         alertRepo = new MongoAlertRepository(db);
         notificationRepo = new MongoNotificationRepository(db);
         autoTradeBotRepo = new MongoAutoTradeBotRepository(db);
+        autoTradeLogRepo = new MongoAutoTradeLogRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -254,6 +259,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         alertRepo = new MongoAlertRepository({} as any);
         notificationRepo = new MongoNotificationRepository({} as any);
         autoTradeBotRepo = new MongoAutoTradeBotRepository({} as any);
+        autoTradeLogRepo = new MongoAutoTradeLogRepository({} as any);
     }
 
     cachedInfra = {
@@ -270,6 +276,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         notification: notificationRepo,
         market: marketAdapter,
         autoTradeBot: autoTradeBotRepo!,
+        autoTradeLog: autoTradeLogRepo!,
         mongoClient: mongoClient,
     };
 

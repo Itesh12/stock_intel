@@ -15,12 +15,39 @@ export class MongoPortfolioRepository implements PortfolioRepository {
 
     async findById(id: string, session?: ClientSession): Promise<Portfolio | null> {
         const doc = await this.collection.findOne({ id } as any, { session });
-        return doc ? (doc as unknown as Portfolio) : null;
+        return doc ? this.map(doc) : null;
     }
 
     async findByUserId(userId: string, session?: ClientSession): Promise<Portfolio[]> {
         const docs = await this.collection.find({ userId } as any, { session }).toArray();
-        return docs as unknown as Portfolio[];
+        return docs.map(d => this.map(d));
+    }
+
+    private map(doc: any): Portfolio {
+        return {
+            id: doc.id,
+            userId: doc.userId,
+            name: doc.name,
+            holdings: doc.holdings || [],
+            totalValue: doc.totalValue || 0,
+            totalPL: doc.totalPL || 0,
+            totalPLPercent: doc.totalPLPercent || 0,
+            dayPnL: doc.dayPnL || 0,
+            dayPnLPercent: doc.dayPnLPercent || 0,
+            cashBalance: doc.cashBalance || 0,
+            reservedCash: doc.reservedCash !== undefined ? doc.reservedCash : 0,
+            riskScore: doc.riskScore || 0,
+            sectorExposure: doc.sectorExposure || {},
+            profitFactor: doc.profitFactor,
+            winRate: doc.winRate,
+            avgWin: doc.avgWin,
+            avgLoss: doc.avgLoss,
+            maxDrawdown: doc.maxDrawdown,
+            performanceHistory: doc.performanceHistory || [],
+            version: doc.version,
+            createdAt: doc.createdAt,
+            updatedAt: doc.updatedAt
+        };
     }
 
     async save(portfolio: Portfolio, session?: ClientSession): Promise<void> {
@@ -56,7 +83,7 @@ export class MongoPortfolioRepository implements PortfolioRepository {
 
     async list(): Promise<Portfolio[]> {
         const docs = await this.collection.find().toArray();
-        return docs as unknown as Portfolio[];
+        return docs.map(d => this.map(d));
     }
 
     async executeTrade(
