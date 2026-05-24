@@ -137,26 +137,34 @@ const requiredEnv = [
 ];
 
 function checkAndInitializeEnv() {
-    const rootDir = process.cwd();
-    const envPath = path.join(rootDir, ".env");
-    const examplePath = path.join(rootDir, ".env.example");
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    let envExists = fs.existsSync(envPath);
-    if (!envExists) {
-        if (fs.existsSync(examplePath)) {
-            console.log("[Env] .env not found. Copying values from .env.example...");
-            fs.copyFileSync(examplePath, envPath);
-            envExists = true;
-        } else {
-            console.warn("[Env] Neither .env nor .env.example found.");
+    if (!isProduction) {
+        // Local development only: attempt to load .env / .env.example
+        const rootDir = process.cwd();
+        const envPath = path.join(rootDir, '.env');
+        const examplePath = path.join(rootDir, '.env.example');
+
+        let envExists = fs.existsSync(envPath);
+        if (!envExists) {
+            if (fs.existsSync(examplePath)) {
+                console.log('[Env] .env not found. Copying values from .env.example...');
+                fs.copyFileSync(examplePath, envPath);
+                envExists = true;
+            } else {
+                console.warn('[Env] Neither .env nor .env.example found.');
+            }
+        }
+
+        if (envExists) {
+            dotenv.config({ path: envPath });
         }
     }
+    // In production (Vercel/cloud): env vars are injected by the platform.
+    // Never call dotenv.config() — it would overwrite platform vars with
+    // stale .env.example values (e.g. mongodb://localhost:27017 → ECONNREFUSED).
 
-    if (envExists) {
-        dotenv.config({ path: envPath });
-    }
-
-    // Run startup validation
+    // Validate required vars are present (from whichever source they came)
     const missing: string[] = [];
     const found: string[] = [];
 
@@ -168,11 +176,19 @@ function checkAndInitializeEnv() {
         }
     }
 
-    console.log(`[Env] Found environment variables: ${found.join(", ")}`);
+    Logger.info('Env', 'startup_check', { found: found.join(', '), environment: process.env.NODE_ENV });
     if (missing.length > 0) {
-        console.error(`[Env] Missing required variables: ${missing.join(", ")}`);
-        throw new Error(`${missing.join(", ")} missing. Please configure .env`);
+        const msg = `${missing.join(', ')} missing. Please configure environment variables.`;
+        if (isProduction) {
+            // In production, log the error but do not throw at module load time.
+            // The actual DB connection will fail with a clearer message if truly missing.
+            Logger.error('Env', 'missing_vars', msg, { missing: missing.join(', ') });
+        } else {
+            Logger.error('Env', 'missing_vars', msg, { missing: missing.join(', ') });
+            throw new Error(msg);
+        }
     }
+
 }
 
 let cachedInfra: Infrastructure | null = null;
