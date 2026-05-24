@@ -205,7 +205,7 @@ export default function PortfolioClient({
                                     {gainers.length > 0 ? gainers.map(h => (
                                         <div key={h.symbol} className="bg-white/5 rounded-2xl p-3 border border-white/5 group hover:bg-emerald-500/10 transition-colors">
                                             <div className="text-xs font-black text-white">{formatSymbol(h.symbol)}</div>
-                                            <div className="text-[10px] font-bold text-emerald-400">+{h.dayChangePercent.toFixed(2)}%</div>
+                                            <div className="text-[10px] font-bold text-emerald-400">+{(h.dayChangePercent || 0).toFixed(2)}%</div>
                                         </div>
                                     )) : <div className="col-span-3 text-[10px] text-slate-600 font-bold uppercase py-2">No High Alphas Found</div>}
                                 </div>
@@ -219,7 +219,7 @@ export default function PortfolioClient({
                                     {losers.length > 0 ? losers.map(h => (
                                         <div key={h.symbol} className="bg-white/5 rounded-2xl p-3 border border-white/5 group hover:bg-rose-500/10 transition-colors">
                                             <div className="text-xs font-black text-white">{formatSymbol(h.symbol)}</div>
-                                            <div className="text-[10px] font-bold text-rose-400">{h.dayChangePercent.toFixed(2)}%</div>
+                                            <div className="text-[10px] font-bold text-rose-400">{(h.dayChangePercent || 0).toFixed(2)}%</div>
                                         </div>
                                     )) : <div className="col-span-3 text-[10px] text-slate-600 font-bold uppercase py-2">No Underperformers</div>}
                                 </div>
