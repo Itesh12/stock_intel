@@ -17,6 +17,8 @@ export interface Strategy {
     riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
     winRate: string;
     steps: StrategyStep[];
+    /** Static fallback recommendations (overridden by live scanner results) */
+    recommendations?: string[];
     riskManagement: string[];
     createdAt: Date;
     updatedAt: Date;

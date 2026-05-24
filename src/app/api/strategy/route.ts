@@ -12,14 +12,9 @@ export async function GET() {
         const strategiesData = await CacheUtils.getOrFetch(cacheKey, async () => {
             // Ensure predefined strategies are in the DB
             for (const s of predefinedStrategies) {
-                const existing = await infra.strategy.findBySlug(s.id); // strategy.id is used as slug in data/strategies.ts
+                const existing = await infra.strategy.findBySlug(s.slug);
                 if (!existing) {
-                    await infra.strategy.save({
-                        ...s,
-                        slug: s.id,
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                    } as any);
+                    await infra.strategy.save(s);
                 }
             }
 

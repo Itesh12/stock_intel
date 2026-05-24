@@ -1,28 +1,11 @@
-export interface StrategyStep {
-    id: string;
-    title: string;
-    description: string;
-    formula?: string;
-    requirements: string[];
-}
+import type { Strategy } from "../domain/strategy";
 
-export interface Strategy {
-    id: string;
-    name: string;
-    trader: string;
-    description: string;
-    longDescription: string;
-    objective: string;
-    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
-    winRate: string;
-    steps: StrategyStep[];
-    recommendations: string[];
-    riskManagement: string[];
-}
-
+// Static strategy seed data — used to bootstrap DB on first run.
+// Live recommendations are populated by quant-scanner and override these static arrays.
 export const strategies: Strategy[] = [
     {
         id: 'canslim',
+        slug: 'canslim',
         name: 'CANSLIM Quant Strategy',
         trader: 'James B. Rogers Jr.',
         description: 'A unified quantitative model for identifying high-growth institutional leaders in the Indian market.',
@@ -85,10 +68,13 @@ export const strategies: Strategy[] = [
             'Stop Loss at Buy Price × 0.93',
             'No averaging down',
             'Sell immediately if stop violated'
-        ]
+        ],
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
     },
     {
         id: 'intermarket-analysis-india',
+        slug: 'intermarket-analysis-india',
         name: 'Intermarket Analysis (India)',
         trader: 'John Murphy',
         description: 'Global financial market interconnectedness model focusing on stocks, bonds, commodities, and currencies.',
@@ -144,10 +130,13 @@ export const strategies: Strategy[] = [
             'Position Size = (Portfolio × Risk%) / Stop Loss',
             'Stop Loss (Longs) = Entry - 2 × ATR(14)',
             'Stop Loss (Shorts) = Entry + 2 × ATR(14)'
-        ]
+        ],
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
     },
     {
         id: 'warren-buffet',
+        slug: 'warren-buffet',
         name: 'Indian Buffett Filter',
         trader: 'Warren Buffett',
         description: 'The Indian Value Compounder Formula (IVCF) identifies high-quality business franchises with strong moats and financial strength.',
@@ -196,10 +185,13 @@ export const strategies: Strategy[] = [
             'Buy on dips in fair value zones',
             'Hold as long as business quality is intact',
             'Exit if governance issues emerge'
-        ]
+        ],
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
     },
     {
         id: 'intraday-strategy',
+        slug: 'intraday-strategy',
         name: 'Intraday Confluence System',
         trader: 'Confluence Quant',
         description: 'A high-probability multi-strategy scoring system that enters trades only when 7 or more out of 10 entry signals align.',
@@ -247,10 +239,13 @@ export const strategies: Strategy[] = [
             'Book 50% at Target 1 and move SL to cost',
             'Let 50% run to Target 2',
             'Hard exit of all positions by 2:15 PM. No trades after 2:30 PM.'
-        ]
+        ],
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
     },
     {
         id: 'swing-strategy',
+        slug: 'swing-strategy',
         name: '1-Month Confluence Positional System',
         trader: 'Minervini & O\'Neil',
         description: 'A high-probability swing and positional strategy combining Stage 2 Breakouts, 52-Week High Momentum, and Weekly EMA Crossovers.',
@@ -304,6 +299,8 @@ export const strategies: Strategy[] = [
             'Hard SL at 7-8% below entry',
             'Weekly trailing SL 7% below closing price',
             'Book 40% at +12%, 40% at +20%, trail last 20% with weekly trailing SL'
-        ]
+        ],
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
     }
 ];
