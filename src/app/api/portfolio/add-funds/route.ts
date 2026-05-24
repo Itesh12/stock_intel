@@ -47,6 +47,9 @@ export async function POST(req: Request) {
 
         await infra.portfolio.save(portfolio);
 
+        const { CacheUtils } = require("@/infrastructure/cache-utils");
+        CacheUtils.delete(`portfolio_analytics_${userId}`);
+
         return NextResponse.json({
             message: `Successfully deposited ₹${amount} into virtual wallet`,
             newBalance: portfolio.cashBalance

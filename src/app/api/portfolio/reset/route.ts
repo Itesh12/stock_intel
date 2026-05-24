@@ -48,6 +48,9 @@ export async function POST() {
         // Let's keep history for now as an audit trail, or wipe it if specified.
         await infra.trade.deleteByUserId(userId);
 
+        const { CacheUtils } = require("@/infrastructure/cache-utils");
+        CacheUtils.delete(`portfolio_analytics_${userId}`);
+
         return NextResponse.json({ message: "Portfolio reset successfully" });
     } catch (error: any) {
         console.error("Reset error:", error);

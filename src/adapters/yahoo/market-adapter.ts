@@ -160,71 +160,74 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
     async getHistoricalData(symbol: string, period: string = '1mo', fromDate?: Date): Promise<any[]> {
         const cacheKey = `history_${symbol}_${period}`;
-        try {
-            if (!symbol || symbol === 'undefined') return [];
+        const TTL = 4 * 60 * 60 * 1000; // 4 hours TTL
 
-            const to = new Date();
-            const from = new Date();
+        return CacheUtils.getOrFetch(cacheKey, async () => {
+            try {
+                if (!symbol || symbol === 'undefined') return [];
 
-            const daysMap: Record<string, number> = {
-                '1d': 1,
-                '1mo': 30,
-                '3mo': 90,
-                '6mo': 180,
-                '1y': 365,
-                '5y': 1825,
-                'ytd': 0,
-                'all': 0
-            };
+                const to = new Date();
+                const from = new Date();
 
-            let interval: "2m" | "1d" | "1wk" | "1mo" = '1d';
+                const daysMap: Record<string, number> = {
+                    '1d': 1,
+                    '1mo': 30,
+                    '3mo': 90,
+                    '6mo': 180,
+                    '1y': 365,
+                    '5y': 1825,
+                    'ytd': 0,
+                    'all': 0
+                };
 
-            if (fromDate) {
-                from.setTime(fromDate.getTime());
-                interval = '1d';
-            } else if (period === 'ytd') {
-                // User explicitly requested YTD to mean rolling year (last 12 months)
-                from.setFullYear(to.getFullYear() - 1);
-            } else if (period === 'all') {
-                // Capture maximum history back to 1980
-                from.setFullYear(1980, 0, 1);
-                interval = '1mo'; // Monthly for performance on massive ranges
-            } else if (period === '1d') {
-                from.setHours(0, 0, 0, 0);
-                interval = '2m'; // Intraday high fidelity
-            } else if (period === '5y') {
-                from.setFullYear(to.getFullYear() - 5);
-                interval = '1wk';
-            } else {
-                const days = daysMap[period] || 30;
-                from.setDate(from.getDate() - days);
-            }
+                let interval: "2m" | "1d" | "1wk" | "1mo" = '1d';
 
-            const result = await this.withRetry(() => yahooFinance.chart(symbol, {
-                period1: from,
-                period2: to,
-                interval: interval
-            }), symbol);
+                if (fromDate) {
+                    from.setTime(fromDate.getTime());
+                    interval = '1d';
+                } else if (period === 'ytd') {
+                    // User explicitly requested YTD to mean rolling year (last 12 months)
+                    from.setFullYear(to.getFullYear() - 1);
+                } else if (period === 'all') {
+                    // Capture maximum history back to 1980
+                    from.setFullYear(1980, 0, 1);
+                    interval = '1mo'; // Monthly for performance on massive ranges
+                } else if (period === '1d') {
+                    from.setHours(0, 0, 0, 0);
+                    interval = '2m'; // Intraday high fidelity
+                } else if (period === '5y') {
+                    from.setFullYear(to.getFullYear() - 5);
+                    interval = '1wk';
+                } else {
+                    const days = daysMap[period] || 30;
+                    from.setDate(from.getDate() - days);
+                }
 
-            if (!result || !result.quotes) {
+                const result = await this.withRetry(() => yahooFinance.chart(symbol, {
+                    period1: from,
+                    period2: to,
+                    interval: interval
+                }), symbol);
+
+                if (!result || !result.quotes) {
+                    const fallback = CacheUtils.getFallback(cacheKey);
+                    return fallback || [];
+                }
+
+                const formatted = result.quotes
+                    .filter((q: any) => q.close !== undefined && q.close !== null)
+                    .map((item: any) => ({
+                        date: item.date,
+                        close: item.close
+                    }));
+
+                return formatted;
+            } catch (error: any) {
+                console.warn(`[StockIntel] Error fetching historical data for ${symbol}: ${error.message || error}`);
                 const fallback = CacheUtils.getFallback(cacheKey);
                 return fallback || [];
             }
-
-            const formatted = result.quotes
-                .filter((q: any) => q.close !== undefined && q.close !== null)
-                .map((item: any) => ({
-                    date: item.date,
-                    close: item.close
-                }));
-
-            CacheUtils.set(cacheKey, formatted);
-            return formatted;
-        } catch (error: any) {
-            console.warn(`[StockIntel] Error fetching historical data for ${symbol}: ${error.message || error}`);
-            const fallback = CacheUtils.getFallback(cacheKey);
-            return fallback || [];
-        }
+        }, TTL);
     }
 
     async getPerformance(symbol: string, period: string = '1mo'): Promise<Partial<Stock> & {
@@ -250,84 +253,89 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
         }
 
         const cacheKey = `perf_${symbol}_${period}`;
-        try {
-            const end = new Date();
-            const start = new Date();
+        const TTL = 10 * 60 * 1000; // 10 minutes TTL for multi-day performance
 
-            if (period === '1mo') start.setMonth(start.getMonth() - 1);
-            else if (period === '3mo') start.setMonth(start.getMonth() - 3);
-            else if (period === '6mo') start.setMonth(start.getMonth() - 6);
-            else if (period === '1y') start.setFullYear(start.getFullYear() - 1);
-            else if (period === '5y') start.setFullYear(start.getFullYear() - 5);
-            else if (period === 'ytd') start.setFullYear(start.getFullYear() - 1); // Rolling year as per user preference
-            else if (period === 'all') start.setFullYear(1980, 0, 1); // Consistent with getHistoricalData
-            else start.setMonth(start.getMonth() - 1); // Default 1M
+        return CacheUtils.getOrFetch(cacheKey, async () => {
+            try {
+                const end = new Date();
+                const start = new Date();
 
-            const result = await this.withRetry(() => yahooFinance.chart(symbol, {
-                period1: start,
-                period2: end,
-                interval: '1d'
-            }), symbol);
+                if (period === '1mo') start.setMonth(start.getMonth() - 1);
+                else if (period === '3mo') start.setMonth(start.getMonth() - 3);
+                else if (period === '6mo') start.setMonth(start.getMonth() - 6);
+                else if (period === '1y') start.setFullYear(start.getFullYear() - 1);
+                else if (period === '5y') start.setFullYear(start.getFullYear() - 5);
+                else if (period === 'ytd') start.setFullYear(start.getFullYear() - 1); // Rolling year as per user preference
+                else if (period === 'all') start.setFullYear(1980, 0, 1); // Consistent with getHistoricalData
+                else start.setMonth(start.getMonth() - 1); // Default 1M
 
-            if (!result || !result.quotes || result.quotes.length === 0 || !stock.price) {
+                const result = await this.withRetry(() => yahooFinance.chart(symbol, {
+                    period1: start,
+                    period2: end,
+                    interval: '1d'
+                }), symbol);
+
+                if (!result || !result.quotes || result.quotes.length === 0 || !stock.price) {
+                    return {
+                        ...stock,
+                        symbol,
+                        change: stock.change || 0,
+                        changePercent: stock.changePercent || 0,
+                        currentPrice: stock.price || 0,
+                        volume: stock.volume
+                    };
+                }
+
+                const history = result.quotes.filter((q: any) => q.close !== undefined && q.close !== null);
+                if (history.length === 0) {
+                    return {
+                        ...stock,
+                        symbol,
+                        change: stock.change || 0,
+                        changePercent: stock.changePercent || 0,
+                        currentPrice: stock.price || 0,
+                        volume: stock.volume
+                    };
+                }
+
+                const startPrice = history[0].close;
+                if (startPrice === null || startPrice === undefined) {
+                    return {
+                        ...stock,
+                        symbol,
+                        change: stock.change || 0,
+                        changePercent: stock.changePercent || 0,
+                        currentPrice: stock.price || 0,
+                        volume: stock.volume
+                    };
+                }
+                const currentPrice = stock.price;
+                const change = currentPrice - startPrice;
+                const changePercent = (change / startPrice) * 100;
+
+                // Calculate Period Low/High using the actual daily high/low values
+                const pricesLow = history.map((h: any) => h.low).filter((p: any) => typeof p === 'number');
+                const pricesHigh = history.map((h: any) => h.high).filter((p: any) => typeof p === 'number');
+
+                const low = Math.min(...pricesLow, currentPrice);
+                const high = Math.max(...pricesHigh, currentPrice);
+
                 return {
+                    ...stock,
                     symbol,
-                    change: stock.change || 0,
-                    changePercent: stock.changePercent || 0,
-                    currentPrice: stock.price || 0,
-                    volume: stock.volume
+                    change,
+                    changePercent,
+                    currentPrice,
+                    low,
+                    high,
+                    sector: stock.sector
                 };
+            } catch (error: any) {
+                console.warn(`[StockIntel] Error calculating performance for ${symbol}: ${error.message}`);
+                const fallback = CacheUtils.getFallback(cacheKey);
+                return fallback || { symbol, change: 0, changePercent: 0, currentPrice: 0, volume: stock.volume };
             }
-
-            const history = result.quotes.filter((q: any) => q.close !== undefined && q.close !== null);
-            if (history.length === 0) {
-                return {
-                    symbol,
-                    change: stock.change || 0,
-                    changePercent: stock.changePercent || 0,
-                    currentPrice: stock.price || 0,
-                    volume: stock.volume
-                };
-            }
-
-            const startPrice = history[0].close;
-            if (startPrice === null || startPrice === undefined) {
-                return {
-                    symbol,
-                    change: stock.change || 0,
-                    changePercent: stock.changePercent || 0,
-                    currentPrice: stock.price || 0,
-                    volume: stock.volume
-                };
-            }
-            const currentPrice = stock.price;
-            const change = currentPrice - startPrice;
-            const changePercent = (change / startPrice) * 100;
-
-            // Calculate Period Low/High using the actual daily high/low values
-            const pricesLow = history.map((h: any) => h.low).filter((p: any) => typeof p === 'number');
-            const pricesHigh = history.map((h: any) => h.high).filter((p: any) => typeof p === 'number');
-
-            const low = Math.min(...pricesLow, currentPrice);
-            const high = Math.max(...pricesHigh, currentPrice);
-
-            const resultObj = {
-                ...stock,
-                symbol,
-                change,
-                changePercent,
-                currentPrice,
-                low,
-                high,
-                sector: stock.sector
-            };
-            CacheUtils.set(cacheKey, resultObj);
-            return resultObj;
-        } catch (error: any) {
-            console.warn(`[StockIntel] Error calculating performance for ${symbol}: ${error.message}`);
-            const fallback = CacheUtils.getFallback(cacheKey);
-            return fallback || { symbol, change: 0, changePercent: 0, currentPrice: 0, volume: stock.volume };
-        }
+        }, TTL);
     }
 
     async searchStocks(query: string): Promise<Partial<Stock>[]> {
@@ -372,83 +380,86 @@ export class YahooFinanceMarketAdapter implements MarketDataPort {
 
     async getScreenerData(scrId: string, count: number = 25): Promise<Partial<Stock>[]> {
         const cacheKey = `screener_in_v2_${scrId}_${count}`;
-        try {
-            // First attempt: Try the predefined screener with region IN
-            // (Note: This often returns US results even with region IN)
-            const fetchCount = Math.max(count * 4, 100);
-            const result = await this.withRetry(() => yahooFinance.screener({
-                scrIds: scrId as any,
-                count: fetchCount,
-                region: 'IN'
-            }, undefined, { validateResult: false }), `screener_${scrId}`);
+        const TTL = 5 * 60 * 1000; // 5 minutes TTL
 
-            let quotes: any[] = (result as any)?.quotes || [];
+        return CacheUtils.getOrFetch(cacheKey, async () => {
+            try {
+                // First attempt: Try the predefined screener with region IN
+                // (Note: This often returns US results even with region IN)
+                const fetchCount = Math.max(count * 4, 100);
+                const result = await this.withRetry(() => yahooFinance.screener({
+                    scrIds: scrId as any,
+                    count: fetchCount,
+                    region: 'IN'
+                }, undefined, { validateResult: false }), `screener_${scrId}`);
 
-            // If we got zero results OR they are all US stocks (default behavior for standard IDs)
-            // we fall back to our curated Indian stock list to provide a better regional experience.
-            const isAllUS = quotes.length > 0 && quotes.every((q: any) => q.currency === 'USD');
-            if (quotes.length === 0 || isAllUS) {
-                console.info(`[StockIntel] Screener ${scrId} for region IN: Using Smart Fallback`);
+                let quotes: any[] = (result as any)?.quotes || [];
 
-                const allSymbols = this.getDynamicSymbols();
-                // Expanded core seeds to ensure high-liquidity stocks are always present
-                const coreSeeds = [
-                    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
-                    'TATAMOTORS.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'LT.NS',
-                    'WIPRO.NS', 'ASIANPAINT.NS', 'TITAN.NS', 'ADANIENT.NS', 'MARUTI.NS',
-                    'SUNPHARMA.NS', 'HCLTECH.NS', 'KOTAKBANK.NS', 'AXISBANK.NS', 'ONGC.NS',
-                    'BAJAJ-AUTO.NS', 'NTPC.NS', 'POWERGRID.NS', 'COALINDIA.NS'
-                ];
+                // If we got zero results OR they are all US stocks (default behavior for standard IDs)
+                // we fall back to our curated Indian stock list to provide a better regional experience.
+                const isAllUS = quotes.length > 0 && quotes.every((q: any) => q.currency === 'USD');
+                if (quotes.length === 0 || isAllUS) {
+                    console.info(`[StockIntel] Screener ${scrId} for region IN: Using Smart Fallback`);
 
-                // Shuffle and sample 150 random from the 8k pool
-                const pool = allSymbols.filter(s => !coreSeeds.includes(s));
-                const randomSample = pool.sort(() => 0.5 - Math.random()).slice(0, 150);
-                const testBatch = Array.from(new Set([...coreSeeds, ...randomSample])).slice(0, 200);
+                    const allSymbols = this.getDynamicSymbols();
+                    // Expanded core seeds to ensure high-liquidity stocks are always present
+                    const coreSeeds = [
+                        'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
+                        'TATAMOTORS.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'LT.NS',
+                        'WIPRO.NS', 'ASIANPAINT.NS', 'TITAN.NS', 'ADANIENT.NS', 'MARUTI.NS',
+                        'SUNPHARMA.NS', 'HCLTECH.NS', 'KOTAKBANK.NS', 'AXISBANK.NS', 'ONGC.NS',
+                        'BAJAJ-AUTO.NS', 'NTPC.NS', 'POWERGRID.NS', 'COALINDIA.NS'
+                    ];
 
-                // Fetch and filter for valid results only (with validation suppressed via third argument)
-                const batchResult = await this.withRetry(() => yahooFinance.quote(testBatch, undefined, { validateResult: false }), `fallback_quotes_${scrId}`);
-                quotes = Array.isArray(batchResult)
-                    ? batchResult.filter(q => q && (q.regularMarketPrice !== undefined || q.regularMarketChangePercent !== undefined))
-                    : [];
+                    // Shuffle and sample 150 random from the 8k pool
+                    const pool = allSymbols.filter(s => !coreSeeds.includes(s));
+                    const randomSample = pool.sort(() => 0.5 - Math.random()).slice(0, 150);
+                    const testBatch = Array.from(new Set([...coreSeeds, ...randomSample])).slice(0, 200);
 
-                // Sort based on the requested screener type
-                if (scrId === 'day_gainers') {
-                    quotes.sort((a: any, b: any) => (b.regularMarketChangePercent || 0) - (a.regularMarketChangePercent || 0));
-                } else if (scrId === 'day_losers') {
-                    quotes.sort((a: any, b: any) => (a.regularMarketChangePercent || 0) - (b.regularMarketChangePercent || 0));
-                } else if (scrId === 'most_actives') {
-                    quotes.sort((a: any, b: any) => (b.regularMarketVolume || 0) - (a.regularMarketVolume || 0));
+                    // Fetch and filter for valid results only (with validation suppressed via third argument)
+                    const batchResult = await this.withRetry(() => yahooFinance.quote(testBatch, undefined, { validateResult: false }), `fallback_quotes_${scrId}`);
+                    quotes = Array.isArray(batchResult)
+                        ? batchResult.filter(q => q && (q.regularMarketPrice !== undefined || q.regularMarketChangePercent !== undefined))
+                        : [];
+
+                    // Sort based on the requested screener type
+                    if (scrId === 'day_gainers') {
+                        quotes.sort((a: any, b: any) => (b.regularMarketChangePercent || 0) - (a.regularMarketChangePercent || 0));
+                    } else if (scrId === 'day_losers') {
+                        quotes.sort((a: any, b: any) => (a.regularMarketChangePercent || 0) - (b.regularMarketChangePercent || 0));
+                    } else if (scrId === 'most_actives') {
+                        quotes.sort((a: any, b: any) => (b.regularMarketVolume || 0) - (a.regularMarketVolume || 0));
+                    }
                 }
-            }
 
-            // Map and return results
-            const stocks: Partial<Stock>[] = quotes
-                .filter((quote: any) =>
-                    quote && quote.symbol && quote.symbol.endsWith('.NS')
-                )
-                .slice(0, count)
-                .map((quote: any) => ({
-                    symbol: quote.symbol,
-                    name: quote.longName || quote.shortName || quote.symbol,
-                    price: quote.regularMarketPrice || 0,
-                    change: quote.regularMarketChange || 0,
-                    changePercent: quote.regularMarketChangePercent || 0,
-                    marketCap: quote.marketCap || 0,
-                    volume: quote.regularMarketVolume || 0,
-                    currency: quote.currency || 'INR',
-                    lastUpdated: new Date()
-                }));
+                // Map and return results
+                const stocks: Partial<Stock>[] = quotes
+                    .filter((quote: any) =>
+                        quote && quote.symbol && quote.symbol.endsWith('.NS')
+                    )
+                    .slice(0, count)
+                    .map((quote: any) => ({
+                        symbol: quote.symbol,
+                        name: quote.longName || quote.shortName || quote.symbol,
+                        price: quote.regularMarketPrice || 0,
+                        change: quote.regularMarketChange || 0,
+                        changePercent: quote.regularMarketChangePercent || 0,
+                        marketCap: quote.marketCap || 0,
+                        volume: quote.regularMarketVolume || 0,
+                        currency: quote.currency || 'INR',
+                        lastUpdated: new Date()
+                    }));
 
-            CacheUtils.set(cacheKey, stocks);
-            return stocks;
-        } catch (error: any) {
-            if (error.name === 'FailedYahooValidationError' && error.result) {
-                console.warn(`[StockIntel] Recovered from Yahoo Validation Error for ${scrId}`);
+                return stocks;
+            } catch (error: any) {
+                if (error.name === 'FailedYahooValidationError' && error.result) {
+                    console.warn(`[StockIntel] Recovered from Yahoo Validation Error for ${scrId}`);
+                }
+                console.warn(`[StockIntel] Error in getScreenerData for ${scrId}: ${error.message || error}`);
+                const fallback = CacheUtils.getFallback(cacheKey);
+                return fallback || [];
             }
-            console.warn(`[StockIntel] Error in getScreenerData for ${scrId}: ${error.message || error}`);
-            const fallback = CacheUtils.getFallback(cacheKey);
-            return fallback || [];
-        }
+        }, TTL);
     }
 
     async getNews(symbol: string, count: number = 5): Promise<any[]> {

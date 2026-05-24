@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getInfrastructure } from "@/infrastructure/container";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { CacheUtils } from "@/infrastructure/cache-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +42,15 @@ export async function GET(request: Request) {
         "^IRX", "^FVX", "^TNX", "^TYX"
     ];
 
+    const cacheKey = `market_all_data_${timeframe}`;
+    const TTL = 30 * 1000; // 30s TTL for aggregates
+
     try {
-        const marketData = await Promise.all(
-            symbols.map(symbol => infra.market.getPerformance(symbol, timeframe))
-        );
+        const marketData = await CacheUtils.getOrFetch(cacheKey, async () => {
+            return Promise.all(
+                symbols.map(symbol => infra.market.getPerformance(symbol, timeframe))
+            );
+        }, TTL);
         return NextResponse.json(marketData);
     } catch (err) {
         console.error("API data fetch failed", err);

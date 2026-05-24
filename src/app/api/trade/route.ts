@@ -280,6 +280,11 @@ export async function POST(req: Request) {
             }
         }
 
+        if (success) {
+            const { CacheUtils } = require("@/infrastructure/cache-utils");
+            CacheUtils.delete(`portfolio_analytics_${userId}`);
+        }
+
         if (success && idempotencyKey && idempotencyCollection && responseJson) {
             await idempotencyCollection.updateOne(
                 { key: idempotencyKey },
