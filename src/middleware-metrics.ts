@@ -1,6 +1,8 @@
+import 'server-only';
 import { NextResponse } from "next/server";
 import { MetricsRegistry } from "./infrastructure/metrics";
 import { Logger } from "./infrastructure/logger";
+
 
 /**
  * withMetrics — higher-order function for instrumenting Next.js route handlers.

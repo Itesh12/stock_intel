@@ -7,6 +7,7 @@
  * - Rolling windows: API latency percentiles over last 1000 requests per route
  * - Additive only: never modifies the systems it observes
  */
+import 'server-only';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -335,14 +336,16 @@ class MetricsRegistryClass {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Singleton export
+// Singleton export — safe for both Node.js (global) and browser (module-level)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Use global to survive hot-reload in Next.js dev mode
 const GLOBAL_KEY = '__stockintel_metrics_registry__';
 
-if (!(global as any)[GLOBAL_KEY]) {
-    (global as any)[GLOBAL_KEY] = new MetricsRegistryClass();
+// Use globalThis which is defined in all environments (Node.js, browser, Edge)
+const _globalThis = typeof globalThis !== 'undefined' ? globalThis : ({} as any);
+
+if (!(_globalThis as any)[GLOBAL_KEY]) {
+    (_globalThis as any)[GLOBAL_KEY] = new MetricsRegistryClass();
 }
 
-export const MetricsRegistry: MetricsRegistryClass = (global as any)[GLOBAL_KEY];
+export const MetricsRegistry: MetricsRegistryClass = (_globalThis as any)[GLOBAL_KEY];

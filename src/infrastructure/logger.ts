@@ -14,6 +14,7 @@
  *   "metadata": { ...any context }
  * }
  */
+import 'server-only';
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR';
 export type LogStatus = 'SUCCESS' | 'FAILURE' | 'WARNING' | 'STARTED' | 'SKIPPED';
