@@ -1,5 +1,8 @@
 import { MongoClient, Db } from "mongodb";
 import { Pool } from "pg";
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
 import { StockRepository } from "../ports/stock-repository";
 import { PortfolioRepository } from "../ports/portfolio-repository";
 import { MarketDataPort } from "../ports/market-data-port";
@@ -115,9 +118,57 @@ export interface Infrastructure {
     mongoClient: MongoClient | null;
 }
 
+const requiredEnv = [
+   "DB_DRIVER",
+   "MONGO_URI",
+   "MONGO_DB",
+   "NEXTAUTH_URL",
+   "NEXTAUTH_SECRET"
+];
+
+function checkAndInitializeEnv() {
+    const rootDir = process.cwd();
+    const envPath = path.join(rootDir, ".env");
+    const examplePath = path.join(rootDir, ".env.example");
+
+    let envExists = fs.existsSync(envPath);
+    if (!envExists) {
+        if (fs.existsSync(examplePath)) {
+            console.log("[Env] .env not found. Copying values from .env.example...");
+            fs.copyFileSync(examplePath, envPath);
+            envExists = true;
+        } else {
+            console.warn("[Env] Neither .env nor .env.example found.");
+        }
+    }
+
+    if (envExists) {
+        dotenv.config({ path: envPath });
+    }
+
+    // Run startup validation
+    const missing: string[] = [];
+    const found: string[] = [];
+
+    for (const key of requiredEnv) {
+        if (!process.env[key]) {
+            missing.push(key);
+        } else {
+            found.push(key);
+        }
+    }
+
+    console.log(`[Env] Found environment variables: ${found.join(", ")}`);
+    if (missing.length > 0) {
+        console.error(`[Env] Missing required variables: ${missing.join(", ")}`);
+        throw new Error(`${missing.join(", ")} missing. Please configure .env`);
+    }
+}
+
 let cachedInfra: Infrastructure | null = null;
 
 export async function getInfrastructure(): Promise<Infrastructure> {
+    checkAndInitializeEnv();
     if (cachedInfra) return cachedInfra;
 
     const dbDriver = process.env.DB_DRIVER || "mongo";
@@ -145,7 +196,11 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let mongoClient: MongoClient | null = null;
 
     if (dbDriver === "mongo") {
-        const client = await MongoClient.connect(process.env.MONGO_URI || "mongodb://localhost:27017");
+        const mongoUri = process.env.MONGO_URI;
+        if (!mongoUri) {
+            throw new Error("MONGO_URI missing from environment variables");
+        }
+        const client = await MongoClient.connect(mongoUri);
         mongoClient = client;
         const db = client.db(process.env.MONGO_DB || "market");
         stockRepo = new MongoStockRepository(db);
