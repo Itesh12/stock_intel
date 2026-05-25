@@ -209,12 +209,14 @@ export default function AutoTradeClient({
                         <AlertOctagon size={16} /> Emergency Halt
                     </button>
 
-                    <button 
-                        onClick={() => router.push("/auto-trade/setup")}
-                        className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-950/20"
-                    >
-                        <Plus size={16} /> Deploy Assistant
-                    </button>
+                    {assistants.length > 0 && (
+                        <button 
+                            onClick={() => router.push("/auto-trade/setup")}
+                            className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-950/20"
+                        >
+                            <Plus size={16} /> Deploy Assistant
+                        </button>
+                    )}
                 </div>
             </div>
 
