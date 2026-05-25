@@ -6,5 +6,5 @@ export interface PortfolioRepository {
     save(portfolio: Portfolio, session?: any): Promise<void>;
     delete(id: string, session?: any): Promise<void>;
     list(): Promise<Portfolio[]>;
-    executeTrade(portfolioId: string, symbol: string, quantity: number, price: number, type: 'BUY' | 'SELL', session?: any): Promise<void>;
+    executeTrade(portfolioId: string, symbol: string, quantity: number, price: number, type: 'BUY' | 'SELL', session?: any, botId?: string): Promise<void>;
 }

@@ -26,10 +26,10 @@ import { MongoJournalRepository } from "../adapters/mongodb/journal-repo";
 import { MongoAlertRepository } from "../adapters/mongodb/alert-repo";
 import { NotificationRepository } from "../ports/notification-repository";
 import { MongoNotificationRepository } from "../adapters/mongodb/notification-repo";
-import { AutoTradeBotRepository } from "../domain/auto-trade-bot";
-import { MongoAutoTradeBotRepository } from "../adapters/mongodb/auto-trade-bot-repo";
 import { AutoTradeLogRepository } from "../domain/auto-trade-log";
 import { MongoAutoTradeLogRepository } from "../adapters/mongodb/auto-trade-log-repo";
+import { StrategyAssistantRepository } from "../domain/strategy-assistant";
+import { MongoStrategyAssistantRepository } from "../adapters/mongodb/strategy-assistant-repo";
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -41,7 +41,7 @@ import { YahooFinanceMarketAdapter } from "../adapters/yahoo/market-adapter";
 import { NoOpMarketAdapter } from "../adapters/noop/market-data-adapter";
 import { HybridMarketAdapter } from "../adapters/hybrid/market-adapter";
 import { TradeMonitorService } from "../application/trade-monitor-service";
-import { AutoTradeService } from "../application/auto-trade-service";
+import { SignalProcessor } from "../application/signal-processor";
 import { MetricsRegistry } from "./metrics";
 import { Logger } from "./logger";
 
@@ -126,8 +126,8 @@ export interface Infrastructure {
     alert: MongoAlertRepository;
     notification: NotificationRepository;
     market: MarketDataPort;
-    autoTradeBot: AutoTradeBotRepository;
     autoTradeLog: AutoTradeLogRepository;
+    strategyAssistant: StrategyAssistantRepository;
     mongoClient: MongoClient | null;
 }
 
@@ -214,8 +214,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let journalRepo: MongoJournalRepository;
     let alertRepo: MongoAlertRepository;
     let notificationRepo: NotificationRepository;
-    let autoTradeBotRepo: AutoTradeBotRepository;
     let autoTradeLogRepo: AutoTradeLogRepository;
+    let strategyAssistantRepo: StrategyAssistantRepository;
 
     const yahooAdapter = new YahooFinanceMarketAdapter();
     const finnhubAdapter = apiKey ? new FinnhubMarketAdapter(apiKey) : null;
@@ -242,8 +242,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         journalRepo = new MongoJournalRepository(db);
         alertRepo = new MongoAlertRepository(db);
         notificationRepo = new MongoNotificationRepository(db);
-        autoTradeBotRepo = new MongoAutoTradeBotRepository(db);
         autoTradeLogRepo = new MongoAutoTradeLogRepository(db);
+        strategyAssistantRepo = new MongoStrategyAssistantRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -258,8 +258,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         journalRepo = new MongoJournalRepository({} as any);
         alertRepo = new MongoAlertRepository({} as any);
         notificationRepo = new MongoNotificationRepository({} as any);
-        autoTradeBotRepo = new MongoAutoTradeBotRepository({} as any);
         autoTradeLogRepo = new MongoAutoTradeLogRepository({} as any);
+        strategyAssistantRepo = new MongoStrategyAssistantRepository({} as any);
     }
 
     cachedInfra = {
@@ -275,8 +275,8 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         alert: alertRepo,
         notification: notificationRepo,
         market: marketAdapter,
-        autoTradeBot: autoTradeBotRepo!,
         autoTradeLog: autoTradeLogRepo!,
+        strategyAssistant: strategyAssistantRepo!,
         mongoClient: mongoClient,
     };
 
@@ -291,16 +291,20 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         "tradeMonitorStarted"
     );
 
-    // Step 2: Auto Trade bot engine loop (runs every 30 seconds)
-    startWorkerLoop(
-        "AutoTrade",
-        async () => {
-            const service = new AutoTradeService(cachedInfra!);
-            await service.runAllBots();
-        },
-        30000,
-        "autoTradeStarted"
-    );
+
+
+    // Step 3: Strategy Assistants background loop (runs every 30 seconds)
+    if (process.env.ENABLE_STRATEGY_ASSISTANTS === "true") {
+        startWorkerLoop(
+            "StrategyAssistant",
+            async () => {
+                const processor = new SignalProcessor(cachedInfra!);
+                await processor.runAll();
+            },
+            30000,
+            "strategyAssistantStarted"
+        );
+    }
 
     return cachedInfra as Infrastructure;
 }

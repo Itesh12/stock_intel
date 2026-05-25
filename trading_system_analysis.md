@@ -214,7 +214,7 @@ Background loop handlers are started when the dependency container is initialize
     *   Dispatches notifications via `NotificationService`.
 
 ### AutoTradeService Internals (Runs every 30 seconds)
-1.  **Fetch Active Bots**: Queries all active `AutoTradeBot` configurations.
+1.  **Fetch Active Bots**: Queries all active `StrategyAssistant` configurations.
 2.  **Daily Reset Check**: Resets the daily count if `bot.todayDate !== todayStr()`.
 3.  **Pre-Trade Guards**:
     *   Check if daily trade limits are exceeded (`todayTradeCount >= maxTradesPerDay`).

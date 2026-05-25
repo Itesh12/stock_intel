@@ -92,7 +92,8 @@ export class MongoPortfolioRepository implements PortfolioRepository {
         quantity: number, 
         price: number, 
         type: 'BUY' | 'SELL',
-        session?: ClientSession
+        session?: ClientSession,
+        botId?: string
     ): Promise<void> {
         const portfolio = await this.findById(portfolioId, session);
         if (!portfolio) throw new Error("Portfolio not found");
@@ -115,7 +116,8 @@ export class MongoPortfolioRepository implements PortfolioRepository {
                     currentPrice: price,
                     marketValue: newQty * price,
                     unrealizedPL: (price - newAvg) * newQty,
-                    unrealizedPLPercent: ((price - newAvg) / newAvg) * 100
+                    unrealizedPLPercent: ((price - newAvg) / newAvg) * 100,
+                    botId: botId || existing.botId
                 };
             } else {
                 portfolio.holdings.push({
@@ -128,7 +130,8 @@ export class MongoPortfolioRepository implements PortfolioRepository {
                     unrealizedPL: 0,
                     unrealizedPLPercent: 0,
                     sector: "Auto-Assigned",
-                    weight: 0
+                    weight: 0,
+                    botId
                 });
             }
             portfolio.cashBalance -= totalValue;

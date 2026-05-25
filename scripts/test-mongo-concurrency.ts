@@ -2,6 +2,19 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 
+try {
+  const Module = require('module');
+  const mockPath = require.resolve('server-only');
+  Module._cache[mockPath] = {
+    id: mockPath,
+    filename: mockPath,
+    exports: {},
+    loaded: true
+  };
+} catch (e) {
+  // Ignore
+}
+
 // 1. Detect whether .env exists, if not, copy from .env.example
 const rootDir = process.cwd();
 const envPath = path.join(rootDir, ".env");

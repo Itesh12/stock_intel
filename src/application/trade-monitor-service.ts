@@ -37,10 +37,11 @@ export class TradeMonitorService {
                     try {
                         // 1. Handle Trailing Stop-Loss adjustments if applicable
                         if (order.type === 'STOP_LOSS' && order.botId) {
-                            const bot = await this.infra.autoTradeBot.findById(order.botId);
-                            if (bot && bot.useTrailingStop) {
+                            const assistant = await this.infra.strategyAssistant.findById(order.botId);
+
+                            if (assistant && assistant.useTrailingStop) {
                                 const theoreticalStopPrice = parseFloat(
-                                    (currentPrice * (1 - bot.stopLossPercent / 100)).toFixed(2)
+                                    (currentPrice * (1 - assistant.stopLossPercent / 100)).toFixed(2)
                                 );
                                 if (theoreticalStopPrice > order.targetPrice) {
                                     const oldStop = order.targetPrice;
@@ -48,7 +49,7 @@ export class TradeMonitorService {
                                     await this.infra.limitOrder.save(order);
                                     
                                     const trailMsg = `📈 Trailing SL Adjusted: Raised stop price for ${order.symbol.replace('.NS', '')} from ₹${oldStop.toFixed(2)} to ₹${theoreticalStopPrice.toFixed(2)} based on stock price rising to ₹${currentPrice.toFixed(2)}.`;
-                                    await this.auditLog(bot.id, 'INFO', 'TRADE_EXIT', trailMsg, {
+                                    await this.auditLog(assistant.id, 'INFO', 'TRADE_EXIT', trailMsg, {
                                         symbol: order.symbol,
                                         oldStop,
                                         newStop: theoreticalStopPrice,
@@ -184,33 +185,34 @@ export class TradeMonitorService {
                     averagePriceAtSale
                 }, session);
 
-                // Handle Bot stats & Progressive budget release
+                // Handle Bot/Assistant stats & Progressive budget release
                 if (order.botId) {
-                    const bot = await this.infra.autoTradeBot.findById(order.botId);
-                    if (bot) {
+                    const assistant = await this.infra.strategyAssistant.findById(order.botId);
+
+                    if (assistant) {
                         const positionCost = order.quantity * averagePriceAtSale;
-                        const newDeployed = Math.max(0, bot.deployedCash - positionCost);
+                        const newDeployed = Math.max(0, assistant.deployedCapital - positionCost);
                         const isWin = realizedPL > 0;
 
-                        // Increment bot metrics
-                        const updatedBotStats: Partial<any> = {
-                            deployedCash: newDeployed,
-                            totalPnL: bot.totalPnL + realizedPL,
-                            winCount: bot.winCount + (isWin ? 1 : 0),
-                            lossCount: bot.lossCount + (isWin ? 0 : 1),
+                        // Increment assistant metrics
+                        const updatedAssistantStats = {
+                            deployedCapital: newDeployed,
+                            totalPnL: assistant.totalPnL + realizedPL,
+                            winCount: assistant.winCount + (isWin ? 1 : 0),
+                            lossCount: assistant.lossCount + (isWin ? 0 : 1),
                         };
 
-                        await this.infra.autoTradeBot.updateStats(bot.id, updatedBotStats, session);
+                        await this.infra.strategyAssistant.updateStats(assistant.id, updatedAssistantStats, session);
 
-                        // Progressive Reservation Cash release if bot is PAUSED or STOPPED
-                        if (bot.status === 'PAUSED' || bot.status === 'STOPPED') {
+                        // Progressive Reservation Cash release if assistant is PAUSED or RISK_STOPPED
+                        if (assistant.status === 'PAUSED' || assistant.status === 'RISK_STOPPED') {
                             const updatedPortfolio = await this.infra.portfolio.findById(portfolio.id, session);
                             if (updatedPortfolio) {
                                 updatedPortfolio.reservedCash = Math.max(0, (updatedPortfolio.reservedCash || 0) - positionCost);
                                 await this.infra.portfolio.save(updatedPortfolio, session);
                                 
                                 const releaseMsg = `🔓 Progressive Release: Released ₹${positionCost.toFixed(2)} from portfolio reservedCash as position in ${order.symbol.replace('.NS', '')} was closed (Remaining reserved: ₹${(updatedPortfolio.reservedCash || 0).toFixed(2)}).`;
-                                await this.auditLog(bot.id, 'INFO', 'TRADE_EXIT', releaseMsg, {
+                                await this.auditLog(assistant.id, 'INFO', 'TRADE_EXIT', releaseMsg, {
                                     symbol: order.symbol,
                                     releasedCash: positionCost,
                                     reservedCash: updatedPortfolio.reservedCash
@@ -220,14 +222,14 @@ export class TradeMonitorService {
 
                         // Log exit execution in terminal audit logs
                         const exitMsg = `📉 Exit Execution: Closed position for ${order.quantity} shares of ${order.symbol.replace('.NS', '')} @ ₹${executionPrice.toFixed(2)} via ${order.type} (Realized PnL: ₹${realizedPL.toFixed(2)} | Net Return: ${((realizedPL / positionCost) * 100).toFixed(2)}%).`;
-                        await this.auditLog(bot.id, isWin ? 'INFO' : 'WARN', 'TRADE_EXIT', exitMsg, {
+                        await this.auditLog(assistant.id, isWin ? 'INFO' : 'WARN', 'TRADE_EXIT', exitMsg, {
                             symbol: order.symbol,
                             qty: order.quantity,
                             exitPrice: executionPrice,
                             pnl: realizedPL
                         });
                     } else {
-                        // Bot was deleted! Release the reserved cash progressively
+                        // Bot/Assistant was deleted! Release the reserved cash progressively
                         const positionCost = order.quantity * averagePriceAtSale;
                         const updatedPortfolio = await this.infra.portfolio.findById(portfolio.id, session);
                         if (updatedPortfolio) {

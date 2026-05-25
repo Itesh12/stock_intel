@@ -14,7 +14,7 @@ export interface LimitOrder {
     executedAt?: Date;
     strategyId?: string; // Link to a scanner signal
     parentOrderId?: string; // For attached SL/TP
-    botId?: string;          // Links to AutoTradeBot if auto-placed
+    botId?: string;          // Links to StrategyAssistant if auto-placed
 }
 
 export interface LimitOrderRepository {

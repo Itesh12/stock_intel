@@ -11,7 +11,7 @@ Module.prototype.require = function (id: string) {
 import { getInfrastructure } from "../src/infrastructure/container";
 import { SectorResolverService } from "../src/application/sector-resolver-service";
 import { RiskGuardService } from "../src/application/risk-guard-service";
-import { AutoTradeBot } from "../src/domain/auto-trade-bot";
+import { StrategyAssistant } from "../src/domain/strategy-assistant";
 import { LimitOrder } from "../src/domain/limit-order";
 import { Trade } from "../src/domain/trade";
 
@@ -62,19 +62,17 @@ async function runTests() {
         // ==========================================
         console.log("2. Running RiskGuardService Validation Checks...");
 
-        const mockBot: AutoTradeBot = {
+        const mockBot: StrategyAssistant = {
             id: "test-bot-123",
             userId: "test-user-456",
             name: "Swing Breakout Alpha",
             strategySlug: "swing-strategy",
             strategyName: "Swing Momentum",
-            status: "ACTIVE",
-            capitalAllocated: 100000,
-            allocatedCash: 100000,
-            deployedCash: 0,
+            status: "RUNNING",
+            mode: "paper",
+            allocatedCapital: 100000,
+            deployedCapital: 0,
             maxPositionSizePercent: 20,
-            riskPerTradePercent: 2,
-            maxTradesPerDay: 3,
             stopLossPercent: 5,
             takeProfitPercent: 15,
             minConfluenceScore: 70,

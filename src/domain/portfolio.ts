@@ -11,6 +11,7 @@ export interface Holding {
     dayChangePercent?: number;
     sector: string;
     weight: number; // Percentage of total portfolio
+    botId?: string; // Link to the Strategy Assistant managing this position
 }
 
 export interface Portfolio {

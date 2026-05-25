@@ -1,4 +1,18 @@
 import "dotenv/config";
+
+try {
+  const Module = require('module');
+  const mockPath = require.resolve('server-only');
+  Module._cache[mockPath] = {
+    id: mockPath,
+    filename: mockPath,
+    exports: {},
+    loaded: true
+  };
+} catch (e) {
+  // Ignore
+}
+
 import { MongoClient } from "mongodb";
 
 // Mock MongoClient.connect globally to avoid dependency on a running database server

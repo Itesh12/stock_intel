@@ -1,16 +1,15 @@
-import { AutoTradeBot } from "../domain/auto-trade-bot";
 import { Trade } from "../domain/trade";
 
-export function calculateBotStats(
-    bot: AutoTradeBot,
+export function calculateAssistantStats(
+    assistant: any,
     userTrades: Trade[],
     portfolioHoldings: any[]
 ) {
-    const botTrades = userTrades.filter(t => t.botId === bot.id);
+    const assistantTrades = userTrades.filter(t => t.botId === assistant.id);
     
-    // Group bot trades by symbol
+    // Group assistant trades by symbol
     const tradesBySymbol: Record<string, Trade[]> = {};
-    for (const trade of botTrades) {
+    for (const trade of assistantTrades) {
         if (!tradesBySymbol[trade.symbol]) {
             tradesBySymbol[trade.symbol] = [];
         }
@@ -85,7 +84,7 @@ export function calculateBotStats(
         totalPnL,
         winCount,
         lossCount,
-        totalTradesExecuted: botTrades.length,
+        totalTradesExecuted: assistantTrades.length,
         activeHoldings
     };
 }

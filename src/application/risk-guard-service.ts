@@ -1,5 +1,5 @@
 import { Infrastructure } from "../infrastructure/container";
-import { AutoTradeBot } from "../domain/auto-trade-bot";
+import { StrategyAssistant } from "../domain/strategy-assistant";
 import { SectorResolverService } from "./sector-resolver-service";
 import { globalEvents } from "../infrastructure/events";
 import { Logger } from "../infrastructure/logger";
@@ -16,7 +16,7 @@ export class RiskGuardService {
      * Writes database logs and streams real-time messages via SSE.
      */
     public async evaluateRisk(
-        bot: AutoTradeBot,
+        bot: StrategyAssistant,
         symbol: string,
         proposedCost: number
     ): Promise<{ allowed: boolean; reason?: string }> {
@@ -73,10 +73,11 @@ export class RiskGuardService {
                 }
 
                 const totalSectorCost = currentSectorCost + proposedCost;
-                const allocationPercent = (totalSectorCost / bot.allocatedCash) * 100;
+                const allocatedCapital = bot.allocatedCapital;
+                const allocationPercent = (totalSectorCost / allocatedCapital) * 100;
 
                 if (allocationPercent > bot.maxSectorAllocationPercent) {
-                    const msg = `Risk check failed: Sector concentration limit exceeded for ${sector}. Limit: ${bot.maxSectorAllocationPercent}%, Proposed: ${allocationPercent.toFixed(1)}% (₹${totalSectorCost.toFixed(2)} / ₹${bot.allocatedCash}).`;
+                    const msg = `Risk check failed: Sector concentration limit exceeded for ${sector}. Limit: ${bot.maxSectorAllocationPercent}%, Proposed: ${allocationPercent.toFixed(1)}% (₹${totalSectorCost.toFixed(2)} / ₹${allocatedCapital}).`;
                     await this.auditLog(botId, "WARN", "RISK_GUARD", msg, {
                         sector,
                         totalSectorCost,
@@ -94,7 +95,8 @@ export class RiskGuardService {
 
         // 4. Drawdown Protection Check
         if (bot.drawdownProtectionPercent > 0 && bot.totalPnL < 0) {
-            const drawdownPercent = (Math.abs(bot.totalPnL) / bot.allocatedCash) * 100;
+            const allocatedCapital = bot.allocatedCapital;
+            const drawdownPercent = (Math.abs(bot.totalPnL) / allocatedCapital) * 100;
             if (drawdownPercent >= bot.drawdownProtectionPercent) {
                 const msg = `Risk check failed: Drawdown protection triggered. Current drawdown: ${drawdownPercent.toFixed(1)}% exceeds limit of ${bot.drawdownProtectionPercent}%.`;
                 await this.auditLog(botId, "ERROR", "RISK_GUARD", msg, { drawdownPercent, limit: bot.drawdownProtectionPercent });

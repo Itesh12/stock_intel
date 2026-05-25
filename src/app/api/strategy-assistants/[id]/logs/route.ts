@@ -10,27 +10,31 @@ export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    if (process.env.ENABLE_STRATEGY_ASSISTANTS !== "true") {
+        return NextResponse.json({ error: "Strategy Assistants module is disabled" }, { status: 403 });
+    }
+
     try {
         const session = await getServerSession(authOptions);
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { id: botId } = await params;
+        const { id: assistantId } = await params;
         const infra = await getInfrastructure();
         const userId = (session.user as any).id;
 
-        // Verify bot belongs to user
-        const bot = await infra.autoTradeBot.findById(botId);
-        if (!bot || bot.userId !== userId) {
-            return NextResponse.json({ error: "Bot not found" }, { status: 404 });
+        // Verify assistant belongs to user
+        const assistant = await infra.strategyAssistant.findById(assistantId);
+        if (!assistant || assistant.userId !== userId) {
+            return NextResponse.json({ error: "Assistant not found" }, { status: 404 });
         }
 
         // Parse query params to detect if SSE stream is requested
         const { searchParams } = new URL(req.url);
         const isStream = searchParams.get("stream") === "true";
 
-        if (isStream) {
+        if (isStream && process.env.ENABLE_ASSISTANT_SSE === "true") {
             const encoder = new TextEncoder();
             const stream = new ReadableStream({
                 start(controller) {
@@ -40,7 +44,7 @@ export async function GET(
                     };
 
                     // Subscribe to process-level EventEmitter singleton
-                    globalEvents.on(`log:${botId}`, logListener);
+                    globalEvents.on(`log:${assistantId}`, logListener);
 
                     // 15-second heartbeat to keep Vercel/proxies from killing the connection
                     const heartbeat = setInterval(() => {
@@ -49,7 +53,7 @@ export async function GET(
 
                     // Cleanup subscription on client close
                     req.signal.addEventListener("abort", () => {
-                        globalEvents.off(`log:${botId}`, logListener);
+                        globalEvents.off(`log:${assistantId}`, logListener);
                         clearInterval(heartbeat);
                         try {
                             controller.close();
@@ -70,12 +74,12 @@ export async function GET(
         }
 
         // Default: Return historical logs list
-        const logs = await infra.autoTradeLog.findByBotId(botId, 200);
+        const logs = await infra.autoTradeLog.findByBotId(assistantId, 200);
         // MongoDB findByBotId returns in reverse chronological order (-1 timestamp), 
-        // we can reverse it so the client receives them chronological (oldest first) for terminal render.
+        // we reverse it so the client receives them chronological (oldest first) for terminal render.
         return NextResponse.json(logs.reverse());
     } catch (error: any) {
-        console.error("Fetch bot logs error:", error);
+        console.error("Fetch assistant logs error:", error);
         return NextResponse.json(
             { error: error.message || "Internal Server Error" },
             { status: 500 }

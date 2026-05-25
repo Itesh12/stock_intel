@@ -16,8 +16,8 @@ export default async function AutoTradePage() {
     const userId = (session.user as any).id;
     const infra = await getInfrastructure();
 
-    // 1. Fetch user's bots
-    const bots = await infra.autoTradeBot.findByUserId(userId);
+    // 1. Fetch user's strategy assistants
+    const assistants = await infra.strategyAssistant.findByUserId(userId);
 
     // 2. Fetch user's portfolio cash balance
     const portfolios = await infra.portfolio.findByUserId(userId);
@@ -37,31 +37,39 @@ export default async function AutoTradePage() {
     }
 
     const trades = await infra.trade.findByUserId(userId);
-    const { calculateBotStats } = require("@/application/bot-stats-calculator");
+    const { calculateAssistantStats } = require("@/application/assistant-stats-calculator");
 
-    const enrichedBots = bots.map(bot => {
-        const stats = calculateBotStats(bot, trades, holdings);
-        // Async update DB cache
-        infra.autoTradeBot.updateStats(bot.id, stats).catch(err => {
-            console.error(`[AutoTradePage] Failed to update bot stats in DB:`, err);
+    const enrichedAssistants = assistants.map(assistant => {
+        const stats = calculateAssistantStats(assistant, trades, holdings);
+        
+        // Sync stats back to DB
+        infra.strategyAssistant.updateStats(assistant.id, {
+            totalPnL: stats.totalPnL,
+            winCount: stats.winCount,
+            lossCount: stats.lossCount,
+            totalTradesExecuted: stats.totalTradesExecuted,
+        }).catch(err => {
+            console.error(`[AutoTradePage] Failed to update assistant stats:`, err);
         });
+
         return {
-            ...bot,
+            ...assistant,
             ...stats
         };
     });
 
     // 3. Fetch strategies list
-    // Pre-market scan dynamic seeding is in search page, but we can query them from database safely.
     const dbStrategies = await infra.strategy.list();
 
     // Deep-serialize to plain JSON objects for client boundary compatibility
-    const plainBots = JSON.parse(JSON.stringify(enrichedBots || []));
+    const plainBots: any[] = [];
+    const plainAssistants = JSON.parse(JSON.stringify(enrichedAssistants || []));
     const plainStrategies = JSON.parse(JSON.stringify(dbStrategies || []));
 
     return (
         <AutoTradeClient
             initialBots={plainBots}
+            initialAssistants={plainAssistants}
             initialStrategies={plainStrategies}
             cashBalance={cashBalance}
         />

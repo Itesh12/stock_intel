@@ -1,39 +1,44 @@
 import { Collection, Db } from "mongodb";
-import { AutoTradeBot, AutoTradeBotRepository } from "../../domain/auto-trade-bot";
+import { StrategyAssistant, StrategyAssistantRepository } from "../../domain/strategy-assistant";
 import { v4 as uuidv4 } from "uuid";
 
-export class MongoAutoTradeBotRepository implements AutoTradeBotRepository {
+export class MongoStrategyAssistantRepository implements StrategyAssistantRepository {
     private collection: Collection;
 
     constructor(db: Db) {
-        this.collection = db.collection("auto_trade_bots");
+        this.collection = db.collection("strategy_assistants");
     }
 
-    async save(bot: AutoTradeBot): Promise<void> {
-        const id = bot.id || uuidv4();
+    async save(assistant: StrategyAssistant): Promise<void> {
+        const id = assistant.id || uuidv4();
         await this.collection.updateOne(
             { id },
-            { $set: { ...bot, id } },
+            { $set: { ...assistant, id, updatedAt: new Date() } },
             { upsert: true }
         );
     }
 
-    async findById(id: string): Promise<AutoTradeBot | null> {
+    async findById(id: string): Promise<StrategyAssistant | null> {
         const doc = await this.collection.findOne({ id });
         return doc ? this.map(doc) : null;
     }
 
-    async findByUserId(userId: string): Promise<AutoTradeBot[]> {
+    async findByUserId(userId: string): Promise<StrategyAssistant[]> {
         const docs = await this.collection.find({ userId }).sort({ createdAt: -1 }).toArray();
         return docs.map(d => this.map(d));
     }
 
-    async findAllActive(): Promise<AutoTradeBot[]> {
-        const docs = await this.collection.find({ status: 'ACTIVE' }).toArray();
+    async findAllRunning(): Promise<StrategyAssistant[]> {
+        const docs = await this.collection.find({ status: 'RUNNING' }).toArray();
         return docs.map(d => this.map(d));
     }
 
-    async updateStats(id: string, stats: Partial<AutoTradeBot>, session?: any): Promise<void> {
+    async findRunningByStrategy(strategySlug: string): Promise<StrategyAssistant[]> {
+        const docs = await this.collection.find({ strategySlug, status: 'RUNNING' }).toArray();
+        return docs.map(d => this.map(d));
+    }
+
+    async updateStats(id: string, stats: Partial<StrategyAssistant>, session?: any): Promise<void> {
         await this.collection.updateOne(
             { id },
             { $set: { ...stats, updatedAt: new Date() } },
@@ -45,7 +50,7 @@ export class MongoAutoTradeBotRepository implements AutoTradeBotRepository {
         await this.collection.deleteOne({ id });
     }
 
-    private map(doc: any): AutoTradeBot {
+    private map(doc: any): StrategyAssistant {
         return {
             id: doc.id,
             userId: doc.userId,
@@ -53,21 +58,19 @@ export class MongoAutoTradeBotRepository implements AutoTradeBotRepository {
             strategySlug: doc.strategySlug,
             strategyName: doc.strategyName,
             status: doc.status,
-            capitalAllocated: doc.capitalAllocated,
-            allocatedCash: doc.allocatedCash !== undefined ? doc.allocatedCash : (doc.capitalAllocated || 0),
-            deployedCash: doc.deployedCash || 0,
+            mode: doc.mode || 'paper',
+            allocatedCapital: doc.allocatedCapital !== undefined ? doc.allocatedCapital : (doc.capitalAllocated || 0),
+            deployedCapital: doc.deployedCapital || 0,
             maxPositionSizePercent: doc.maxPositionSizePercent,
-            riskPerTradePercent: doc.riskPerTradePercent,
-            maxTradesPerDay: doc.maxTradesPerDay,
+            stopLossPercent: doc.stopLossPercent,
+            takeProfitPercent: doc.takeProfitPercent,
+            useTrailingStop: doc.useTrailingStop || false,
+            minConfluenceScore: doc.minConfluenceScore,
             maxDailyLoss: doc.maxDailyLoss || 0,
             maxConcurrentPositions: doc.maxConcurrentPositions !== undefined ? doc.maxConcurrentPositions : 3,
             cooldownPeriodMinutes: doc.cooldownPeriodMinutes !== undefined ? doc.cooldownPeriodMinutes : 30,
             maxSectorAllocationPercent: doc.maxSectorAllocationPercent !== undefined ? doc.maxSectorAllocationPercent : 100,
             drawdownProtectionPercent: doc.drawdownProtectionPercent || 0,
-            useTrailingStop: doc.useTrailingStop || false,
-            stopLossPercent: doc.stopLossPercent,
-            takeProfitPercent: doc.takeProfitPercent,
-            minConfluenceScore: doc.minConfluenceScore,
             totalTradesExecuted: doc.totalTradesExecuted || 0,
             winCount: doc.winCount || 0,
             lossCount: doc.lossCount || 0,
