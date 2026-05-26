@@ -202,6 +202,7 @@ export class TradeMonitorService {
                             totalPnL: assistant.totalPnL + realizedPL,
                             winCount: assistant.winCount + (isWin ? 1 : 0),
                             lossCount: assistant.lossCount + (isWin ? 0 : 1),
+                            totalTradesExecuted: assistant.totalTradesExecuted + 1,
                         };
 
                         await this.infra.strategyAssistant.updateStats(assistant.id, updatedAssistantStats, session);

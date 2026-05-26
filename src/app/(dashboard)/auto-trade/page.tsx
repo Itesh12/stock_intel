@@ -24,39 +24,7 @@ export default async function AutoTradePage() {
     let portfolio = portfolios[0] || null;
     const cashBalance = portfolio ? portfolio.cashBalance : 0;
 
-    let holdings: any[] = [];
-    if (portfolio) {
-        const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
-            infra.stock, 
-            infra.notification, 
-            infra.trade,
-            infra.market
-        );
-        const analyzed = await analyzer.analyze(portfolio);
-        holdings = analyzed.holdings;
-    }
-
-    const trades = await infra.trade.findByUserId(userId);
-    const { calculateAssistantStats } = require("@/application/assistant-stats-calculator");
-
-    const enrichedAssistants = assistants.map(assistant => {
-        const stats = calculateAssistantStats(assistant, trades, holdings);
-        
-        // Sync stats back to DB
-        infra.strategyAssistant.updateStats(assistant.id, {
-            totalPnL: stats.totalPnL,
-            winCount: stats.winCount,
-            lossCount: stats.lossCount,
-            totalTradesExecuted: stats.totalTradesExecuted,
-        }).catch(err => {
-            console.error(`[AutoTradePage] Failed to update assistant stats:`, err);
-        });
-
-        return {
-            ...assistant,
-            ...stats
-        };
-    });
+    const enrichedAssistants = await new (require("@/application/assistant-metrics-service").AssistantMetricsService)(infra).getEnrichedAssistants(assistants);
 
     // 3. Fetch strategies list
     const dbStrategies = await infra.strategy.list();

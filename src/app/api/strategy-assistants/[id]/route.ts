@@ -187,39 +187,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             }
         }
 
-        // Fetch stats to enrich the response
-        const portfolios = await infra.portfolio.findByUserId(userId);
-        const portfolio = portfolios[0] || null;
-        let holdings: any[] = [];
-        if (portfolio) {
-            const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
-                infra.stock, 
-                infra.notification, 
-                infra.trade,
-                infra.market
-            );
-            const analyzed = await analyzer.analyze(portfolio);
-            holdings = analyzed.holdings;
-        }
+        const enriched = await new (require("@/application/assistant-metrics-service").AssistantMetricsService)(infra).getEnrichedAssistant(finalUpdatedAssistant);
 
-        const trades = await infra.trade.findByUserId(userId);
-        const { calculateAssistantStats } = require("@/application/assistant-stats-calculator");
-        const stats = calculateAssistantStats(finalUpdatedAssistant, trades, holdings);
-
-        // Save stats back to DB
-        infra.strategyAssistant.updateStats(finalUpdatedAssistant.id, {
-            totalPnL: stats.totalPnL,
-            winCount: stats.winCount,
-            lossCount: stats.lossCount,
-            totalTradesExecuted: stats.totalTradesExecuted,
-        }).catch(err => {
-            console.error(`[API PATCH] Failed to save stats:`, err);
-        });
-
-        return NextResponse.json({
-            ...finalUpdatedAssistant,
-            ...stats
-        });
+        return NextResponse.json(enriched);
     } catch (error: any) {
         console.error("Update assistant error:", error);
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

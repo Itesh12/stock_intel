@@ -54,16 +54,6 @@ export default async function AssistantPage({ params }: { params: Promise<{ id: 
     // Filter holdings managed by this specific assistant
     const assistantHoldings = holdings.filter(h => h.botId === assistant!.id);
 
-    // Sync stats in background DB cache
-    infra.strategyAssistant.updateStats(assistant!.id, {
-        totalPnL: stats.totalPnL,
-        winCount: stats.winCount,
-        lossCount: stats.lossCount,
-        totalTradesExecuted: stats.totalTradesExecuted,
-    }).catch(err => {
-        console.error(`[AssistantPage] Failed to update stats:`, err);
-    });
-
     const plainAssistant = JSON.parse(JSON.stringify({ ...assistant!, ...stats }));
     const plainStrategy = JSON.parse(JSON.stringify(strategy || null));
     const plainHoldings = JSON.parse(JSON.stringify(assistantHoldings || []));

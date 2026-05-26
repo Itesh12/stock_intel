@@ -367,6 +367,7 @@ export class AssistantLifecycleService {
             assistant.deployedCapital = Math.max(0, assistant.deployedCapital - entryCost);
             assistant.allocatedCapital = Math.max(0, assistant.allocatedCapital - entryCost);
             assistant.totalPnL += realizedPL;
+            assistant.totalTradesExecuted += 1;
             if (realizedPL > 0) assistant.winCount++;
             else if (realizedPL < 0) assistant.lossCount++;
             await this.infra.strategyAssistant.save(assistant);

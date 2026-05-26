@@ -42,40 +42,7 @@ export async function GET() {
 
         const assistants = await infra.strategyAssistant.findByUserId(userId);
 
-        const portfolios = await infra.portfolio.findByUserId(userId);
-        const portfolio = portfolios[0] || null;
-        let holdings: any[] = [];
-        if (portfolio) {
-            const analyzer = new (require("@/application/portfolio-analyzer").PortfolioAnalyzer)(
-                infra.stock, 
-                infra.notification, 
-                infra.trade,
-                infra.market
-            );
-            const analyzed = await analyzer.analyze(portfolio);
-            holdings = analyzed.holdings;
-        }
-
-        const trades = await infra.trade.findByUserId(userId);
-        const { calculateAssistantStats } = require("@/application/assistant-stats-calculator");
-
-        const enrichedAssistants = assistants.map(assistant => {
-            const stats = calculateAssistantStats(assistant, trades, holdings);
-            // Async update database cache
-            infra.strategyAssistant.updateStats(assistant.id, {
-                totalPnL: stats.totalPnL,
-                winCount: stats.winCount,
-                lossCount: stats.lossCount,
-                totalTradesExecuted: stats.totalTradesExecuted,
-            }).catch(err => {
-                console.error(`[API Assistants] Failed to update assistant stats:`, err);
-            });
-
-            return {
-                ...assistant,
-                ...stats
-            };
-        });
+        const enrichedAssistants = await new (require("@/application/assistant-metrics-service").AssistantMetricsService)(infra).getEnrichedAssistants(assistants);
 
         return NextResponse.json(enrichedAssistants);
     } catch (error: any) {
