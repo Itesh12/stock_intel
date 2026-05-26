@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
     Shield, 
     Zap, 
@@ -25,7 +25,14 @@ import {
     Terminal,
     BookOpen,
     HelpCircle,
-    Info
+    Info,
+    ListChecks,
+    Clock,
+    ChevronDown,
+    ChevronUp,
+    CheckCircle2,
+    XCircle,
+    MinusCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -81,7 +88,7 @@ export default function AssistantClient({
     const [holdings, setHoldings] = useState<AssistantHolding[]>(initialHoldings);
     
     // UI Tabs State
-    const [activeTab, setActiveTab] = useState<"positions" | "decisions" | "logs">("positions");
+    const [activeTab, setActiveTab] = useState<"positions" | "decisions" | "logs" | "signals" | "timeline">("positions");
     
     // Logs and SSE Telemetry State
     const [logs, setLogs] = useState<LogMessage[]>([]);
@@ -90,6 +97,12 @@ export default function AssistantClient({
     const [staleScannerWarning, setStaleScannerWarning] = useState<string | null>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
     const terminalEndRef = useRef<HTMLDivElement | null>(null);
+
+    // Explainability State
+    const [signals, setSignals] = useState<any[]>([]);
+    const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+    const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
+    const [explainabilityEnabled, setExplainabilityEnabled] = useState(false);
 
     // Overrides / Modals State
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -202,6 +215,35 @@ export default function AssistantClient({
     useEffect(() => {
         terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [logs, activeTab]);
+
+    // Load explainability data (signals + timeline) when tab becomes active
+    const loadExplainability = useCallback(async () => {
+        try {
+            const [sigRes, tlRes] = await Promise.all([
+                fetch(`/api/strategy-assistants/${assistant.id}/signals?limit=50`),
+                fetch(`/api/strategy-assistants/${assistant.id}/timeline?limit=50`)
+            ]);
+            if (sigRes.ok) {
+                const sigData = await sigRes.json();
+                setSignals(sigData.signals || []);
+                setExplainabilityEnabled(true);
+            } else if (sigRes.status === 403) {
+                setExplainabilityEnabled(false);
+            }
+            if (tlRes.ok) {
+                const tlData = await tlRes.json();
+                setTimelineEvents(tlData.events || []);
+            }
+        } catch (err) {
+            console.error("Failed to load explainability data:", err);
+        }
+    }, [assistant.id]);
+
+    useEffect(() => {
+        if (activeTab === "signals" || activeTab === "timeline") {
+            loadExplainability();
+        }
+    }, [activeTab, loadExplainability]);
 
     // Handle Pause/Resume status toggle
     const handleToggleStatus = async () => {
@@ -558,11 +600,13 @@ export default function AssistantClient({
                     <div className="lg:col-span-2 space-y-6">
                         
                         {/* Custom Tab Steppers */}
-                        <div className="flex border-b border-slate-800/80 bg-slate-900/40 p-1.5 rounded-2xl border border-slate-800">
+                        <div className="flex border-b border-slate-800/80 bg-slate-900/40 p-1.5 rounded-2xl border border-slate-800 flex-wrap gap-1">
                             {[
-                                { id: "positions", label: `Active Positions (${holdings.length})`, icon: Activity },
-                                { id: "decisions", label: "Decisions Feed", icon: BookOpen },
-                                { id: "logs", label: "System Audit Logs", icon: Terminal }
+                                { id: "positions", label: `Positions (${holdings.length})`, icon: Activity },
+                                { id: "decisions", label: "Decisions", icon: BookOpen },
+                                { id: "signals", label: "Signal Queue", icon: ListChecks },
+                                { id: "timeline", label: "Timeline", icon: Clock },
+                                { id: "logs", label: "Audit Logs", icon: Terminal }
                             ].map((tab) => {
                                 const Icon = tab.icon;
                                 const isSelected = activeTab === tab.id;
@@ -710,6 +754,200 @@ export default function AssistantClient({
                                     )}
                                     <div ref={terminalEndRef} />
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Signal Queue Tab */}
+                        {activeTab === "signals" && (
+                            <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-5 min-h-[400px]">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                        <ListChecks className="w-4 h-4 text-indigo-400" />
+                                        Signal Queue
+                                    </h3>
+                                    <button
+                                        onClick={loadExplainability}
+                                        className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-all"
+                                    >
+                                        <RefreshCw className="w-3 h-3" /> Refresh
+                                    </button>
+                                </div>
+
+                                {!explainabilityEnabled ? (
+                                    <div className="py-24 text-center space-y-3">
+                                        <Info className="w-10 h-10 mx-auto opacity-30 text-slate-400" />
+                                        <div className="text-sm font-semibold text-slate-500">Explainability Disabled</div>
+                                        <div className="text-xs text-slate-600 max-w-xs mx-auto">Enable <code className="text-indigo-400">ENABLE_EXPLAINABILITY=true</code> in your environment to activate signal tracking.</div>
+                                    </div>
+                                ) : signals.length === 0 ? (
+                                    <div className="py-24 text-center space-y-2">
+                                        <ListChecks className="w-10 h-10 mx-auto opacity-20 text-indigo-400" />
+                                        <div className="text-sm font-semibold text-slate-500">No signals recorded yet.</div>
+                                        <div className="text-xs text-slate-600">Signals appear here when the scanner evaluates a recommendation.</div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {signals.map((sig: any) => {
+                                            const isExpanded = expandedSignalId === sig.id;
+                                            const statusColor = sig.status === 'APPROVED' || sig.status === 'EXECUTED'
+                                                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25'
+                                                : sig.status === 'REJECTED' || sig.status === 'EXPIRED'
+                                                ? 'text-rose-400 bg-rose-500/10 border-rose-500/25'
+                                                : sig.status === 'PROCESSING'
+                                                ? 'text-amber-400 bg-amber-500/10 border-amber-500/25'
+                                                : 'text-slate-400 bg-slate-800/50 border-slate-700';
+
+                                            const StatusIcon = sig.status === 'APPROVED' || sig.status === 'EXECUTED'
+                                                ? CheckCircle2
+                                                : sig.status === 'REJECTED' || sig.status === 'EXPIRED'
+                                                ? XCircle
+                                                : MinusCircle;
+
+                                            return (
+                                                <div key={sig.id} className="border border-slate-800/80 rounded-2xl overflow-hidden">
+                                                    <button
+                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800/40 transition-colors text-left"
+                                                        onClick={() => setExpandedSignalId(isExpanded ? null : sig.id)}
+                                                    >
+                                                        <StatusIcon className={`w-4 h-4 flex-shrink-0 ${
+                                                            sig.status === 'APPROVED' || sig.status === 'EXECUTED' ? 'text-emerald-400' :
+                                                            sig.status === 'REJECTED' || sig.status === 'EXPIRED' ? 'text-rose-400' : 'text-amber-400'
+                                                        }`} />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="text-xs font-bold text-white">{sig.symbol?.replace('.NS','')}</span>
+                                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase ${statusColor}`}>
+                                                                    {sig.status}
+                                                                </span>
+                                                                <span className="text-[9px] text-slate-500 uppercase tracking-wide">{sig.strategy}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 mt-0.5 text-[10px] text-slate-500">
+                                                                <span>Score: <span className="text-indigo-300 font-semibold">{sig.score}/100</span></span>
+                                                                <span>Confidence: <span className="text-indigo-300 font-semibold">{sig.confidence}%</span></span>
+                                                                <span>{new Date(sig.createdAt).toLocaleTimeString()}</span>
+                                                            </div>
+                                                        </div>
+                                                        {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                                                    </button>
+
+                                                    {isExpanded && sig.reasoning && (
+                                                        <div className="border-t border-slate-800/80 px-4 py-3 bg-slate-900/60 space-y-3">
+                                                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Decision Reasoning</div>
+                                                            <div className="grid grid-cols-1 gap-2">
+                                                                {(sig.reasoning.reasons || []).map((r: any, i: number) => (
+                                                                    <div key={i} className="flex items-start gap-2.5">
+                                                                        {r.status === 'PASS' ? (
+                                                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                                                                        ) : r.status === 'FAIL' ? (
+                                                                            <XCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0 mt-0.5" />
+                                                                        ) : (
+                                                                            <MinusCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                                                                        )}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="text-[10px] font-semibold text-slate-300">{r.label}</div>
+                                                                            <div className="text-[9px] text-slate-500 leading-relaxed">{r.description}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="flex items-center gap-3 pt-2 border-t border-slate-800/50">
+                                                                <span className="text-[9px] text-slate-500 uppercase tracking-wider">Final Confidence</span>
+                                                                <div className="flex-1 bg-slate-800 rounded-full h-1.5">
+                                                                    <div
+                                                                        className={`h-1.5 rounded-full transition-all ${
+                                                                            sig.reasoning.confidence >= 70 ? 'bg-emerald-500' :
+                                                                            sig.reasoning.confidence >= 45 ? 'bg-amber-500' : 'bg-rose-500'
+                                                                        }`}
+                                                                        style={{ width: `${sig.reasoning.confidence}%` }}
+                                                                    />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold text-white">{sig.reasoning.confidence}%</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Assistant Timeline Tab */}
+                        {activeTab === "timeline" && (
+                            <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-5 min-h-[400px]">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-indigo-400" />
+                                        Assistant Timeline
+                                    </h3>
+                                    <button
+                                        onClick={loadExplainability}
+                                        className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-all"
+                                    >
+                                        <RefreshCw className="w-3 h-3" /> Refresh
+                                    </button>
+                                </div>
+
+                                {!explainabilityEnabled ? (
+                                    <div className="py-24 text-center space-y-3">
+                                        <Info className="w-10 h-10 mx-auto opacity-30 text-slate-400" />
+                                        <div className="text-sm font-semibold text-slate-500">Explainability Disabled</div>
+                                        <div className="text-xs text-slate-600 max-w-xs mx-auto">Enable <code className="text-indigo-400">ENABLE_EXPLAINABILITY=true</code> to activate the timeline.</div>
+                                    </div>
+                                ) : timelineEvents.length === 0 ? (
+                                    <div className="py-24 text-center space-y-2">
+                                        <Clock className="w-10 h-10 mx-auto opacity-20 text-indigo-400" />
+                                        <div className="text-sm font-semibold text-slate-500">No events recorded yet.</div>
+                                        <div className="text-xs text-slate-600">Timeline events appear here as the assistant takes action.</div>
+                                    </div>
+                                ) : (
+                                    <div className="relative pl-4 space-y-0">
+                                        {/* Vertical Timeline Line */}
+                                        <div className="absolute left-4 top-3 bottom-3 w-px bg-slate-800/80" />
+                                        {timelineEvents.map((ev: any, idx: number) => {
+                                            const dotColor = ev.eventType === 'TRADE_EXECUTED'
+                                                ? 'bg-emerald-500'
+                                                : ev.eventType === 'SIGNAL_APPROVED'
+                                                ? 'bg-indigo-500'
+                                                : ev.eventType === 'SIGNAL_REJECTED'
+                                                ? 'bg-rose-500'
+                                                : ev.eventType === 'RISK_STOPPED'
+                                                ? 'bg-rose-600'
+                                                : ev.eventType === 'POSITION_CLOSED'
+                                                ? 'bg-amber-500'
+                                                : 'bg-slate-600';
+
+                                            return (
+                                                <div key={ev.id || idx} className="flex gap-4 pb-5 relative">
+                                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 relative z-10 ${dotColor} ring-2 ring-slate-900`} />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="text-xs font-semibold text-white">{ev.title}</span>
+                                                            <span className="text-[9px] text-slate-500">{new Date(ev.createdAt).toLocaleString()}</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{ev.description}</p>
+                                                        {ev.metadata && ev.metadata.symbol && (
+                                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                {ev.metadata.symbol && (
+                                                                    <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
+                                                                        {ev.metadata.symbol.replace('.NS','')}
+                                                                    </span>
+                                                                )}
+                                                                {ev.metadata.score && (
+                                                                    <span className="text-[9px] text-slate-500">Score: {ev.metadata.score}</span>
+                                                                )}
+                                                                {ev.metadata.confidence && (
+                                                                    <span className="text-[9px] text-indigo-400">Confidence: {ev.metadata.confidence}%</span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -12,6 +12,8 @@ import { AssistantLogRepository } from "../../domain/assistant-log";
 import { StrategyAssistantRepository } from "../../domain/strategy-assistant";
 import { WorkerHealthRepository } from "../../domain/worker-health";
 import { AssistantMetricsRepository } from "../../domain/assistant-metrics";
+import { AssistantSignalRepository } from "../../domain/assistant-signal";
+import { AssistantTimelineRepository } from "../../domain/assistant-timeline";
 
 export interface IInfrastructure {
     stock: StockRepository;
@@ -29,4 +31,6 @@ export interface IInfrastructure {
     mongoClient: any;
     workerHealth: WorkerHealthRepository;
     assistantMetrics: AssistantMetricsRepository;
+    assistantSignal: AssistantSignalRepository;
+    assistantTimeline: AssistantTimelineRepository;
 }

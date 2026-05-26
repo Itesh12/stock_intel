@@ -6,6 +6,12 @@ import { RiskGuardService } from "./risk-guard-service";
 import { AuditLogService } from "./audit-log-service";
 import { Portfolio } from "../domain/portfolio";
 import { LimitOrder } from "../domain/limit-order";
+import { DecisionReasoningService, signalExpiresAt } from "./decision-reasoning-service";
+import { TimelineBufferService } from "./timeline-buffer-service";
+import { AssistantSignal, SignalStatus } from "../domain/assistant-signal";
+import { v4 as uuidv4 } from "uuid";
+
+const EXPLAINABILITY_ENABLED = process.env.ENABLE_EXPLAINABILITY === 'true';
 
 // IST market hours: 9:30 AM - 2:30 PM
 const MARKET_OPEN_HOUR = 9;
@@ -37,12 +43,19 @@ export class SignalService {
     private executionService: ExecutionService;
     private riskGuard: RiskGuardService;
     private auditLogService: AuditLogService;
+    private reasoningService: DecisionReasoningService;
+    private timelineBuffer: TimelineBufferService;
 
     constructor(private infra: IInfrastructure) {
         this.decisionService = new DecisionService();
         this.executionService = new ExecutionService(infra);
         this.riskGuard = new RiskGuardService(infra);
         this.auditLogService = new AuditLogService(infra);
+        this.reasoningService = new DecisionReasoningService();
+        this.timelineBuffer = new TimelineBufferService(infra);
+        if (EXPLAINABILITY_ENABLED) {
+            this.timelineBuffer.start();
+        }
     }
 
     public async runAssistant(
@@ -137,13 +150,55 @@ export class SignalService {
             const hasActivePosition = currentHoldings.some(h => h.symbol === symbol);
             if (hasActivePosition) continue;
 
+            // ── Signal Queue: Create PENDING signal record ─────────────────────────
+            let signalId: string | null = null;
+            if (EXPLAINABILITY_ENABLED) {
+                signalId = uuidv4();
+                const pendingSignal: AssistantSignal = {
+                    id: signalId,
+                    assistantId: assistant.id,
+                    symbol,
+                    signalType: 'BUY',
+                    strategy: assistant.strategySlug,
+                    score: rec.score,
+                    confidence: rec.score,
+                    status: 'PENDING',
+                    reasoning: {
+                        decision: 'BUY',
+                        confidence: rec.score,
+                        reasons: [],
+                        generatedAt: new Date()
+                    },
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    expiresAt: null  // Active signal — no TTL yet
+                };
+                await this.infra.assistantSignal.save(pendingSignal);
+                this.timelineBuffer.pushEvent(
+                    assistant.id,
+                    'SIGNAL_GENERATED',
+                    `Signal Queued: ${symbol.replace('.NS', '')}`,
+                    `Scanner found ${symbol.replace('.NS', '')} with score ${rec.score}/100. Entering evaluation.`
+                );
+                // Transition to PROCESSING
+                await this.infra.assistantSignal.updateStatus(signalId, 'PROCESSING');
+            }
+
             // Get current stock price
             let currentPrice: number;
             try {
                 const stockData = await this.infra.market.getStockPrice(symbol);
-                if (!stockData || !stockData.price || stockData.price <= 0) continue;
+                if (!stockData || !stockData.price || stockData.price <= 0) {
+                    if (EXPLAINABILITY_ENABLED && signalId) {
+                        await this.infra.assistantSignal.updateStatus(signalId, 'EXPIRED', undefined, signalExpiresAt());
+                    }
+                    continue;
+                }
                 currentPrice = stockData.price;
             } catch {
+                if (EXPLAINABILITY_ENABLED && signalId) {
+                    await this.infra.assistantSignal.updateStatus(signalId, 'EXPIRED', undefined, signalExpiresAt());
+                }
                 continue;
             }
 
@@ -157,6 +212,19 @@ export class SignalService {
             );
 
             if (!proposedTrade) {
+                if (EXPLAINABILITY_ENABLED && signalId) {
+                    const reasoning = this.reasoningService.buildRejectionReasoning(
+                        assistant, rec, 'Insufficient capital or quantity too small for a valid position.'
+                    );
+                    await this.infra.assistantSignal.updateStatus(signalId, 'REJECTED', reasoning, signalExpiresAt());
+                    this.timelineBuffer.pushEvent(
+                        assistant.id,
+                        'SIGNAL_REJECTED',
+                        `Signal Rejected: ${symbol.replace('.NS', '')}`,
+                        `Rejected — insufficient capital or zero quantity. Score: ${rec.score}/100.`,
+                        { symbol, score: rec.score, reason: 'insufficient_capital' }
+                    );
+                }
                 continue;
             }
 
@@ -175,7 +243,35 @@ export class SignalService {
                     'RISK_GUARD',
                     `Trade entry for ${symbol.replace('.NS', '')} blocked: ${riskResult.reason}`
                 );
+                if (EXPLAINABILITY_ENABLED && signalId) {
+                    const reasoning = this.reasoningService.buildRejectionReasoning(
+                        assistant, rec, riskResult.reason || 'Risk check failed.'
+                    );
+                    await this.infra.assistantSignal.updateStatus(signalId, 'REJECTED', reasoning, signalExpiresAt());
+                    this.timelineBuffer.pushEvent(
+                        assistant.id,
+                        'SIGNAL_REJECTED',
+                        `Signal Blocked: ${symbol.replace('.NS', '')}`,
+                        `Risk guard blocked entry. ${riskResult.reason}`,
+                        { symbol, score: rec.score, reason: riskResult.reason }
+                    );
+                }
                 continue;
+            }
+
+            // Approve the signal — reasoning generated before execution
+            if (EXPLAINABILITY_ENABLED && signalId) {
+                const reasoning = this.reasoningService.buildApprovalReasoning(
+                    assistant, rec, currentPortfolio, pendingOrders
+                );
+                await this.infra.assistantSignal.updateStatus(signalId, 'APPROVED', reasoning);
+                this.timelineBuffer.pushEvent(
+                    assistant.id,
+                    'SIGNAL_APPROVED',
+                    `Signal Approved: ${symbol.replace('.NS', '')}`,
+                    `All risk checks passed. Confidence: ${reasoning.confidence}%. Proceeding to execute.`,
+                    { symbol, score: rec.score, confidence: reasoning.confidence }
+                );
             }
 
             // Execute BUY trade
@@ -186,6 +282,24 @@ export class SignalService {
             );
 
             if (executed) {
+                // Transition signal to EXECUTED
+                if (EXPLAINABILITY_ENABLED && signalId) {
+                    await this.infra.assistantSignal.updateStatus(signalId, 'EXECUTED', undefined, signalExpiresAt());
+                    this.timelineBuffer.pushEvent(
+                        assistant.id,
+                        'TRADE_EXECUTED',
+                        `Trade Executed: ${symbol.replace('.NS', '')}`,
+                        `Bought ${proposedTrade.quantity} shares at ₹${proposedTrade.price.toFixed(2)}. SL: ₹${proposedTrade.slPrice} | TP: ₹${proposedTrade.tpPrice}.`,
+                        {
+                            symbol,
+                            quantity: proposedTrade.quantity,
+                            price: proposedTrade.price,
+                            slPrice: proposedTrade.slPrice,
+                            tpPrice: proposedTrade.tpPrice,
+                            cost: proposedTrade.cost
+                        }
+                    );
+                }
                 // If optimized, refresh preloaded lists to avoid stale state in next loop iterations
                 if (preloadedPortfolios) {
                     const freshPortfolios = await this.infra.portfolio.findByUserId(assistant.userId);
