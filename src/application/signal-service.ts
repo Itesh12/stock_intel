@@ -4,6 +4,8 @@ import { DecisionService } from "./decision-service";
 import { ExecutionService } from "./execution-service";
 import { RiskGuardService } from "./risk-guard-service";
 import { AuditLogService } from "./audit-log-service";
+import { Portfolio } from "../domain/portfolio";
+import { LimitOrder } from "../domain/limit-order";
 
 // IST market hours: 9:30 AM - 2:30 PM
 const MARKET_OPEN_HOUR = 9;
@@ -43,7 +45,11 @@ export class SignalService {
         this.auditLogService = new AuditLogService(infra);
     }
 
-    public async runAssistant(assistant: StrategyAssistant): Promise<void> {
+    public async runAssistant(
+        assistant: StrategyAssistant,
+        preloadedPortfolios?: Portfolio[],
+        preloadedPendingOrders?: LimitOrder[]
+    ): Promise<void> {
         const today = todayStr();
 
         // 1. Daily trade count reset
@@ -54,7 +60,10 @@ export class SignalService {
         }
 
         // 2. Fetch portfolios to verify concurrent positions limit
-        const portfolios = await this.infra.portfolio.findByUserId(assistant.userId);
+        const portfolios = preloadedPortfolios
+            ? preloadedPortfolios.filter(p => p.userId === assistant.userId)
+            : await this.infra.portfolio.findByUserId(assistant.userId);
+
         if (portfolios.length === 0) {
             await this.auditLogService.log(assistant.id, 'WARN', 'SYSTEM', `No portfolio configured for user.`);
             return;
@@ -106,8 +115,14 @@ export class SignalService {
         // 6. Iterate and execute signals
         for (const rec of qualifiedRecs) {
             // Re-evaluate portfolio holdings capacity in case previous loop entered a position
-            const currentPortfolio = (await this.infra.portfolio.findByUserId(assistant.userId))[0];
-            const currentHoldings = currentPortfolio?.holdings.filter(h => h.botId === assistant.id) || [];
+            const currentPortfolio = preloadedPortfolios
+                ? preloadedPortfolios.find(p => p.userId === assistant.userId)
+                : (await this.infra.portfolio.findByUserId(assistant.userId))[0];
+
+            if (!currentPortfolio) {
+                continue;
+            }
+            const currentHoldings = currentPortfolio.holdings.filter(h => h.botId === assistant.id) || [];
             if (currentHoldings.length >= assistant.maxConcurrentPositions) {
                 break;
             }
@@ -115,7 +130,7 @@ export class SignalService {
             const symbol = rec.symbol;
 
             // Guard: Already have a pending BUY or active position for this symbol from this assistant?
-            const pendingOrders = await this.infra.limitOrder.findPending();
+            const pendingOrders = preloadedPendingOrders || await this.infra.limitOrder.findPending();
             const hasPendingBuy = pendingOrders.some(o => o.botId === assistant.id && o.symbol === symbol && o.type === 'BUY');
             if (hasPendingBuy) continue;
 
@@ -146,7 +161,13 @@ export class SignalService {
             }
 
             // Evaluate risk constraints
-            const riskResult = await this.riskGuard.evaluateRisk(assistant, symbol, proposedTrade.cost);
+            const riskResult = await this.riskGuard.evaluateRisk(
+                assistant,
+                symbol,
+                proposedTrade.cost,
+                preloadedPendingOrders,
+                preloadedPortfolios
+            );
             if (!riskResult.allowed) {
                 await this.auditLogService.log(
                     assistant.id,
@@ -158,11 +179,29 @@ export class SignalService {
             }
 
             // Execute BUY trade
-            await this.executionService.executeBuyTrade(
+            const executed = await this.executionService.executeBuyTrade(
                 assistant,
                 proposedTrade,
                 strategy.id
             );
+
+            if (executed) {
+                // If optimized, refresh preloaded lists to avoid stale state in next loop iterations
+                if (preloadedPortfolios) {
+                    const freshPortfolios = await this.infra.portfolio.findByUserId(assistant.userId);
+                    if (freshPortfolios.length > 0) {
+                        const idx = preloadedPortfolios.findIndex(p => p.userId === assistant.userId);
+                        if (idx !== -1) {
+                            preloadedPortfolios[idx] = freshPortfolios[0];
+                        }
+                    }
+                }
+                if (preloadedPendingOrders) {
+                    const freshPending = await this.infra.limitOrder.findPending();
+                    preloadedPendingOrders.length = 0;
+                    preloadedPendingOrders.push(...freshPending);
+                }
+            }
         }
     }
 

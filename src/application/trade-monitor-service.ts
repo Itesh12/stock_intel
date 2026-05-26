@@ -246,18 +246,8 @@ export class TradeMonitorService {
             await this.infra.limitOrder.updateStatus(order.id, 'EXECUTED', executionPrice, session);
 
             // Cancel OCO partner order if it exists
-            if (order.type === 'STOP_LOSS') {
-                const pending = await this.infra.limitOrder.findPending();
-                const partner = pending.find(o => o.parentOrderId === order.id && o.status === 'PENDING');
-                if (partner) {
-                    await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED', undefined, session);
-                }
-            } else if (order.type === 'TAKE_PROFIT' && order.parentOrderId) {
-                const pending = await this.infra.limitOrder.findPending();
-                const partner = pending.find(o => o.id === order.parentOrderId && o.status === 'PENDING');
-                if (partner) {
-                    await this.infra.limitOrder.updateStatus(partner.id, 'CANCELLED', undefined, session);
-                }
+            if (order.type === 'STOP_LOSS' || (order.type === 'TAKE_PROFIT' && order.parentOrderId)) {
+                await this.infra.limitOrder.cancelCompanion(order.id, order.parentOrderId, session);
             }
         };
 

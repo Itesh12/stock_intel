@@ -24,4 +24,5 @@ export interface LimitOrderRepository {
     findPendingBySymbol(symbol: string): Promise<LimitOrder[]>;
     findPending(): Promise<LimitOrder[]>;
     updateStatus(id: string, status: OrderStatus, executedPrice?: number, session?: any): Promise<void>;
+    cancelCompanion(orderId: string, parentOrderId?: string, session?: any): Promise<void>;
 }

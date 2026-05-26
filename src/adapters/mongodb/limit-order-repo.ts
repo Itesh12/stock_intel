@@ -47,6 +47,17 @@ export class MongoLimitOrderRepository implements LimitOrderRepository {
         await this.collection.updateOne({ id }, update, { session });
     }
 
+    async cancelCompanion(orderId: string, parentOrderId?: string, session?: ClientSession): Promise<void> {
+        const filter: any = {
+            status: 'PENDING',
+            $or: [
+                { parentOrderId: orderId },
+                ...(parentOrderId ? [{ id: parentOrderId }] : [])
+            ]
+        };
+        await this.collection.updateMany(filter, { $set: { status: 'CANCELLED' } }, { session });
+    }
+
     private mapToDomain(doc: any): LimitOrder {
         return {
             id: doc.id,

@@ -3,6 +3,8 @@ import { StrategyAssistant } from "../domain/strategy-assistant";
 import { SectorResolverService } from "./sector-resolver-service";
 import { Logger } from "../infrastructure/logger";
 import { AuditLogService } from "./audit-log-service";
+import { LimitOrder } from "../domain/limit-order";
+import { Portfolio } from "../domain/portfolio";
 
 export class RiskGuardService {
     private sectorResolver: SectorResolverService;
@@ -20,13 +22,15 @@ export class RiskGuardService {
     public async evaluateRisk(
         bot: StrategyAssistant,
         symbol: string,
-        proposedCost: number
+        proposedCost: number,
+        preloadedPendingOrders?: LimitOrder[],
+        preloadedPortfolios?: Portfolio[]
     ): Promise<{ allowed: boolean; reason?: string }> {
         const botId = bot.id;
         const cleanSymbol = symbol.toUpperCase().trim();
 
         // 1. Max Concurrent Positions Check
-        const pendingOrders = await this.infra.limitOrder.findPending();
+        const pendingOrders = preloadedPendingOrders || await this.infra.limitOrder.findPending();
         const botPendingSL = pendingOrders.filter(
             (o) => o.botId === botId && o.type === "STOP_LOSS" && o.status === "PENDING"
         );
@@ -58,7 +62,7 @@ export class RiskGuardService {
         // 3. Sector Concentration Check
         const sector = await this.sectorResolver.resolveSector(cleanSymbol);
         if (sector !== "Unknown") {
-            const portfolios = await this.infra.portfolio.findByUserId(bot.userId);
+            const portfolios = preloadedPortfolios || await this.infra.portfolio.findByUserId(bot.userId);
             if (portfolios.length > 0) {
                 const portfolio = portfolios[0];
                 let currentSectorCost = 0;
