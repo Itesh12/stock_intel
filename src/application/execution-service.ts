@@ -3,9 +3,14 @@ import { StrategyAssistant } from "../domain/strategy-assistant";
 import { ProposedTrade } from "./decision-service";
 import { LimitOrder } from "../domain/limit-order";
 import { v4 as uuidv4 } from "uuid";
+import { AuditLogService } from "./audit-log-service";
 
 export class ExecutionService {
-    constructor(private infra: Infrastructure) {}
+    private auditLogService: AuditLogService;
+
+    constructor(private infra: Infrastructure) {
+        this.auditLogService = new AuditLogService(infra);
+    }
 
     /**
      * Executes the proposed buy trade in a transaction session and places SL/TP exits.
@@ -13,8 +18,7 @@ export class ExecutionService {
     public async executeBuyTrade(
         assistant: StrategyAssistant,
         trade: ProposedTrade,
-        strategyId: string,
-        auditLog: (level: 'INFO' | 'WARN' | 'ERROR', category: string, message: string, metadata?: any) => Promise<void>
+        strategyId: string
     ): Promise<boolean> {
         const today = new Date().toISOString().slice(0, 10);
         const idempotencyKey = `ast-exec-${assistant.id}-${trade.symbol}-${today}-${assistant.todayTradeCount}`;
@@ -135,7 +139,8 @@ export class ExecutionService {
             success = true;
         } catch (err: any) {
             console.error(`[ExecutionService] Transaction failed for ${trade.symbol}:`, err.message || err);
-            await auditLog(
+            await this.auditLogService.log(
+                assistant.id,
                 'WARN',
                 'TRADE_ENTRY',
                 `Execution rejected for ${trade.symbol.replace('.NS', '')}: ${err.message || err}`
@@ -157,7 +162,7 @@ export class ExecutionService {
 
         if (success) {
             const successMsg = `🤖 Execution Success: Bought ${trade.quantity} shares of ${trade.symbol.replace('.NS', '')} @ ₹${trade.price.toFixed(2)} (Total: ₹${trade.cost.toFixed(2)}). Attached SL: ₹${trade.slPrice} | TP: ₹${trade.tpPrice}.`;
-            await auditLog('INFO', 'TRADE_ENTRY', successMsg, {
+            await this.auditLogService.log(assistant.id, 'INFO', 'TRADE_ENTRY', successMsg, {
                 symbol: trade.symbol,
                 qty: trade.quantity,
                 price: trade.price,

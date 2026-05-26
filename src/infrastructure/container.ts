@@ -26,8 +26,8 @@ import { MongoJournalRepository } from "../adapters/mongodb/journal-repo";
 import { MongoAlertRepository } from "../adapters/mongodb/alert-repo";
 import { NotificationRepository } from "../ports/notification-repository";
 import { MongoNotificationRepository } from "../adapters/mongodb/notification-repo";
-import { AutoTradeLogRepository } from "../domain/auto-trade-log";
-import { MongoAutoTradeLogRepository } from "../adapters/mongodb/auto-trade-log-repo";
+import { AssistantLogRepository } from "../domain/assistant-log";
+import { MongoAssistantLogRepository } from "../adapters/mongodb/assistant-log-repo";
 import { StrategyAssistantRepository } from "../domain/strategy-assistant";
 import { MongoStrategyAssistantRepository } from "../adapters/mongodb/strategy-assistant-repo";
 
@@ -126,7 +126,7 @@ export interface Infrastructure {
     alert: MongoAlertRepository;
     notification: NotificationRepository;
     market: MarketDataPort;
-    autoTradeLog: AutoTradeLogRepository;
+    assistantLog: AssistantLogRepository;
     strategyAssistant: StrategyAssistantRepository;
     mongoClient: MongoClient | null;
 }
@@ -214,7 +214,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let journalRepo: MongoJournalRepository;
     let alertRepo: MongoAlertRepository;
     let notificationRepo: NotificationRepository;
-    let autoTradeLogRepo: AutoTradeLogRepository;
+    let assistantLogRepo: AssistantLogRepository;
     let strategyAssistantRepo: StrategyAssistantRepository;
 
     const yahooAdapter = new YahooFinanceMarketAdapter();
@@ -242,7 +242,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         journalRepo = new MongoJournalRepository(db);
         alertRepo = new MongoAlertRepository(db);
         notificationRepo = new MongoNotificationRepository(db);
-        autoTradeLogRepo = new MongoAutoTradeLogRepository(db);
+        assistantLogRepo = new MongoAssistantLogRepository(db);
         strategyAssistantRepo = new MongoStrategyAssistantRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
@@ -258,7 +258,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         journalRepo = new MongoJournalRepository({} as any);
         alertRepo = new MongoAlertRepository({} as any);
         notificationRepo = new MongoNotificationRepository({} as any);
-        autoTradeLogRepo = new MongoAutoTradeLogRepository({} as any);
+        assistantLogRepo = new MongoAssistantLogRepository({} as any);
         strategyAssistantRepo = new MongoStrategyAssistantRepository({} as any);
     }
 
@@ -275,7 +275,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         alert: alertRepo,
         notification: notificationRepo,
         market: marketAdapter,
-        autoTradeLog: autoTradeLogRepo!,
+        assistantLog: assistantLogRepo!,
         strategyAssistant: strategyAssistantRepo!,
         mongoClient: mongoClient,
     };

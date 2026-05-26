@@ -1,4 +1,4 @@
-export interface AutoTradeLog {
+export interface AssistantLog {
     id: string;
     botId: string;
     timestamp: Date;
@@ -9,8 +9,8 @@ export interface AutoTradeLog {
     createdAt: Date; // Used by MongoDB TTL Index
 }
 
-export interface AutoTradeLogRepository {
-    save(log: AutoTradeLog): Promise<void>;
-    findByBotId(botId: string, limit?: number): Promise<AutoTradeLog[]>;
+export interface AssistantLogRepository {
+    save(log: AssistantLog): Promise<void>;
+    findByBotId(botId: string, limit?: number): Promise<AssistantLog[]>;
     deleteByBotId(botId: string): Promise<void>;
 }

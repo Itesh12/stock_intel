@@ -170,7 +170,7 @@ async function runTests() {
         // ==========================================
         console.log("3. Verifying database logging & TTL indices...");
         
-        await infra.autoTradeLog.save({
+        await infra.assistantLog.save({
             id: "test-log-ttl",
             botId: "test-bot-123",
             timestamp: new Date(),
@@ -180,11 +180,11 @@ async function runTests() {
             createdAt: new Date()
         });
 
-        const retrievedLogs = await infra.autoTradeLog.findByBotId("test-bot-123");
-        const foundTestLog = retrievedLogs.some(l => l.id === "test-log-ttl");
+        const retrievedLogs = await infra.assistantLog.findByBotId("test-bot-123");
+        const foundTestLog = retrievedLogs.some((l: any) => l.id === "test-log-ttl");
         assert(foundTestLog === true, `Successfully logged and retrieved audit messages for bot (count: ${retrievedLogs.length})`);
 
-        await infra.autoTradeLog.deleteByBotId("test-bot-123");
+        await infra.assistantLog.deleteByBotId("test-bot-123");
 
         console.log("\n====================================================");
         console.log(`🏁 TEST EXECUTION COMPLETE: Passed: ${passedCount} | Failed: ${failedCount}`);

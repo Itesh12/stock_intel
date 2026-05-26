@@ -1,14 +1,16 @@
 import { Infrastructure } from "../infrastructure/container";
 import { StrategyAssistant } from "../domain/strategy-assistant";
 import { SectorResolverService } from "./sector-resolver-service";
-import { globalEvents } from "../infrastructure/events";
 import { Logger } from "../infrastructure/logger";
+import { AuditLogService } from "./audit-log-service";
 
 export class RiskGuardService {
     private sectorResolver: SectorResolverService;
+    private auditLogService: AuditLogService;
 
     constructor(private infra: Infrastructure) {
         this.sectorResolver = new SectorResolverService(infra);
+        this.auditLogService = new AuditLogService(infra);
     }
 
     /**
@@ -119,17 +121,7 @@ export class RiskGuardService {
         metadata?: any
     ): Promise<void> {
         try {
-            await this.infra.autoTradeLog.save({
-                id: "",
-                botId,
-                timestamp: new Date(),
-                level,
-                category,
-                message,
-                metadata,
-                createdAt: new Date()
-            });
-            globalEvents.emitLog(botId, level, category, message, metadata);
+            await this.auditLogService.log(botId, level, category, message, metadata);
             Logger.info("RiskGuard", `AuditLog: [${level}] [${category}] ${message}`, metadata);
         } catch (err) {
             console.error("[RiskGuardService] Failed to write audit log:", err);

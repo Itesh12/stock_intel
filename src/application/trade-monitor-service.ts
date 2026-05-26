@@ -1,14 +1,16 @@
 import { Infrastructure } from "../infrastructure/container";
-import { LimitOrder, OrderStatus } from "../domain/limit-order";
+import { LimitOrder } from "../domain/limit-order";
 import { NotificationService } from "./notification-service";
-import { globalEvents } from "../infrastructure/events";
 import { v4 as uuidv4 } from "uuid";
+import { AuditLogService } from "./audit-log-service";
 
 export class TradeMonitorService {
     private notificationService: NotificationService;
+    private auditLogService: AuditLogService;
 
     constructor(private infra: Infrastructure) {
         this.notificationService = new NotificationService(infra.notification);
+        this.auditLogService = new AuditLogService(infra);
     }
 
     /**
@@ -49,7 +51,7 @@ export class TradeMonitorService {
                                     await this.infra.limitOrder.save(order);
                                     
                                     const trailMsg = `📈 Trailing SL Adjusted: Raised stop price for ${order.symbol.replace('.NS', '')} from ₹${oldStop.toFixed(2)} to ₹${theoreticalStopPrice.toFixed(2)} based on stock price rising to ₹${currentPrice.toFixed(2)}.`;
-                                    await this.auditLog(assistant.id, 'INFO', 'TRADE_EXIT', trailMsg, {
+                                    await this.auditLogService.log(assistant.id, 'INFO', 'TRADE_EXIT', trailMsg, {
                                         symbol: order.symbol,
                                         oldStop,
                                         newStop: theoreticalStopPrice,
@@ -212,7 +214,7 @@ export class TradeMonitorService {
                                 await this.infra.portfolio.save(updatedPortfolio, session);
                                 
                                 const releaseMsg = `🔓 Progressive Release: Released ₹${positionCost.toFixed(2)} from portfolio reservedCash as position in ${order.symbol.replace('.NS', '')} was closed (Remaining reserved: ₹${(updatedPortfolio.reservedCash || 0).toFixed(2)}).`;
-                                await this.auditLog(assistant.id, 'INFO', 'TRADE_EXIT', releaseMsg, {
+                                await this.auditLogService.log(assistant.id, 'INFO', 'TRADE_EXIT', releaseMsg, {
                                     symbol: order.symbol,
                                     releasedCash: positionCost,
                                     reservedCash: updatedPortfolio.reservedCash
@@ -222,7 +224,7 @@ export class TradeMonitorService {
 
                         // Log exit execution in terminal audit logs
                         const exitMsg = `📉 Exit Execution: Closed position for ${order.quantity} shares of ${order.symbol.replace('.NS', '')} @ ₹${executionPrice.toFixed(2)} via ${order.type} (Realized PnL: ₹${realizedPL.toFixed(2)} | Net Return: ${((realizedPL / positionCost) * 100).toFixed(2)}%).`;
-                        await this.auditLog(assistant.id, isWin ? 'INFO' : 'WARN', 'TRADE_EXIT', exitMsg, {
+                        await this.auditLogService.log(assistant.id, isWin ? 'INFO' : 'WARN', 'TRADE_EXIT', exitMsg, {
                             symbol: order.symbol,
                             qty: order.quantity,
                             exitPrice: executionPrice,
@@ -307,29 +309,5 @@ export class TradeMonitorService {
         }
 
         return success;
-    }
-
-    private async auditLog(
-        botId: string,
-        level: "INFO" | "WARN" | "ERROR",
-        category: "SCAN" | "TRADE_ENTRY" | "TRADE_EXIT" | "RISK_GUARD" | "SYSTEM",
-        message: string,
-        metadata?: any
-    ): Promise<void> {
-        try {
-            await this.infra.autoTradeLog.save({
-                id: "",
-                botId,
-                timestamp: new Date(),
-                level,
-                category,
-                message,
-                metadata,
-                createdAt: new Date()
-            });
-            globalEvents.emitLog(botId, level, category, message, metadata);
-        } catch (err) {
-            console.error("[TradeMonitorService] Failed to write audit log:", err);
-        }
     }
 }

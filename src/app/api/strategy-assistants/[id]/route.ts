@@ -153,7 +153,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
             if (success) {
                 try {
-                    await infra.autoTradeLog.save({
+                    await infra.assistantLog.save({
                         id: "",
                         botId: id,
                         timestamp: new Date(),

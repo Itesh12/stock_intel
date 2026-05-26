@@ -2,11 +2,13 @@ import { Infrastructure } from "../infrastructure/container";
 import { StrategyAssistant } from "../domain/strategy-assistant";
 import { LimitOrder } from "../domain/limit-order";
 import { v4 as uuidv4 } from "uuid";
-import { globalEvents } from "../infrastructure/events";
+import { AuditLogService } from "./audit-log-service";
 
 export class AssistantLifecycleService {
-    constructor(private infra: Infrastructure) {}
-
+    private auditLogService: AuditLogService;
+    constructor(private infra: Infrastructure) {
+        this.auditLogService = new AuditLogService(infra);
+    }
     /**
      * Deploys a new strategy assistant, locking allocated capital.
      */
@@ -48,7 +50,7 @@ export class AssistantLifecycleService {
         }
 
         if (success) {
-            await this.auditLog(assistant.id, 'INFO', 'SYSTEM', `🤖 Assistant Deployed: "${assistant.name}" active on ${assistant.strategyName}. Reserved Capital: ₹${assistant.allocatedCapital.toLocaleString()}.`);
+            await this.auditLogService.log(assistant.id, 'INFO', 'SYSTEM', `🤖 Assistant Deployed: "${assistant.name}" active on ${assistant.strategyName}. Reserved Capital: ₹${assistant.allocatedCapital.toLocaleString()}.`);
         }
     }
 
@@ -96,7 +98,7 @@ export class AssistantLifecycleService {
         }
 
         if (success) {
-            await this.auditLog(assistantId, 'INFO', 'SYSTEM', `🔧 Assistant Paused. Non-deployed budget released to portfolio cash.`);
+            await this.auditLogService.log(assistantId, 'INFO', 'SYSTEM', `🔧 Assistant Paused. Non-deployed budget released to portfolio cash.`);
         }
     }
 
@@ -150,7 +152,7 @@ export class AssistantLifecycleService {
         }
 
         if (success) {
-            await this.auditLog(assistantId, 'INFO', 'SYSTEM', `⚡ Assistant Resumed. Capital reserved and scanner checks active.`);
+            await this.auditLogService.log(assistantId, 'INFO', 'SYSTEM', `⚡ Assistant Resumed. Capital reserved and scanner checks active.`);
         }
     }
 
@@ -230,7 +232,7 @@ export class AssistantLifecycleService {
             // 4. Save portfolio and delete assistant + logs
             await this.infra.portfolio.save(portfolio, sess);
             await this.infra.strategyAssistant.delete(assistantId);
-            await this.infra.autoTradeLog.deleteByBotId(assistantId);
+            await this.infra.assistantLog.deleteByBotId(assistantId);
         };
 
         try {
@@ -305,7 +307,7 @@ export class AssistantLifecycleService {
         }
 
         if (success) {
-            await this.auditLog(assistantId, 'INFO', 'SYSTEM', `🔓 Position Converted: Closed automated execution rules for ${symbol.replace('.NS', '')}. Exits cancelled.`);
+            await this.auditLogService.log(assistantId, 'INFO', 'SYSTEM', `🔓 Position Converted: Closed automated execution rules for ${symbol.replace('.NS', '')}. Exits cancelled.`);
         }
     }
 
@@ -390,7 +392,7 @@ export class AssistantLifecycleService {
         }
 
         if (success) {
-            await this.auditLog(assistantId, 'INFO', 'SYSTEM', `📉 Position Liquidated: Closed ${symbol.replace('.NS', '')} manually via dashboard trigger.`);
+            await this.auditLogService.log(assistantId, 'INFO', 'SYSTEM', `📉 Position Liquidated: Closed ${symbol.replace('.NS', '')} manually via dashboard trigger.`);
         }
     }
 
@@ -424,7 +426,7 @@ export class AssistantLifecycleService {
                 await this.infra.strategyAssistant.save(assistant);
                 pausedCount++;
 
-                await this.auditLog(assistant.id, 'ERROR', 'SYSTEM', `🚨 Emergency Stop triggered! Assistant paused ${flattenPositions ? 'and positions flattened' : 'gracefully'}.`);
+                await this.auditLogService.log(assistant.id, 'ERROR', 'SYSTEM', `🚨 Emergency Stop triggered! Assistant paused ${flattenPositions ? 'and positions flattened' : 'gracefully'}.`);
             }
 
             // Cancel pending limit orders placed by assistants
@@ -492,29 +494,5 @@ export class AssistantLifecycleService {
             cancelledCount,
             liquidatedCount
         };
-    }
-
-    private async auditLog(
-        botId: string,
-        level: "INFO" | "WARN" | "ERROR",
-        category: "SCAN" | "TRADE_ENTRY" | "TRADE_EXIT" | "RISK_GUARD" | "SYSTEM",
-        message: string,
-        metadata?: any
-    ): Promise<void> {
-        try {
-            await this.infra.autoTradeLog.save({
-                id: "",
-                botId,
-                timestamp: new Date(),
-                level,
-                category,
-                message,
-                metadata,
-                createdAt: new Date()
-            });
-            globalEvents.emitLog(botId, level, category, message, metadata);
-        } catch (err) {
-            console.error("[AssistantLifecycleService] Failed to write audit log:", err);
-        }
     }
 }

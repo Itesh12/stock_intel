@@ -74,7 +74,7 @@ export async function GET(
         }
 
         // Default: Return historical logs list
-        const logs = await infra.autoTradeLog.findByBotId(assistantId, 200);
+        const logs = await infra.assistantLog.findByBotId(assistantId, 200);
         // MongoDB findByBotId returns in reverse chronological order (-1 timestamp), 
         // we reverse it so the client receives them chronological (oldest first) for terminal render.
         return NextResponse.json(logs.reverse());
