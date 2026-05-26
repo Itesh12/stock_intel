@@ -30,6 +30,8 @@ import { AssistantLogRepository } from "../domain/assistant-log";
 import { MongoAssistantLogRepository } from "../adapters/mongodb/assistant-log-repo";
 import { StrategyAssistantRepository } from "../domain/strategy-assistant";
 import { MongoStrategyAssistantRepository } from "../adapters/mongodb/strategy-assistant-repo";
+import { WorkerHealthRepository } from "../domain/worker-health";
+import { MongoWorkerHealthRepository } from "../adapters/mongodb/worker-health-repo";
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -69,6 +71,7 @@ export interface Infrastructure {
     strategyAssistant: StrategyAssistantRepository;
     mongoClient: MongoClient | null;
     workerManager: WorkerManager;
+    workerHealth: WorkerHealthRepository;
 }
 
 const requiredEnv = [
@@ -156,6 +159,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let notificationRepo: NotificationRepository;
     let assistantLogRepo: AssistantLogRepository;
     let strategyAssistantRepo: StrategyAssistantRepository;
+    let workerHealthRepo: WorkerHealthRepository;
 
     const yahooAdapter = new YahooFinanceMarketAdapter();
     const finnhubAdapter = apiKey ? new FinnhubMarketAdapter(apiKey) : null;
@@ -184,6 +188,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         notificationRepo = new MongoNotificationRepository(db);
         assistantLogRepo = new MongoAssistantLogRepository(db);
         strategyAssistantRepo = new MongoStrategyAssistantRepository(db);
+        workerHealthRepo = new MongoWorkerHealthRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -200,6 +205,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         notificationRepo = new MongoNotificationRepository({} as any);
         assistantLogRepo = new MongoAssistantLogRepository({} as any);
         strategyAssistantRepo = new MongoStrategyAssistantRepository({} as any);
+        workerHealthRepo = new MongoWorkerHealthRepository({} as any);
     }
 
     cachedInfra = {
@@ -219,12 +225,13 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         strategyAssistant: strategyAssistantRepo!,
         mongoClient: mongoClient,
         workerManager: null as any,
+        workerHealth: workerHealthRepo!,
     };
 
     const workerManager = new WorkerManager(cachedInfra as Infrastructure);
     (cachedInfra as any).workerManager = workerManager;
 
-    if (!isBuildPhase) {
+    if (!isBuildPhase && process.env.ENABLE_WORKER_RUNTIME !== "true") {
         workerManager.startAll();
     }
 

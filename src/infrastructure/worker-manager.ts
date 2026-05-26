@@ -7,6 +7,7 @@ import { SignalProcessor } from "../application/signal-processor";
 export class WorkerManager {
     private isShuttingDown = false;
     private runningLoops = new Map<string, { interval: number; globalFlag: string; timer?: NodeJS.Timeout }>();
+    private activeExecutionsCount = 0;
 
     constructor(private infra: Infrastructure) {
         // Handle process termination events if not running inside build phase
@@ -53,7 +54,7 @@ export class WorkerManager {
         }
     }
 
-    public stopAll(): void {
+    public stopAll(onComplete?: () => void): void {
         this.isShuttingDown = true;
         this.runningLoops.forEach((loop, name) => {
             if (loop.timer) {
@@ -62,6 +63,16 @@ export class WorkerManager {
             console.log(`[WorkerManager] Stopped loop: ${name}`);
         });
         this.runningLoops.clear();
+
+        const checkExit = () => {
+            if (this.activeExecutionsCount === 0) {
+                if (onComplete) onComplete();
+            } else {
+                console.log(`[WorkerManager] Waiting for ${this.activeExecutionsCount} active loops to finish...`);
+                setTimeout(checkExit, 500);
+            }
+        };
+        checkExit();
     }
 
     private startLoop(
@@ -87,19 +98,42 @@ export class WorkerManager {
             }
 
             isExecuting = true;
+            this.activeExecutionsCount++;
             const workerStart = Date.now();
             Logger.started('Worker', name);
+
+            let lastError: string | undefined = undefined;
             try {
                 await task();
                 const durationMs = Date.now() - workerStart;
                 MetricsRegistry.recordWorkerEnd(name, true, durationMs);
                 Logger.info('Worker', name, undefined, durationMs);
-            } catch (err) {
+            } catch (err: any) {
+                lastError = err?.message || String(err);
                 const durationMs = Date.now() - workerStart;
                 MetricsRegistry.recordWorkerEnd(name, false, durationMs);
                 Logger.error('Worker', name, err, undefined, durationMs);
             } finally {
+                const cycleTime = Date.now() - workerStart;
                 isExecuting = false;
+                this.activeExecutionsCount--;
+
+                // Heartbeat status upsert to MongoDB status document
+                try {
+                    if (this.infra.workerHealth) {
+                        await this.infra.workerHealth.upsertHealth({
+                            workerName: name,
+                            lastHeartbeat: new Date(),
+                            activeLoop: name,
+                            cycleTime,
+                            lastError,
+                            updatedAt: new Date()
+                        });
+                    }
+                } catch (healthErr) {
+                    console.error(`[WorkerManager] Failed to record worker health for ${name}:`, healthErr);
+                }
+
                 if (!this.isShuttingDown) {
                     const timer = setTimeout(run, intervalMs);
                     this.runningLoops.set(name, { interval: intervalMs, globalFlag, timer });
