@@ -33,6 +33,9 @@ import { StrategyAssistantRepository } from "../domain/strategy-assistant";
 import { MongoStrategyAssistantRepository } from "../adapters/mongodb/strategy-assistant-repo";
 import { WorkerHealthRepository } from "../domain/worker-health";
 import { MongoWorkerHealthRepository } from "../adapters/mongodb/worker-health-repo";
+import { AssistantMetricsRepository } from "../domain/assistant-metrics";
+import { MongoAssistantMetricsRepository } from "../adapters/mongodb/assistant-metrics-repo";
+
 
 // Postgres Adapters
 import { PostgresStockRepository } from "../adapters/postgres/stock-repo";
@@ -147,6 +150,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     let assistantLogRepo: AssistantLogRepository;
     let strategyAssistantRepo: StrategyAssistantRepository;
     let workerHealthRepo: WorkerHealthRepository;
+    let assistantMetricsRepo: AssistantMetricsRepository;
 
     const yahooAdapter = new YahooFinanceMarketAdapter();
     const finnhubAdapter = apiKey ? new FinnhubMarketAdapter(apiKey) : null;
@@ -176,6 +180,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         assistantLogRepo = new MongoAssistantLogRepository(db);
         strategyAssistantRepo = new MongoStrategyAssistantRepository(db);
         workerHealthRepo = new MongoWorkerHealthRepository(db);
+        assistantMetricsRepo = new MongoAssistantMetricsRepository(db);
     } else {
         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
         stockRepo = new PostgresStockRepository(pool);
@@ -193,6 +198,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         assistantLogRepo = new MongoAssistantLogRepository({} as any);
         strategyAssistantRepo = new MongoStrategyAssistantRepository({} as any);
         workerHealthRepo = new MongoWorkerHealthRepository({} as any);
+        assistantMetricsRepo = new MongoAssistantMetricsRepository({} as any);
     }
 
     cachedInfra = {
@@ -213,6 +219,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
         mongoClient: mongoClient,
         workerManager: null as any,
         workerHealth: workerHealthRepo!,
+        assistantMetrics: assistantMetricsRepo!,
     };
 
     const workerManager = new WorkerManager(cachedInfra as Infrastructure);

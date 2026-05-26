@@ -297,6 +297,19 @@ export class TradeMonitorService {
             } catch (notifyErr) {
                 console.error("[TradeMonitor] Failed to send notification:", notifyErr);
             }
+
+            // Recalculate metrics cache on trade exit if botId is present and metrics cache is enabled
+            if (order.botId && process.env.ENABLE_ASSISTANT_METRICS === "true") {
+                try {
+                    const assistant = await this.infra.strategyAssistant.findById(order.botId);
+                    if (assistant) {
+                        const metricsService = new (require("./assistant-metrics-service").AssistantMetricsService)(this.infra);
+                        await metricsService.recalculateAndCache(assistant);
+                    }
+                } catch (metricsErr) {
+                    console.error("[TradeMonitor] Failed to update assistant metrics cache:", metricsErr);
+                }
+            }
         }
 
         return success;

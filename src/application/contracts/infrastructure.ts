@@ -11,6 +11,7 @@ import { MarketDataPort } from "../../ports/market-data-port";
 import { AssistantLogRepository } from "../../domain/assistant-log";
 import { StrategyAssistantRepository } from "../../domain/strategy-assistant";
 import { WorkerHealthRepository } from "../../domain/worker-health";
+import { AssistantMetricsRepository } from "../../domain/assistant-metrics";
 
 export interface IInfrastructure {
     stock: StockRepository;
@@ -27,4 +28,5 @@ export interface IInfrastructure {
     strategyAssistant: StrategyAssistantRepository;
     mongoClient: any;
     workerHealth: WorkerHealthRepository;
+    assistantMetrics: AssistantMetricsRepository;
 }

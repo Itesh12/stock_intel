@@ -249,6 +249,14 @@ export class AssistantLifecycleService {
                 await session.endSession();
             }
         }
+
+        if (success) {
+            if (process.env.ENABLE_ASSISTANT_METRICS === "true") {
+                await this.infra.assistantMetrics.deleteByAssistantId(assistantId).catch(err => 
+                    console.error("[AssistantLifecycleService] Failed to delete assistant metrics cache:", err)
+                );
+            }
+        }
     }
 
     /**
@@ -308,6 +316,18 @@ export class AssistantLifecycleService {
 
         if (success) {
             await this.auditLogService.log(assistantId, 'INFO', 'SYSTEM', `🔓 Position Converted: Closed automated execution rules for ${symbol.replace('.NS', '')}. Exits cancelled.`);
+
+            if (process.env.ENABLE_ASSISTANT_METRICS === "true") {
+                try {
+                    const assistant = await this.infra.strategyAssistant.findById(assistantId);
+                    if (assistant) {
+                        const metricsService = new (require("./assistant-metrics-service").AssistantMetricsService)(this.infra);
+                        await metricsService.recalculateAndCache(assistant);
+                    }
+                } catch (metricsErr) {
+                    console.error("[AssistantLifecycleService] Failed to update metrics cache on conversion:", metricsErr);
+                }
+            }
         }
     }
 
@@ -394,6 +414,18 @@ export class AssistantLifecycleService {
 
         if (success) {
             await this.auditLogService.log(assistantId, 'INFO', 'SYSTEM', `📉 Position Liquidated: Closed ${symbol.replace('.NS', '')} manually via dashboard trigger.`);
+
+            if (process.env.ENABLE_ASSISTANT_METRICS === "true") {
+                try {
+                    const assistant = await this.infra.strategyAssistant.findById(assistantId);
+                    if (assistant) {
+                        const metricsService = new (require("./assistant-metrics-service").AssistantMetricsService)(this.infra);
+                        await metricsService.recalculateAndCache(assistant);
+                    }
+                } catch (metricsErr) {
+                    console.error("[AssistantLifecycleService] Failed to update metrics cache on close position:", metricsErr);
+                }
+            }
         }
     }
 
@@ -487,6 +519,20 @@ export class AssistantLifecycleService {
         } finally {
             if (session) {
                 await session.endSession();
+            }
+        }
+
+        if (success) {
+            if (process.env.ENABLE_ASSISTANT_METRICS === "true") {
+                try {
+                    const assistants = await this.infra.strategyAssistant.findByUserId(userId);
+                    const metricsService = new (require("./assistant-metrics-service").AssistantMetricsService)(this.infra);
+                    for (const assistant of assistants) {
+                        await metricsService.recalculateAndCache(assistant);
+                    }
+                } catch (metricsErr) {
+                    console.error("[AssistantLifecycleService] Failed to update metrics cache on emergency stop:", metricsErr);
+                }
             }
         }
 
