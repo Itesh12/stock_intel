@@ -1,4 +1,4 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 
 export class SectorResolverService {
     // Local pre-cached sector mapping for top NSE symbols to ensure ultra-fast lookup
@@ -16,7 +16,7 @@ export class SectorResolverService {
         "HINDUNILVR.NS": "Consumer Goods"
     };
 
-    constructor(private infra: Infrastructure) {}
+    constructor(private infra: IInfrastructure) {}
 
     /**
      * Resolves the industry sector of a symbol via Local DB -> Yahoo API -> Fallback.

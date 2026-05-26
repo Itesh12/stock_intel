@@ -1,9 +1,9 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { BacktestResult, BacktestSnapshot, BacktestTrade } from "../domain/backtest";
 import { v4 as uuidv4 } from "uuid";
 
 export class BacktestService {
-    constructor(private infra: Infrastructure) {}
+    constructor(private infra: IInfrastructure) {}
 
     async runSimpleBacktest(
         userId: string,

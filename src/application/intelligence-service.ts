@@ -1,7 +1,7 @@
 import { Stock } from "../domain/stock";
 import { ScoringService } from "./scoring-service";
 import { StockRepository } from "../ports/stock-repository";
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 
 export interface IntelligenceMemo {
     symbol: string;
@@ -31,7 +31,7 @@ export interface IntelligenceMemo {
 
 export class IntelligenceService {
     constructor(
-        private infra: Infrastructure,
+        private infra: IInfrastructure,
         private scoringService: ScoringService
     ) { }
 

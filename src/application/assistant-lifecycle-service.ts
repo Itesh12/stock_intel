@@ -1,4 +1,4 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { StrategyAssistant } from "../domain/strategy-assistant";
 import { LimitOrder } from "../domain/limit-order";
 import { v4 as uuidv4 } from "uuid";
@@ -6,7 +6,7 @@ import { AuditLogService } from "./audit-log-service";
 
 export class AssistantLifecycleService {
     private auditLogService: AuditLogService;
-    constructor(private infra: Infrastructure) {
+    constructor(private infra: IInfrastructure) {
         this.auditLogService = new AuditLogService(infra);
     }
     /**

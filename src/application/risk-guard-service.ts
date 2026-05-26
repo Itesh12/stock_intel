@@ -1,4 +1,4 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { StrategyAssistant } from "../domain/strategy-assistant";
 import { SectorResolverService } from "./sector-resolver-service";
 import { Logger } from "../infrastructure/logger";
@@ -10,7 +10,7 @@ export class RiskGuardService {
     private sectorResolver: SectorResolverService;
     private auditLogService: AuditLogService;
 
-    constructor(private infra: Infrastructure) {
+    constructor(private infra: IInfrastructure) {
         this.sectorResolver = new SectorResolverService(infra);
         this.auditLogService = new AuditLogService(infra);
     }

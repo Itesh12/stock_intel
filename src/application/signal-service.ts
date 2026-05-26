@@ -1,4 +1,4 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { StrategyAssistant } from "../domain/strategy-assistant";
 import { DecisionService } from "./decision-service";
 import { ExecutionService } from "./execution-service";
@@ -38,7 +38,7 @@ export class SignalService {
     private riskGuard: RiskGuardService;
     private auditLogService: AuditLogService;
 
-    constructor(private infra: Infrastructure) {
+    constructor(private infra: IInfrastructure) {
         this.decisionService = new DecisionService();
         this.executionService = new ExecutionService(infra);
         this.riskGuard = new RiskGuardService(infra);

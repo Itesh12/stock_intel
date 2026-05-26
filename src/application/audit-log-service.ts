@@ -1,9 +1,9 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { globalEvents } from "../infrastructure/events";
 import { v4 as uuidv4 } from "uuid";
 
 export class AuditLogService {
-    constructor(private infra: Infrastructure) {}
+    constructor(private infra: IInfrastructure) {}
 
     public async log(
         botId: string,

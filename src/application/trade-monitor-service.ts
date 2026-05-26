@@ -1,4 +1,4 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { LimitOrder } from "../domain/limit-order";
 import { NotificationService } from "./notification-service";
 import { v4 as uuidv4 } from "uuid";
@@ -8,7 +8,7 @@ export class TradeMonitorService {
     private notificationService: NotificationService;
     private auditLogService: AuditLogService;
 
-    constructor(private infra: Infrastructure) {
+    constructor(private infra: IInfrastructure) {
         this.notificationService = new NotificationService(infra.notification);
         this.auditLogService = new AuditLogService(infra);
     }

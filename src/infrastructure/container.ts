@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { IInfrastructure } from "../application/contracts/infrastructure";
 import { StockRepository } from "../ports/stock-repository";
 import { PortfolioRepository } from "../ports/portfolio-repository";
 import { MarketDataPort } from "../ports/market-data-port";
@@ -54,24 +55,10 @@ const isBuildPhase =
     process.env.IS_BUILD === "true" ||
     (process.env.NODE_ENV === "production" && !process.env.NEXT_RUNTIME);
 
-export interface Infrastructure {
-    stock: StockRepository;
-    portfolio: PortfolioRepository;
-    user: UserRepository;
-    trade: TradeRepository;
-    watchlist: WatchlistRepository;
-    analytics: AnalyticsRepository;
-    limitOrder: LimitOrderRepository;
-    strategy: StrategyRepository;
+export interface Infrastructure extends IInfrastructure {
     journal: MongoJournalRepository;
     alert: MongoAlertRepository;
-    notification: NotificationRepository;
-    market: MarketDataPort;
-    assistantLog: AssistantLogRepository;
-    strategyAssistant: StrategyAssistantRepository;
-    mongoClient: MongoClient | null;
     workerManager: WorkerManager;
-    workerHealth: WorkerHealthRepository;
 }
 
 const requiredEnv = [

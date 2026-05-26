@@ -1,9 +1,9 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { StrategyAssistant } from "../domain/strategy-assistant";
 import { calculateAssistantStats } from "./assistant-stats-calculator";
 
 export class AssistantMetricsService {
-    constructor(private infra: Infrastructure) {}
+    constructor(private infra: IInfrastructure) {}
 
     /**
      * Calculates stats dynamically for a single assistant.

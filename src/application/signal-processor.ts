@@ -1,4 +1,4 @@
-import { Infrastructure } from "../infrastructure/container";
+import { IInfrastructure } from "./contracts/infrastructure";
 import { SignalService } from "./signal-service";
 import { Portfolio } from "../domain/portfolio";
 import { LimitOrder } from "../domain/limit-order";
@@ -6,7 +6,7 @@ import { LimitOrder } from "../domain/limit-order";
 export class SignalProcessor {
     private signalService: SignalService;
 
-    constructor(private infra: Infrastructure) {
+    constructor(private infra: IInfrastructure) {
         this.signalService = new SignalService(infra);
     }
 
