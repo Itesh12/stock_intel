@@ -58,7 +58,7 @@ export class MongoAssistantLogRepository implements AssistantLogRepository {
         }
     }
 
-    async save(log: AssistantLog): Promise<void> {
+    async save(log: AssistantLog, session?: any): Promise<void> {
         const id = log.id || uuidv4();
         const timestamp = log.timestamp || new Date();
         const createdAt = log.createdAt || timestamp;
@@ -67,7 +67,7 @@ export class MongoAssistantLogRepository implements AssistantLogRepository {
             id,
             timestamp,
             createdAt
-        });
+        }, { session });
     }
 
     async findByBotId(botId: string, limit: number = 200): Promise<AssistantLog[]> {
@@ -79,8 +79,8 @@ export class MongoAssistantLogRepository implements AssistantLogRepository {
         return docs.map(d => this.map(d));
     }
 
-    async deleteByBotId(botId: string): Promise<void> {
-        await this.collection.deleteMany({ botId });
+    async deleteByBotId(botId: string, session?: any): Promise<void> {
+        await this.collection.deleteMany({ botId }, { session });
     }
 
     private map(doc: any): AssistantLog {

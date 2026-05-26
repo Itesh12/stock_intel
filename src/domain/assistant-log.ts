@@ -10,7 +10,7 @@ export interface AssistantLog {
 }
 
 export interface AssistantLogRepository {
-    save(log: AssistantLog): Promise<void>;
+    save(log: AssistantLog, session?: any): Promise<void>;
     findByBotId(botId: string, limit?: number): Promise<AssistantLog[]>;
-    deleteByBotId(botId: string): Promise<void>;
+    deleteByBotId(botId: string, session?: any): Promise<void>;
 }

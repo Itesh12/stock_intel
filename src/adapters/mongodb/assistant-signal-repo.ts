@@ -23,21 +23,21 @@ export class MongoAssistantSignalRepository implements AssistantSignalRepository
         });
     }
 
-    async save(signal: AssistantSignal): Promise<void> {
+    async save(signal: AssistantSignal, session?: any): Promise<void> {
         await this.collection.updateOne(
             { id: signal.id },
             { $set: signal },
-            { upsert: true }
+            { upsert: true, session }
         );
     }
 
-    async findById(id: string): Promise<AssistantSignal | null> {
-        return await this.collection.findOne({ id });
+    async findById(id: string, session?: any): Promise<AssistantSignal | null> {
+        return await this.collection.findOne({ id }, { session });
     }
 
-    async findByAssistantId(assistantId: string, limit: number = 50): Promise<AssistantSignal[]> {
+    async findByAssistantId(assistantId: string, limit: number = 50, session?: any): Promise<AssistantSignal[]> {
         return await this.collection
-            .find({ assistantId })
+            .find({ assistantId }, { session })
             .sort({ createdAt: -1 })
             .limit(limit)
             .toArray();
@@ -47,7 +47,8 @@ export class MongoAssistantSignalRepository implements AssistantSignalRepository
         id: string, 
         status: SignalStatus, 
         reasoning?: DecisionReasoning, 
-        expiresAt?: Date | null
+        expiresAt?: Date | null,
+        session?: any
     ): Promise<void> {
         const updateDoc: any = {
             $set: {
@@ -64,13 +65,17 @@ export class MongoAssistantSignalRepository implements AssistantSignalRepository
             updateDoc.$set.expiresAt = expiresAt;
         }
 
-        await this.collection.updateOne({ id }, updateDoc);
+        await this.collection.updateOne({ id }, updateDoc, { session });
     }
 
-    async pruneExpired(expirationTime: Date): Promise<number> {
+    async pruneExpired(expirationTime: Date, session?: any): Promise<number> {
         const result = await this.collection.deleteMany({
             expiresAt: { $lt: expirationTime }
-        });
+        }, { session });
         return result.deletedCount || 0;
+    }
+
+    async deleteByAssistantId(assistantId: string, session?: any): Promise<void> {
+        await this.collection.deleteMany({ assistantId }, { session });
     }
 }

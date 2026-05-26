@@ -39,11 +39,11 @@ export interface StrategyAssistant {
 }
 
 export interface StrategyAssistantRepository {
-    save(assistant: StrategyAssistant): Promise<void>;
-    findById(id: string): Promise<StrategyAssistant | null>;
+    save(assistant: StrategyAssistant, session?: any): Promise<void>;
+    findById(id: string, session?: any): Promise<StrategyAssistant | null>;
     findByUserId(userId: string): Promise<StrategyAssistant[]>;
     findAllRunning(): Promise<StrategyAssistant[]>;
     findRunningByStrategy(strategySlug: string): Promise<StrategyAssistant[]>;
     updateStats(id: string, stats: Partial<StrategyAssistant>, session?: any): Promise<void>;
-    delete(id: string): Promise<void>;
+    delete(id: string, session?: any): Promise<void>;
 }

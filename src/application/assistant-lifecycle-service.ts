@@ -164,7 +164,7 @@ export class AssistantLifecycleService {
         let success = false;
 
         const executeTransaction = async (sess?: any) => {
-            const assistant = await this.infra.strategyAssistant.findById(assistantId);
+            const assistant = await this.infra.strategyAssistant.findById(assistantId, sess);
             if (!assistant || assistant.userId !== userId) throw new Error("Assistant not found");
 
             const portfolios = await this.infra.portfolio.findByUserId(userId, sess);
@@ -211,8 +211,14 @@ export class AssistantLifecycleService {
                     }, sess);
                 }
 
-                // Fully clear reserved cash of deployed portion
-                portfolio.reservedCash = Math.max(0, (portfolio.reservedCash || 0) - assistant.deployedCapital);
+                // Reload latest portfolio from DB to avoid VersionConflictError since executeTrade updated/saved it internally
+                const reloadedPortfolios = await this.infra.portfolio.findByUserId(userId, sess);
+                if (reloadedPortfolios.length === 0) throw new Error("Portfolio not found on reload");
+                const latestPortfolio = reloadedPortfolios[0];
+
+                // Fully clear reserved cash of deployed portion on the latest portfolio object
+                latestPortfolio.reservedCash = Math.max(0, (latestPortfolio.reservedCash || 0) - assistant.deployedCapital);
+                await this.infra.portfolio.save(latestPortfolio, sess);
             } else {
                 // Convert positions to manual (detaches holding from botId)
                 for (const holding of portfolio.holdings) {
@@ -220,6 +226,7 @@ export class AssistantLifecycleService {
                         delete holding.botId;
                     }
                 }
+                await this.infra.portfolio.save(portfolio, sess);
             }
 
             // 3. Cancel companion exit orders
@@ -229,10 +236,11 @@ export class AssistantLifecycleService {
                 await this.infra.limitOrder.updateStatus(order.id, 'CANCELLED', undefined, sess);
             }
 
-            // 4. Save portfolio and delete assistant + logs
-            await this.infra.portfolio.save(portfolio, sess);
-            await this.infra.strategyAssistant.delete(assistantId);
-            await this.infra.assistantLog.deleteByBotId(assistantId);
+            // 4. Delete assistant + logs + explainability queue + timeline events
+            await this.infra.strategyAssistant.delete(assistantId, sess);
+            await this.infra.assistantLog.deleteByBotId(assistantId, sess);
+            await this.infra.assistantSignal.deleteByAssistantId(assistantId, sess);
+            await this.infra.assistantTimeline.deleteByAssistantId(assistantId, sess);
         };
 
         try {

@@ -21,6 +21,7 @@ export interface AssistantTimelineEvent {
 }
 
 export interface AssistantTimelineRepository {
-    saveBatch(events: AssistantTimelineEvent[]): Promise<void>;
+    saveBatch(events: AssistantTimelineEvent[], session?: any): Promise<void>;
     findByAssistantId(assistantId: string, limit?: number): Promise<AssistantTimelineEvent[]>;
+    deleteByAssistantId(assistantId: string, session?: any): Promise<void>;
 }

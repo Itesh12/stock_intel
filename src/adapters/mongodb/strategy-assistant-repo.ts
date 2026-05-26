@@ -9,17 +9,17 @@ export class MongoStrategyAssistantRepository implements StrategyAssistantReposi
         this.collection = db.collection("strategy_assistants");
     }
 
-    async save(assistant: StrategyAssistant): Promise<void> {
+    async save(assistant: StrategyAssistant, session?: any): Promise<void> {
         const id = assistant.id || uuidv4();
         await this.collection.updateOne(
             { id },
             { $set: { ...assistant, id, updatedAt: new Date() } },
-            { upsert: true }
+            { upsert: true, session }
         );
     }
 
-    async findById(id: string): Promise<StrategyAssistant | null> {
-        const doc = await this.collection.findOne({ id });
+    async findById(id: string, session?: any): Promise<StrategyAssistant | null> {
+        const doc = await this.collection.findOne({ id }, { session });
         return doc ? this.map(doc) : null;
     }
 
@@ -46,8 +46,8 @@ export class MongoStrategyAssistantRepository implements StrategyAssistantReposi
         );
     }
 
-    async delete(id: string): Promise<void> {
-        await this.collection.deleteOne({ id });
+    async delete(id: string, session?: any): Promise<void> {
+        await this.collection.deleteOne({ id }, { session });
     }
 
     private map(doc: any): StrategyAssistant {

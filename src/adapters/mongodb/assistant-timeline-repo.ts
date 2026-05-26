@@ -20,9 +20,9 @@ export class MongoAssistantTimelineRepository implements AssistantTimelineReposi
         });
     }
 
-    async saveBatch(events: AssistantTimelineEvent[]): Promise<void> {
+    async saveBatch(events: AssistantTimelineEvent[], session?: any): Promise<void> {
         if (events.length === 0) return;
-        await this.collection.insertMany(events);
+        await this.collection.insertMany(events, { session });
     }
 
     async findByAssistantId(assistantId: string, limit: number = 100): Promise<AssistantTimelineEvent[]> {
@@ -31,5 +31,9 @@ export class MongoAssistantTimelineRepository implements AssistantTimelineReposi
             .sort({ createdAt: -1 })
             .limit(limit)
             .toArray();
+    }
+
+    async deleteByAssistantId(assistantId: string, session?: any): Promise<void> {
+        await this.collection.deleteMany({ assistantId }, { session });
     }
 }

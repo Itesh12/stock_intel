@@ -28,14 +28,16 @@ export interface AssistantSignal {
 }
 
 export interface AssistantSignalRepository {
-    save(signal: AssistantSignal): Promise<void>;
-    findById(id: string): Promise<AssistantSignal | null>;
+    save(signal: AssistantSignal, session?: any): Promise<void>;
+    findById(id: string, session?: any): Promise<AssistantSignal | null>;
     findByAssistantId(assistantId: string, limit?: number): Promise<AssistantSignal[]>;
     updateStatus(
         id: string, 
         status: SignalStatus, 
         reasoning?: DecisionReasoning, 
-        expiresAt?: Date | null
+        expiresAt?: Date | null,
+        session?: any
     ): Promise<void>;
     pruneExpired(expirationTime: Date): Promise<number>;
+    deleteByAssistantId(assistantId: string, session?: any): Promise<void>;
 }
