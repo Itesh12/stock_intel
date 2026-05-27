@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "./env-init";
 
 import { getInfrastructure } from "./container";
 

@@ -4,6 +4,7 @@ import { ProposedTrade } from "./decision-service";
 import { LimitOrder } from "../domain/limit-order";
 import { v4 as uuidv4 } from "uuid";
 import { AuditLogService } from "./audit-log-service";
+import { CapitalReservationService } from "./capital-reservation-service";
 
 export class ExecutionService {
     private auditLogService: AuditLogService;
@@ -126,6 +127,10 @@ export class ExecutionService {
             assistant.todayTradeCount = newTodayCount;
             assistant.totalTradesExecuted = newTotal;
             assistant.todayDate = today;
+
+            // Recalculate reservedCash dynamically to avoid arithmetic drift
+            const reservationService = new CapitalReservationService(this.infra);
+            await reservationService.syncReservedCash(assistant.userId, sess);
         };
 
         try {

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getInfrastructure } from "@/infrastructure/container";
 import { AssistantLifecycleService } from "@/application/assistant-lifecycle-service";
+import { CapitalReservationService } from "@/application/capital-reservation-service";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -87,7 +88,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 if (portfolios.length === 0) throw new Error("Portfolio not found");
                 const portfolio = portfolios[0];
 
-                let reservedCashAdjustment = 0;
+                let budgetUpdated = false;
 
                 // Handle budget limit updates
                 if (data.allocatedCapital !== undefined && data.allocatedCapital !== assistant.allocatedCapital) {
@@ -104,15 +105,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                                 throw new Error(`Insufficient funds: Budget increase of ₹${cashDelta.toLocaleString()} exceeds available virtual balance.`);
                             }
                         }
-                        reservedCashAdjustment += cashDelta;
                     }
                     assistant.allocatedCapital = data.allocatedCapital;
-                }
-
-                // Save portfolio updates if reservedCash changed
-                if (reservedCashAdjustment !== 0) {
-                    portfolio.reservedCash = Math.max(0, (portfolio.reservedCash || 0) + reservedCashAdjustment);
-                    await infra.portfolio.save(portfolio, sess);
+                    budgetUpdated = true;
                 }
 
                 // Update the assistant details
@@ -131,6 +126,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 };
 
                 await infra.strategyAssistant.save(finalUpdatedAssistant);
+
+                if (budgetUpdated) {
+                    const reservationService = new CapitalReservationService(infra);
+                    await reservationService.syncReservedCash(userId, sess);
+                }
             };
 
             try {

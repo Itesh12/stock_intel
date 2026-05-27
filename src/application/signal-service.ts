@@ -11,7 +11,9 @@ import { TimelineBufferService } from "./timeline-buffer-service";
 import { AssistantSignal, SignalStatus } from "../domain/assistant-signal";
 import { v4 as uuidv4 } from "uuid";
 
-const EXPLAINABILITY_ENABLED = process.env.ENABLE_EXPLAINABILITY === 'true';
+function isExplainabilityEnabled(): boolean {
+    return process.env.ENABLE_EXPLAINABILITY === 'true';
+}
 
 // IST market hours: 9:30 AM - 2:30 PM
 const MARKET_OPEN_HOUR = 9;
@@ -53,7 +55,7 @@ export class SignalService {
         this.auditLogService = new AuditLogService(infra);
         this.reasoningService = new DecisionReasoningService();
         this.timelineBuffer = new TimelineBufferService(infra);
-        if (EXPLAINABILITY_ENABLED) {
+        if (isExplainabilityEnabled()) {
             this.timelineBuffer.start();
         }
     }
@@ -152,7 +154,7 @@ export class SignalService {
 
             // ── Signal Queue: Create PENDING signal record ─────────────────────────
             let signalId: string | null = null;
-            if (EXPLAINABILITY_ENABLED) {
+            if (isExplainabilityEnabled()) {
                 signalId = uuidv4();
                 const pendingSignal: AssistantSignal = {
                     id: signalId,
@@ -189,14 +191,14 @@ export class SignalService {
             try {
                 const stockData = await this.infra.market.getStockPrice(symbol);
                 if (!stockData || !stockData.price || stockData.price <= 0) {
-                    if (EXPLAINABILITY_ENABLED && signalId) {
+                    if (isExplainabilityEnabled() && signalId) {
                         await this.infra.assistantSignal.updateStatus(signalId, 'EXPIRED', undefined, signalExpiresAt());
                     }
                     continue;
                 }
                 currentPrice = stockData.price;
             } catch {
-                if (EXPLAINABILITY_ENABLED && signalId) {
+                if (isExplainabilityEnabled() && signalId) {
                     await this.infra.assistantSignal.updateStatus(signalId, 'EXPIRED', undefined, signalExpiresAt());
                 }
                 continue;
@@ -212,7 +214,7 @@ export class SignalService {
             );
 
             if (!proposedTrade) {
-                if (EXPLAINABILITY_ENABLED && signalId) {
+                if (isExplainabilityEnabled() && signalId) {
                     const reasoning = this.reasoningService.buildRejectionReasoning(
                         assistant, rec, 'Insufficient capital or quantity too small for a valid position.'
                     );
@@ -243,7 +245,7 @@ export class SignalService {
                     'RISK_GUARD',
                     `Trade entry for ${symbol.replace('.NS', '')} blocked: ${riskResult.reason}`
                 );
-                if (EXPLAINABILITY_ENABLED && signalId) {
+                if (isExplainabilityEnabled() && signalId) {
                     const reasoning = this.reasoningService.buildRejectionReasoning(
                         assistant, rec, riskResult.reason || 'Risk check failed.'
                     );
@@ -260,7 +262,7 @@ export class SignalService {
             }
 
             // Approve the signal — reasoning generated before execution
-            if (EXPLAINABILITY_ENABLED && signalId) {
+            if (isExplainabilityEnabled() && signalId) {
                 const reasoning = this.reasoningService.buildApprovalReasoning(
                     assistant, rec, currentPortfolio, pendingOrders
                 );
@@ -283,7 +285,7 @@ export class SignalService {
 
             if (executed) {
                 // Transition signal to EXECUTED
-                if (EXPLAINABILITY_ENABLED && signalId) {
+                if (isExplainabilityEnabled() && signalId) {
                     await this.infra.assistantSignal.updateStatus(signalId, 'EXECUTED', undefined, signalExpiresAt());
                     this.timelineBuffer.pushEvent(
                         assistant.id,

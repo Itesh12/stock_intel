@@ -3,6 +3,7 @@ import { StrategyAssistant } from "../domain/strategy-assistant";
 import { LimitOrder } from "../domain/limit-order";
 import { v4 as uuidv4 } from "uuid";
 import { AuditLogService } from "./audit-log-service";
+import { CapitalReservationService } from "./capital-reservation-service";
 
 export class AssistantLifecycleService {
     private auditLogService: AuditLogService;
@@ -26,12 +27,12 @@ export class AssistantLifecycleService {
                 throw new Error(`Insufficient funds: Allocated capital (₹${assistant.allocatedCapital.toLocaleString()}) exceeds available cash (₹${availablePortfolioCash.toLocaleString()}).`);
             }
 
-            // Lock budget in reservedCash
-            portfolio.reservedCash = (portfolio.reservedCash || 0) + assistant.allocatedCapital;
-            await this.infra.portfolio.save(portfolio, sess);
-
             // Save assistant config
             await this.infra.strategyAssistant.save(assistant);
+
+            // Lock budget by recalculating reservedCash
+            const reservationService = new CapitalReservationService(this.infra);
+            await reservationService.syncReservedCash(assistant.userId, sess);
         };
 
         try {
@@ -70,16 +71,13 @@ export class AssistantLifecycleService {
             if (portfolios.length === 0) throw new Error("Portfolio not found");
             const portfolio = portfolios[0];
 
-            // Release non-deployed budget from reservedCash
-            const releasableCapital = assistant.allocatedCapital - assistant.deployedCapital;
-            if (releasableCapital > 0) {
-                portfolio.reservedCash = Math.max(0, (portfolio.reservedCash || 0) - releasableCapital);
-                await this.infra.portfolio.save(portfolio, sess);
-            }
-
             // Update status
             assistant.status = 'PAUSED';
             await this.infra.strategyAssistant.save(assistant);
+
+            // Sync reservedCash
+            const reservationService = new CapitalReservationService(this.infra);
+            await reservationService.syncReservedCash(userId, sess);
         };
 
         try {
@@ -120,20 +118,22 @@ export class AssistantLifecycleService {
             if (portfolios.length === 0) throw new Error("Portfolio not found");
             const portfolio = portfolios[0];
 
-            // Re-lock non-deployed budget
+            // Re-lock non-deployed budget precheck
             const toReserve = assistant.allocatedCapital - assistant.deployedCapital;
             if (toReserve > 0) {
                 const available = portfolio.cashBalance - (portfolio.reservedCash || 0);
                 if (available < toReserve) {
                     throw new Error(`Insufficient funds: Re-locking budget of ₹${toReserve.toLocaleString()} exceeds available cash (₹${available.toLocaleString()}).`);
                 }
-                portfolio.reservedCash = (portfolio.reservedCash || 0) + toReserve;
-                await this.infra.portfolio.save(portfolio, sess);
             }
 
             // Update status
             assistant.status = 'RUNNING';
             await this.infra.strategyAssistant.save(assistant);
+
+            // Sync reservedCash
+            const reservationService = new CapitalReservationService(this.infra);
+            await reservationService.syncReservedCash(userId, sess);
         };
 
         try {
@@ -171,17 +171,7 @@ export class AssistantLifecycleService {
             if (portfolios.length === 0) throw new Error("Portfolio not found");
             const portfolio = portfolios[0];
 
-            // 1. Release non-deployed budget if running
-            let releasable = 0;
-            if (assistant.status === 'RUNNING') {
-                releasable = assistant.allocatedCapital - assistant.deployedCapital;
-            }
-
-            if (releasable > 0) {
-                portfolio.reservedCash = Math.max(0, (portfolio.reservedCash || 0) - releasable);
-            }
-
-            // 2. Handle active holdings
+            // 1. Handle active holdings
             const openHoldings = portfolio.holdings.filter(h => h.botId === assistantId);
 
             if (liquidate) {
@@ -210,15 +200,6 @@ export class AssistantLifecycleService {
                         botId: assistantId
                     }, sess);
                 }
-
-                // Reload latest portfolio from DB to avoid VersionConflictError since executeTrade updated/saved it internally
-                const reloadedPortfolios = await this.infra.portfolio.findByUserId(userId, sess);
-                if (reloadedPortfolios.length === 0) throw new Error("Portfolio not found on reload");
-                const latestPortfolio = reloadedPortfolios[0];
-
-                // Fully clear reserved cash of deployed portion on the latest portfolio object
-                latestPortfolio.reservedCash = Math.max(0, (latestPortfolio.reservedCash || 0) - assistant.deployedCapital);
-                await this.infra.portfolio.save(latestPortfolio, sess);
             } else {
                 // Convert positions to manual (detaches holding from botId)
                 for (const holding of portfolio.holdings) {
@@ -236,11 +217,15 @@ export class AssistantLifecycleService {
                 await this.infra.limitOrder.updateStatus(order.id, 'CANCELLED', undefined, sess);
             }
 
-            // 4. Delete assistant + logs + explainability queue + timeline events
+            // 3. Delete assistant + logs + explainability queue + timeline events
             await this.infra.strategyAssistant.delete(assistantId, sess);
             await this.infra.assistantLog.deleteByBotId(assistantId, sess);
             await this.infra.assistantSignal.deleteByAssistantId(assistantId, sess);
             await this.infra.assistantTimeline.deleteByAssistantId(assistantId, sess);
+
+            // 4. Sync reservedCash
+            const reservationService = new CapitalReservationService(this.infra);
+            await reservationService.syncReservedCash(userId, sess);
         };
 
         try {

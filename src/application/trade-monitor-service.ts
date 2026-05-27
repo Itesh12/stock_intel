@@ -3,6 +3,7 @@ import { LimitOrder } from "../domain/limit-order";
 import { NotificationService } from "./notification-service";
 import { v4 as uuidv4 } from "uuid";
 import { AuditLogService } from "./audit-log-service";
+import { CapitalReservationService } from "./capital-reservation-service";
 
 export class TradeMonitorService {
     private notificationService: NotificationService;
@@ -207,21 +208,9 @@ export class TradeMonitorService {
 
                         await this.infra.strategyAssistant.updateStats(assistant.id, updatedAssistantStats, session);
 
-                        // Progressive Reservation Cash release if assistant is PAUSED or RISK_STOPPED
-                        if (assistant.status === 'PAUSED' || assistant.status === 'RISK_STOPPED') {
-                            const updatedPortfolio = await this.infra.portfolio.findById(portfolio.id, session);
-                            if (updatedPortfolio) {
-                                updatedPortfolio.reservedCash = Math.max(0, (updatedPortfolio.reservedCash || 0) - positionCost);
-                                await this.infra.portfolio.save(updatedPortfolio, session);
-                                
-                                const releaseMsg = `🔓 Progressive Release: Released ₹${positionCost.toFixed(2)} from portfolio reservedCash as position in ${order.symbol.replace('.NS', '')} was closed (Remaining reserved: ₹${(updatedPortfolio.reservedCash || 0).toFixed(2)}).`;
-                                await this.auditLogService.log(assistant.id, 'INFO', 'TRADE_EXIT', releaseMsg, {
-                                    symbol: order.symbol,
-                                    releasedCash: positionCost,
-                                    reservedCash: updatedPortfolio.reservedCash
-                                });
-                            }
-                        }
+                        // Recalculate reservedCash dynamically to avoid arithmetic drift
+                        const reservationService = new CapitalReservationService(this.infra);
+                        await reservationService.syncReservedCash(assistant.userId, session);
 
                         // Log exit execution in terminal audit logs
                         const exitMsg = `📉 Exit Execution: Closed position for ${order.quantity} shares of ${order.symbol.replace('.NS', '')} @ ₹${executionPrice.toFixed(2)} via ${order.type} (Realized PnL: ₹${realizedPL.toFixed(2)} | Net Return: ${((realizedPL / positionCost) * 100).toFixed(2)}%).`;
@@ -232,13 +221,9 @@ export class TradeMonitorService {
                             pnl: realizedPL
                         });
                     } else {
-                        // Bot/Assistant was deleted! Release the reserved cash progressively
-                        const positionCost = order.quantity * averagePriceAtSale;
-                        const updatedPortfolio = await this.infra.portfolio.findById(portfolio.id, session);
-                        if (updatedPortfolio) {
-                            updatedPortfolio.reservedCash = Math.max(0, (updatedPortfolio.reservedCash || 0) - positionCost);
-                            await this.infra.portfolio.save(updatedPortfolio, session);
-                        }
+                        // Bot/Assistant was deleted! Sync reservedCash
+                        const reservationService = new CapitalReservationService(this.infra);
+                        await reservationService.syncReservedCash(portfolio.userId, session);
                     }
                 }
             }
