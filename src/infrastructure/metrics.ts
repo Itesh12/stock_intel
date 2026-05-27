@@ -7,7 +7,7 @@
  * - Rolling windows: API latency percentiles over last 1000 requests per route
  * - Additive only: never modifies the systems it observes
  */
-import 'server-only';
+// import 'server-only';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

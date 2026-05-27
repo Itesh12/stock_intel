@@ -6,7 +6,10 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "worker:dev": "tsx src/infrastructure/worker-runtime.ts",
+    "worker": "tsx src/infrastructure/worker-runtime.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run worker\""
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
@@ -40,6 +43,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6"
+    "@types/bcryptjs": "^2.4.6",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.22.3"
   }
 }

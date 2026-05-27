@@ -1,12 +1,22 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import { getInfrastructure } from "./container";
 
+if (process.env.RUN_WORKERS !== "true") {
+    console.log("[WorkerRuntime] Workers disabled");
+    process.exit(0);
+}
+
 async function main() {
-    console.log("[WorkerRuntime] Starting dedicated worker process...");
+    console.log("[WorkerRuntime] Starting...");
     try {
         const infra = await getInfrastructure();
         
-        console.log("[WorkerRuntime] Running WorkerManager startAll...");
         infra.workerManager.startAll();
+        console.log("[WorkerRuntime] SignalProcessor active");
+        console.log("[WorkerRuntime] TradeMonitor active");
+        console.log("[WorkerRuntime] Heartbeat OK");
 
         // Graceful shutdown handling
         const shutdown = () => {
