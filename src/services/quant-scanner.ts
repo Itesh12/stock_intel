@@ -185,6 +185,9 @@ export abstract class BaseScanner {
     ): Promise<StrategyRecommendation[]> {
         const topRecs = recommendations.sort((a, b) => b.score - a.score).slice(0, topN);
 
+        // Clear old recommendations for this strategy to avoid stale data accumulation
+        await this.infra.strategy.clearRecommendations(strategyId);
+
         await this.infra.strategy.saveRecommendations(strategyId, topRecs);
 
         const notificationService = new NotificationService(this.infra.notification);
@@ -285,7 +288,7 @@ export class CanslimScanner extends BaseScanner {
                 minChangePercent: -5,
             },
             concurrency: 35,
-            topN: 10,
+            topN: 20,
             label: 'CANSLIM',
             scorer: async (q, strategyId) => {
                 const summaryRes = await this.yahooFinance.quoteSummary(q.symbol, {
@@ -323,11 +326,18 @@ export class CanslimScanner extends BaseScanner {
 
                 if (score < 30) return null;
 
+                // Tie-breaker: prefer higher ROE, higher combined growth, and closer proximity to 52W high
+                const roeFactor = Math.min(10, roe) / 10;
+                const growthFactor = Math.min(100, Math.max(0, earningsGrowth + revenueGrowth)) / 100;
+                const highFactor = Math.min(1, distanceToHigh);
+                const tieBreaker = (roeFactor * 0.4) + (growthFactor * 0.4) + (highFactor * 0.2);
+                const finalScore = score + Number(tieBreaker.toFixed(4));
+
                 return {
                     id: uuidv4(),
                     strategyId,
                     symbol: q.symbol,
-                    score,
+                    score: finalScore,
                     matchDetails: {
                         earningsGrowth,
                         revenueGrowth,
@@ -364,7 +374,7 @@ export class IntermarketScanner extends BaseScanner {
                 minChangePercent: -2,
             },
             concurrency: 35,
-            topN: 10,
+            topN: 20,
             label: 'INTERMARKET',
             scorer: async (q, strategyId) => {
                 const summaryRes = await this.yahooFinance.quoteSummary(q.symbol, {
@@ -396,11 +406,18 @@ export class IntermarketScanner extends BaseScanner {
 
                 if (score < 40) return null;
 
+                // Tie-breaker: prefer lower debt-to-equity, closer proximity to 52W high, and positive momentum
+                const debtFactor = debtToEquity <= 0 ? 1 : Math.max(0, 100 - debtToEquity) / 100;
+                const highFactor = Math.min(1, distanceToHigh);
+                const momentumFactor = Math.min(10, Math.max(0, q.regularMarketChangePercent || 0)) / 10;
+                const tieBreaker = (debtFactor * 0.3) + (highFactor * 0.4) + (momentumFactor * 0.3);
+                const finalScore = score + Number(tieBreaker.toFixed(4));
+
                 return {
                     id: uuidv4(),
                     strategyId,
                     symbol: q.symbol,
-                    score,
+                    score: finalScore,
                     matchDetails: {
                         debtToEquity,
                         distanceToHigh,
@@ -435,7 +452,7 @@ export class BuffetScanner extends BaseScanner {
                 minMarketCap: 30_000_000_000,
             },
             concurrency: 35,
-            topN: 10,
+            topN: 20,
             label: 'WARREN BUFFET (IVCF)',
             scorer: async (q, strategyId) => {
                 // Additional pre-screen: reasonable PE
@@ -469,24 +486,28 @@ export class BuffetScanner extends BaseScanner {
                 const epsGrowth = (financialData.earningsGrowth || 0) * 100;
                 const g_score = Math.min(100, (revGrowth + epsGrowth) / 2 * 4);
 
-                const totalScore = Math.round(
-                    (0.25 * q_score) +
+                const totalScore = (0.25 * q_score) +
                     (0.20 * m_score) +
                     (0.20 * f_score) +
                     (0.20 * v_score) +
-                    (0.15 * g_score)
-                );
+                    (0.15 * g_score);
 
                 const passesROE = roe > 15;
                 const passesDE = de < 50;
 
                 if (totalScore < 65 && !(passesROE && passesDE)) return null;
 
+                // Tie-breaker: favor higher ROE and lower debt-to-equity to avoid ties
+                const roeFactor = Math.min(100, roe) / 100;
+                const deFactor = de <= 0 ? 1 : Math.max(0, 200 - de) / 200;
+                const tieBreaker = (roeFactor * 0.5) + (deFactor * 0.5);
+                const finalScore = Number((totalScore + tieBreaker).toFixed(4));
+
                 return {
                     id: uuidv4(),
                     strategyId,
                     symbol: q.symbol,
-                    score: totalScore,
+                    score: finalScore,
                     matchDetails: { q_score, m_score, f_score, v_score, g_score, roe, de, pe },
                     timestamp: new Date(),
                 };
@@ -519,7 +540,7 @@ export class IntradayScanner extends BaseScanner {
                 minVolumeOrAvg: true,
             },
             concurrency: 35,
-            topN: 10,
+            topN: 20,
             label: 'INTRADAY CONFLUENCE',
             scorer: async (q, strategyId) => {
                 const price = q.regularMarketPrice || 0;
@@ -537,8 +558,13 @@ export class IntradayScanner extends BaseScanner {
                 if (gapPercent >= 2.0) score += 10;
                 if (changePercent > 0.5 || changePercent < -0.5) score += 5;
 
-                const finalScore = Math.min(100, score);
-                if (finalScore < 60) return null;
+                if (score < 60) return null;
+
+                // Tie-breaker: prefer higher relative volume and larger absolute price change gap
+                const rvolFactor = Math.min(5, rvol) / 5;
+                const gapFactor = Math.min(10, gapPercent) / 10;
+                const tieBreaker = (rvolFactor * 0.6) + (gapFactor * 0.4);
+                const finalScore = score + Number(tieBreaker.toFixed(4));
 
                 return {
                     id: uuidv4(),
@@ -577,7 +603,7 @@ export class SwingScanner extends BaseScanner {
                 minVolumeOrAvg: true,
             },
             concurrency: 35,
-            topN: 10,
+            topN: 20,
             label: 'SWING CONFLUENCE',
             scorer: async (q, strategyId) => {
                 const price = q.regularMarketPrice || 0;
@@ -597,8 +623,14 @@ export class SwingScanner extends BaseScanner {
                 if (volSurge >= 1.5) score += 10;
                 if (changePercent > 1.0) score += 5;
 
-                const finalScore = Math.min(100, score);
-                if (finalScore < 65) return null;
+                if (score < 65) return null;
+
+                // Tie-breaker: prefer higher volume surge, closer proximity to 52W high, and higher positive price change
+                const volFactor = Math.min(5, volSurge) / 5;
+                const highFactor = Math.max(0, 1 - distanceToHigh);
+                const changeFactor = Math.min(10, Math.max(0, changePercent)) / 10;
+                const tieBreaker = (volFactor * 0.4) + (highFactor * 0.4) + (changeFactor * 0.2);
+                const finalScore = score + Number(tieBreaker.toFixed(4));
 
                 return {
                     id: uuidv4(),
