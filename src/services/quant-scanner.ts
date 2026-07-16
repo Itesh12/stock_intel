@@ -190,6 +190,10 @@ export abstract class BaseScanner {
 
         await this.infra.strategy.saveRecommendations(strategyId, topRecs);
 
+        // Invalidate cached strategy details
+        const { CacheUtils } = await import("../infrastructure/cache-utils");
+        CacheUtils.delete(`strategy_${strategyId}`);
+
         const notificationService = new NotificationService(this.infra.notification);
 
         for (const rec of topRecs) {

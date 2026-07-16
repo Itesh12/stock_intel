@@ -17,8 +17,10 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
     const router = useRouter();
     const [strategy, setStrategy] = useState<any>(initialStrategy);
     const [isScanning, setIsScanning] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
 
     const fetchStrategy = async () => {
+        setIsFetching(true);
         try {
             const res = await fetch(`/api/strategy/${strategySlug}`);
             const data = await res.json();
@@ -26,6 +28,8 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
             setStrategy(data);
         } catch (err) {
             console.error("Failed to fetch strategy", err);
+        } finally {
+            setIsFetching(false);
         }
     };
 
@@ -40,6 +44,43 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
             setIsScanning(false);
         }
     };
+
+    React.useEffect(() => {
+        setStrategy(initialStrategy);
+
+        let active = true;
+        const checkAndScan = async () => {
+            const updatedAt = initialStrategy.recommendationsUpdatedAt ? new Date(initialStrategy.recommendationsUpdatedAt) : null;
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+            if (!updatedAt || updatedAt < oneHourAgo) {
+                // Stale or empty: Trigger blocking full-screen scan automatically (Option B)
+                setIsScanning(true);
+                try {
+                    await fetch(`/api/strategy/${strategySlug}/scan`, { method: 'POST' });
+                    if (active) {
+                        await fetchStrategy();
+                    }
+                } catch (err) {
+                    console.error("Auto scan failed", err);
+                } finally {
+                    if (active) {
+                        setIsScanning(false);
+                    }
+                }
+            } else {
+                // Fresh: Just fetch silently to make sure client is synced
+                if (active) {
+                    await fetchStrategy();
+                }
+            }
+        };
+        checkAndScan();
+
+        return () => {
+            active = false;
+        };
+    }, [strategySlug, initialStrategy]);
 
     if (!strategy) return null;
 
@@ -184,8 +225,13 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
                                 <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Recommended Stocks (Top 20)</span>
                             </div>
                             <div className="p-4 sm:p-6 flex-1">
-                                {strategy.recommendations && strategy.recommendations.length > 0 ? (
-                                    <div className="flex flex-col gap-3">
+                                {isFetching && (!strategy.recommendations || strategy.recommendations.length === 0) ? (
+                                    <div className="p-10 text-center flex flex-col items-center justify-center h-full gap-4">
+                                        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                                        <div className="text-[10px] font-bold text-white uppercase tracking-widest">Checking for stocks...</div>
+                                    </div>
+                                ) : strategy.recommendations && strategy.recommendations.length > 0 ? (
+                                    <div className={cn("flex flex-col gap-3 transition-opacity duration-300", isFetching && "opacity-60 pointer-events-none")}>
                                         {strategy.recommendations.slice(0, 20).map((symbol: string) => (
                                             <Link key={symbol} href={`/stock/${symbol}`} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/20 transition-all group shadow-sm">
                                                 <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-black group-hover:bg-emerald-500 group-hover:text-black transition-all shrink-0">
