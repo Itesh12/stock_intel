@@ -30,6 +30,11 @@ export class PortfolioAnalyzer {
                 const stock = await this.marketData.getStockPrice(holding.symbol);
                 if (stock.price && stock.price > 0) {
                     holding.currentPrice = stock.price;
+                    holding.dayChange = stock.change || 0;
+                    holding.dayChangePercent = stock.changePercent || 0;
+                }
+                if (stock.sector && (!holding.sector || holding.sector === "Other")) {
+                    holding.sector = stock.sector;
                 }
             } catch (err) {
                 console.warn(`Real-time price fetch failed for ${holding.symbol}:`, err);

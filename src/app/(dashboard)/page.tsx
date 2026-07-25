@@ -42,9 +42,14 @@ export default async function Dashboard() {
 
     let initialData: any[] = [];
     try {
-        initialData = await Promise.all(
-            symbols.map(symbol => infrastructure.market.getPerformance(symbol, "1d"))
-        );
+        const chunkSize = 15;
+        for (let i = 0; i < symbols.length; i += chunkSize) {
+            const chunk = symbols.slice(i, i + chunkSize);
+            const chunkResults = await Promise.all(
+                chunk.map(symbol => infrastructure.market.getPerformance(symbol, "1d").catch(() => ({ symbol, currentPrice: 0, change: 0, changePercent: 0 })))
+            );
+            initialData.push(...chunkResults);
+        }
     } catch (err) {
         console.error("Dashboard initial load failed", err);
     }

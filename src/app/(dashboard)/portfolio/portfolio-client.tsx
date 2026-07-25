@@ -105,9 +105,16 @@ export default function PortfolioClient({
     const combinedPLPercent = totalInvested > 0 ? (combinedPL / totalInvested) * 100 : 0;
     const isTotalPositive = combinedPL >= 0;
 
-    // Daily High Alphas
-    const gainers = [...holdings].sort((a: any, b: any) => (b.dayChangePercent || 0) - (a.dayChangePercent || 0)).slice(0, 3);
-    const losers = [...holdings].sort((a: any, b: any) => (a.dayChangePercent || 0) - (b.dayChangePercent || 0)).slice(0, 3);
+    // Daily High Alphas & Underperformers (Strict filtering for non-zero movers)
+    const gainers = [...holdings]
+        .filter((h: any) => (h.dayChangePercent || 0) > 0)
+        .sort((a: any, b: any) => (b.dayChangePercent || 0) - (a.dayChangePercent || 0))
+        .slice(0, 3);
+
+    const losers = [...holdings]
+        .filter((h: any) => (h.dayChangePercent || 0) < 0)
+        .sort((a: any, b: any) => (a.dayChangePercent || 0) - (b.dayChangePercent || 0))
+        .slice(0, 3);
 
     return (
         <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700 max-w-[1600px] mx-auto px-4 sm:px-6 py-4 md:py-6 pb-20">

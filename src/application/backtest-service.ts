@@ -23,6 +23,10 @@ export class BacktestService {
         let cash = initialCapital;
         let holdings = 0;
         let avgCost = 0;
+        let grossWins = 0;
+        let grossLosses = 0;
+        let winsCount = 0;
+        let lossesCount = 0;
         const trades: BacktestTrade[] = [];
         const equityCurve: BacktestSnapshot[] = [];
 
@@ -44,7 +48,7 @@ export class BacktestService {
                 // Strategy Signals
                 if (price < sma * 0.95 && cash > price) {
                     // BUY SIGNAL
-                    const qty = Math.floor(cash / price);
+                    const qty = Math.floor((cash * 0.95) / price);
                     if (qty > 0) {
                         const total = qty * price;
                         cash -= total;
@@ -65,6 +69,15 @@ export class BacktestService {
                 } else if (price > sma * 1.05 && holdings > 0) {
                     // SELL SIGNAL
                     const total = holdings * price;
+                    const pnl = (price - avgCost) * holdings;
+                    if (pnl >= 0) {
+                        grossWins += pnl;
+                        winsCount++;
+                    } else {
+                        grossLosses += Math.abs(pnl);
+                        lossesCount++;
+                    }
+
                     cash += total;
                     
                     trades.push({
@@ -108,9 +121,9 @@ export class BacktestService {
             if (dd > maxDd) maxDd = dd;
         }
 
-        const sellTrades = trades.filter(t => t.type === 'SELL');
-        const winners = sellTrades.filter(t => t.price > 0); // Simplified win rate calc logic
-        // Real win rate requires tracking individual trade sequences
+        const totalCompletedTrades = winsCount + lossesCount;
+        const winRate = totalCompletedTrades > 0 ? (winsCount / totalCompletedTrades) * 100 : 0;
+        const profitFactor = grossLosses > 0 ? parseFloat((grossWins / grossLosses).toFixed(2)) : (grossWins > 0 ? 99.99 : 0);
 
         return {
             id: uuidv4(),
@@ -124,8 +137,8 @@ export class BacktestService {
             totalReturn,
             totalReturnPercent,
             maxDrawdown: maxDd * 100,
-            winRate: sellTrades.length > 0 ? (winners.length / sellTrades.length) * 100 : 0,
-            profitFactor: 1.5, // Placeholder (requires P/L ledger)
+            winRate,
+            profitFactor,
             trades,
             equityCurve
         };

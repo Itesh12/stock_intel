@@ -5,23 +5,31 @@ import { TradeMonitorService } from "../application/trade-monitor-service";
 import { SignalProcessor } from "../application/signal-processor";
 
 export class WorkerManager {
+    private static isSignalListenerAttached = false;
+    private static activeManagers = new Set<WorkerManager>();
     private isShuttingDown = false;
     private runningLoops = new Map<string, { interval: number; globalFlag: string; timer?: NodeJS.Timeout }>();
     private activeExecutionsCount = 0;
 
     constructor(private infra: Infrastructure) {
+        WorkerManager.activeManagers.add(this);
+
         // Handle process termination events if not running inside build phase
         const isBuildPhase =
             process.env.NEXT_PHASE === "phase-production-build" ||
             process.env.IS_BUILD === "true" ||
             (process.env.NODE_ENV === "production" && !process.env.NEXT_RUNTIME);
 
-        if (!isBuildPhase) {
+        if (!isBuildPhase && !WorkerManager.isSignalListenerAttached) {
+            WorkerManager.isSignalListenerAttached = true;
             const shutdown = () => {
-                if (this.isShuttingDown) return;
-                this.isShuttingDown = true;
                 console.log("[WorkerManager] Gracefully stopping all background loops...");
-                this.stopAll();
+                Array.from(WorkerManager.activeManagers).forEach(manager => {
+                    if (!manager.isShuttingDown) {
+                        manager.isShuttingDown = true;
+                        manager.stopAll();
+                    }
+                });
             };
             process.on("SIGINT", shutdown);
             process.on("SIGTERM", shutdown);

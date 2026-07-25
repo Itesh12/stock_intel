@@ -17,8 +17,8 @@ export interface ProviderMetrics {
 export class HybridMarketAdapter implements MarketDataPort {
     private providers: Record<string, MarketDataPort | null>;
     private timeouts: Record<string, number> = {
-        yahoo: 5000,
-        finnhub: 3000
+        yahoo: 12000, // 12s timeout for concurrent requests
+        finnhub: 5000
     };
 
     private metrics: Record<string, ProviderMetrics> = {
@@ -59,7 +59,7 @@ export class HybridMarketAdapter implements MarketDataPort {
 
             const metrics = this.metrics[providerName];
 
-            // Circuit Breaker check
+            // Circuit Breaker check (10s short cooldown)
             if (metrics.unhealthyUntil && metrics.unhealthyUntil > new Date()) {
                 console.log(`[HybridMarketAdapter] Skipping unhealthy provider '${providerName}' (cooling down)`);
                 continue;
@@ -69,7 +69,7 @@ export class HybridMarketAdapter implements MarketDataPort {
             metrics.requestCount++;
 
             try {
-                const timeoutMs = this.timeouts[providerName] || 5000;
+                const timeoutMs = this.timeouts[providerName] || 12000;
                 const result = await this.executeWithTimeout(
                     executeFn(providerName, provider),
                     timeoutMs,
@@ -95,11 +95,11 @@ export class HybridMarketAdapter implements MarketDataPort {
                 console.warn(`[HybridMarketAdapter] Provider '${providerName}' failed for '${methodName}': ${err.message || err}`);
                 lastError = err;
 
-                // Trip Circuit Breaker
-                if (metrics.consecutiveFailures > 5) {
+                // Trip Circuit Breaker after 15 failures, cool down for 10 seconds
+                if (metrics.consecutiveFailures > 15) {
                     metrics.isHealthy = false;
-                    metrics.unhealthyUntil = new Date(Date.now() + 60000); // 60s cooldown
-                    console.error(`[HybridMarketAdapter] Circuit broken for provider '${providerName}'. Cooling down for 60s.`);
+                    metrics.unhealthyUntil = new Date(Date.now() + 10000); // 10s cooldown
+                    console.error(`[HybridMarketAdapter] Circuit broken for provider '${providerName}'. Cooling down for 10s.`);
                 }
             }
         }
@@ -111,6 +111,22 @@ export class HybridMarketAdapter implements MarketDataPort {
                 console.info(`[HybridMarketAdapter] Fallback to cache for '${methodName}' (key: ${fallbackCacheKey})`);
                 return cached as T;
             }
+        }
+
+        console.warn(`[HybridMarketAdapter] All providers failed for '${methodName}'. Returning safe fallback.`);
+        
+        // Return safe fallbacks to prevent breaking Promise.all batch requests
+        if (methodName === "getPerformance" || methodName === "getStockPrice") {
+            return {
+                symbol: "",
+                currentPrice: 0,
+                change: 0,
+                changePercent: 0,
+                volume: 0
+            } as unknown as T;
+        }
+        if (methodName === "getHistoricalData" || methodName === "searchStocks" || methodName === "getScreenerData" || methodName === "getNews") {
+            return [] as unknown as T;
         }
 
         throw new Error(`[HybridMarketAdapter] All providers failed for '${methodName}'. Last error: ${lastError?.message || lastError}`);

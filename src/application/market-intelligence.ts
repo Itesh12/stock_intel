@@ -17,26 +17,25 @@ export class MarketIntelligenceService {
         const signals: MarketSignal[] = [];
 
         for (const stock of stocks) {
-            // 1. Check for Volume Breakout (Mock logic for now)
-            // Implementation would compare current volume against 20-day average
-            if (stock.price > 100 && stock.changePercent > 3) {
+            // 1. Check for Volume Breakout / Price Surge
+            if (stock.changePercent && stock.changePercent >= 2.5) {
+                const isHighVolume = stock.volume && stock.volume > 50000;
                 signals.push({
                     symbol: stock.symbol,
-                    type: "VOLUME_BREAKOUT",
-                    strength: "HIGH",
-                    description: "Abnormal volume spike detected with price breakout.",
+                    type: isHighVolume ? "VOLUME_BREAKOUT" : "PRICE_SURGE",
+                    strength: stock.changePercent >= 4.0 ? "HIGH" : "MEDIUM",
+                    description: `Price momentum surge of +${stock.changePercent.toFixed(2)}% detected in session.${isHighVolume ? ' High volume activity confirmed.' : ''}`,
                     timestamp: new Date()
                 });
             }
 
-            // 2. Check for Institutional Accumulation patterns
-            if (stock.marketCap > 10000000000 && stock.changePercent > 1) {
-                // simplified detection logic
+            // 2. Check for Institutional Accumulation patterns on large caps
+            if (stock.marketCap && stock.marketCap > 100000000000 && stock.changePercent && stock.changePercent >= 1.0) {
                 signals.push({
                     symbol: stock.symbol,
                     type: "INSTITUTIONAL_BUY",
-                    strength: "MEDIUM",
-                    description: "Large block trade patterns detected in the last hour.",
+                    strength: stock.marketCap > 500000000000 ? "HIGH" : "MEDIUM",
+                    description: `Large-cap accumulation detected for ${stock.name || stock.symbol} with +${stock.changePercent.toFixed(2)}% upside.`,
                     timestamp: new Date()
                 });
             }

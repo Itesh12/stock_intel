@@ -49,9 +49,16 @@ export async function GET(request: Request) {
 
     try {
         const marketData = await CacheUtils.getOrFetch(cacheKey, async () => {
-            return Promise.all(
-                symbols.map(symbol => infra.market.getPerformance(symbol, timeframe))
-            );
+            const results: any[] = [];
+            const chunkSize = 15;
+            for (let i = 0; i < symbols.length; i += chunkSize) {
+                const chunk = symbols.slice(i, i + chunkSize);
+                const chunkResults = await Promise.all(
+                    chunk.map(symbol => infra.market.getPerformance(symbol, timeframe).catch(() => ({ symbol, currentPrice: 0, change: 0, changePercent: 0 })))
+                );
+                results.push(...chunkResults);
+            }
+            return results;
         }, TTL);
         return NextResponse.json(marketData);
     } catch (err) {

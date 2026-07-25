@@ -1,4 +1,5 @@
 import { StockRepository } from "../ports/stock-repository";
+import { PortfolioRepository } from "../ports/portfolio-repository";
 import { ScoringService } from "./scoring-service";
 import { PortfolioAnalyzer } from "./portfolio-analyzer";
 
@@ -15,10 +16,11 @@ export class AICopilotService {
     constructor(
         private stockRepo: StockRepository,
         private scoringService: ScoringService,
-        private portfolioAnalyzer: PortfolioAnalyzer
+        private portfolioAnalyzer: PortfolioAnalyzer,
+        private portfolioRepo?: PortfolioRepository
     ) { }
 
-    public async ask(query: string, context?: { symbol?: string; portfolioId?: string }): Promise<AIResponse> {
+    public async ask(query: string, context?: { symbol?: string; portfolioId?: string; userId?: string }): Promise<AIResponse> {
         const q = query.toLowerCase();
         const intent = this.parseIntent(q);
 
@@ -28,7 +30,7 @@ export class AICopilotService {
             case "VALUATION":
                 return await this.handleValuation(q, context?.symbol);
             case "PORTFOLIO_RISK":
-                return await this.handlePortfolioRisk(context?.portfolioId);
+                return await this.handlePortfolioRisk(context);
             case "SENTIMENT":
                 return await this.handleSentiment(q, context?.symbol);
             default:
@@ -90,13 +92,67 @@ export class AICopilotService {
         };
     }
 
-    private async handlePortfolioRisk(portfolioId?: string): Promise<AIResponse> {
-        // In a real app, we'd fetch the specific portfolio. For now, we return high-quality simulated insights.
+    private async handlePortfolioRisk(context?: { portfolioId?: string; userId?: string }): Promise<AIResponse> {
+        let portfolio: any = null;
+        if (this.portfolioRepo) {
+            if (context?.portfolioId) {
+                portfolio = await this.portfolioRepo.findById(context.portfolioId);
+            } else if (context?.userId) {
+                const list = await this.portfolioRepo.findByUserId(context.userId);
+                portfolio = list[0] || null;
+            } else {
+                const all = await this.portfolioRepo.list();
+                portfolio = all[0] || null;
+            }
+        }
+
+        if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
+            return {
+                answer: "No active portfolio holdings found to evaluate risk. Build your holdings or add positions to receive dynamic risk and diversification analysis.",
+                recommendation: "BUILD PORTFOLIO",
+                type: "PORTFOLIO_RISK"
+            };
+        }
+
+        const analyzed = await this.portfolioAnalyzer.analyze(portfolio);
+        const holdingsCount = analyzed.holdings.length;
+        const totalEquity = analyzed.cashBalance + analyzed.holdings.reduce((sum: number, h: any) => sum + (h.marketValue || 0), 0);
+        const INITIAL_BALANCE = 1000000;
+        const growthPercent = ((totalEquity - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+
+        // Sector concentration calculation
+        const sectorTotals: Record<string, number> = {};
+        analyzed.holdings.forEach((h: any) => {
+            const sec = h.sector || "General Market";
+            sectorTotals[sec] = (sectorTotals[sec] || 0) + (h.marketValue || 0);
+        });
+
+        let topSector = "General Market";
+        let topSectorValue = 0;
+        Object.entries(sectorTotals).forEach(([sec, val]) => {
+            if (val > topSectorValue) {
+                topSector = sec;
+                topSectorValue = val;
+            }
+        });
+
+        const totalHoldingValue = analyzed.holdings.reduce((sum: number, h: any) => sum + (h.marketValue || 0), 1);
+        const topSectorPercent = Math.round((topSectorValue / totalHoldingValue) * 100);
+
+        const riskLevel = analyzed.riskScore >= 70 ? "High Risk" : analyzed.riskScore >= 40 ? "Moderate Risk" : "Low Risk";
+        const recommendation = topSectorPercent > 45 ? `DIVERSIFY FROM ${topSector.toUpperCase()}` : "MAINTAIN DIVERSIFICATION";
+
         return {
-            answer: "Your portfolio risk is 'Moderate' (45/100). You have significant concentration in the Technology sector (55%). While your P/L is positive (+12%), increasing exposure to Defensive sectors like Utilities would improve your risk-adjusted returns.",
-            recommendation: "ADD DEFENSIVE SECTOR",
+            answer: `Your portfolio risk is currently evaluated at '${riskLevel}' (${analyzed.riskScore}/100) across ${holdingsCount} active positions. Highest sector exposure is ${topSector} (${topSectorPercent}% of invested equity). Net portfolio performance is ${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%.`,
+            recommendation,
             type: "PORTFOLIO_RISK",
-            dataPoints: { riskScore: 45, sectorConcentration: { Technology: 55, Utilities: 5 } }
+            dataPoints: {
+                riskScore: analyzed.riskScore,
+                topSector,
+                topSectorPercent,
+                growthPercent,
+                holdingsCount
+            }
         };
     }
 
