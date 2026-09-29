@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No stock orders or symbols provided for bucket purchase." }, { status: 400 });
         }
 
-        const targetSymbols = symbols.slice(0, 20);
+        const targetSymbols = symbols.slice(0, 10);
 
         const quoteResults = await Promise.all(
             targetSymbols.map(async (symbol) => {

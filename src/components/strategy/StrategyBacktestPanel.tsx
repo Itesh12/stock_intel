@@ -68,26 +68,26 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
             }
 
             // Step 3: Sort by pre-calculated matching score (how strictly it met the algorithmic definition on the entry day)
-            // Then take ONLY the Top 20 best to prevent massive UI rendering arrays and lookahead biases.
-            const top20Matches = allMatches
+            // Then take ONLY the Top 10 best to prevent massive UI rendering arrays and lookahead biases.
+            const top10Matches = allMatches
                 .sort((a, b) => b.score - a.score)
-                .slice(0, 20);
+                .slice(0, 10);
 
             // Step 4: Aggregate Results
-            const winners = top20Matches.filter(m => m.totalReturn >= 0);
-            const losers = top20Matches.filter(m => m.totalReturn < 0);
+            const winners = top10Matches.filter(m => m.totalReturn >= 0);
+            const losers = top10Matches.filter(m => m.totalReturn < 0);
 
-            const winRate = (winners.length / top20Matches.length) * 100;
-            const avgReturn = top20Matches.reduce((a, b) => a + b.totalReturn, 0) / top20Matches.length;
+            const winRate = (winners.length / top10Matches.length) * 100;
+            const avgReturn = top10Matches.reduce((a, b) => a + b.totalReturn, 0) / top10Matches.length;
             
             const sumWin = winners.reduce((a, b) => a + b.totalReturn, 0);
             const sumLoss = Math.abs(losers.reduce((a, b) => a + b.totalReturn, 0));
             const profitFactor = sumLoss === 0 ? 99.99 : sumWin / sumLoss;
 
-            // Build an aggregate equity curve (equally weighted average of all top 20 matches per day)
+            // Build an aggregate equity curve (equally weighted average of all top 10 matches per day)
             const dateMap = new Map<string, { sum: number, count: number }>();
             
-            top20Matches.forEach(match => {
+            top10Matches.forEach(match => {
                 match.performance.forEach((p: any) => {
                     const dStr = p.date.substring(0, 10);
                     if (!dateMap.has(dStr)) dateMap.set(dStr, { sum: 0, count: 0 });
@@ -120,7 +120,7 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
                 totalReturnPercent: avgReturn,
                 profitFactor,
                 maxDrawdown,
-                matches: top20Matches,
+                matches: top10Matches,
                 equityCurve
             });
             setStatusMessage("Completed.");
@@ -208,7 +208,7 @@ export default function StrategyBacktestPanel({ strategyId }: { strategyId: stri
                                 <BarChart className="text-blue-500" size={24} />
                                 Historical Execution Path
                             </h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2">Aggregated Performance of Top 20 algorithmic Matches</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2">Aggregated Performance of Top 10 algorithmic Matches</p>
                         </div>
                         {result && result.matches && (
                             <div className="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 shadow-inner">

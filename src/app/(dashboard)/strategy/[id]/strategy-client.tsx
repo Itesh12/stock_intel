@@ -88,7 +88,7 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
         setIsLoadingPrices(true);
         setBucketResult(null);
 
-        const recommendedSymbols = strategy.recommendations?.slice(0, 20) || [];
+        const recommendedSymbols = strategy.recommendations?.slice(0, 10) || [];
 
         // 1. Fetch Wallet Balance
         let currentCash = 1000000;
@@ -236,7 +236,7 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
 
     if (!strategy) return null;
 
-    const recommendedList = strategy.recommendations?.slice(0, 20) || [];
+    const recommendedList = strategy.recommendations?.slice(0, 10) || [];
     const stockCount = recommendedList.length;
 
     // Derived Bucket Totals
@@ -338,7 +338,7 @@ export default function StrategyClient({ initialStrategy, strategySlug }: { init
                                     { label: 'Validating Strategy Rules', threshold: 10 },
                                     { label: 'Querying 3,000+ Symbols', threshold: 30 },
                                     { label: 'Evaluating Technicals', threshold: 60 },
-                                    { label: 'Ranking Top 20', threshold: 90 }
+                                    { label: 'Ranking Top 10', threshold: 90 }
                                 ]}
                             />
                         )}

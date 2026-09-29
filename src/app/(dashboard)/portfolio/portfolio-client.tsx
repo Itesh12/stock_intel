@@ -19,8 +19,28 @@ import {
     History, 
     RotateCcw, 
     ArrowUp, 
-    ArrowDown 
+    ArrowDown,
+    CheckSquare,
+    Square,
+    Minus,
+    CheckCircle2,
+    AlertCircle,
+    Loader2,
+    Zap,
+    X,
+    ChevronRight,
+    SlidersHorizontal
 } from "lucide-react";
+
+export interface SellItem {
+    symbol: string;
+    name: string;
+    heldQuantity: number;
+    quantity: number;
+    averagePrice: number;
+    currentPrice: number;
+    enabled: boolean;
+}
 import { formatCurrency, formatIndianNumber, cn, formatSymbol } from "@/lib/utils";
 import { GlobalLoader } from "@/components/ui/global-loader";
 import Link from "next/link";
@@ -59,6 +79,14 @@ export default function PortfolioClient({
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'live' | 'backtest'>('live');
 
+    // Batch Sell Modal States
+    const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+    const [isLoadingLivePrices, setIsLoadingLivePrices] = useState(false);
+    const [isExecutingSell, setIsExecutingSell] = useState(false);
+    const [sellItems, setSellItems] = useState<SellItem[]>([]);
+    const [sellResult, setSellResult] = useState<any | null>(null);
+    const [liquidationPercent, setLiquidationPercent] = useState<number>(100);
+
     const fetchPortfolio = async () => {
         setIsLoading(true);
         try {
@@ -89,6 +117,127 @@ export default function PortfolioClient({
         return () => clearInterval(interval);
     }, []);
 
+    const handleOpenSellModal = async () => {
+        const currentHoldings = portfolio?.holdings || [];
+        if (currentHoldings.length === 0) return;
+
+        const initial: SellItem[] = currentHoldings.map((h: any) => ({
+            symbol: h.symbol,
+            name: h.name || h.symbol,
+            heldQuantity: h.quantity,
+            quantity: h.quantity,
+            averagePrice: h.averagePrice || 0,
+            currentPrice: h.currentPrice || h.averagePrice || 0,
+            enabled: true
+        }));
+
+        setSellItems(initial);
+        setIsSellModalOpen(true);
+        setIsLoadingLivePrices(true);
+        setSellResult(null);
+        setLiquidationPercent(100);
+
+        try {
+            const symbols = currentHoldings.map((h: any) => h.symbol);
+            const res = await fetch('/api/market/quotes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbols })
+            });
+            const data = await res.json();
+            const quotes = data.quotes || [];
+            const priceMap = new Map<string, number>();
+            quotes.forEach((q: any) => {
+                if (q.price > 0) priceMap.set(q.symbol, q.price);
+            });
+
+            setSellItems(prev => prev.map(item => ({
+                ...item,
+                currentPrice: priceMap.get(item.symbol) || item.currentPrice
+            })));
+        } catch (err) {
+            console.warn("Failed to fetch live quotes for sell dialog:", err);
+        } finally {
+            setIsLoadingLivePrices(false);
+        }
+    };
+
+    const handleQuantityChange = (symbol: string, newQty: number) => {
+        setSellItems(prev =>
+            prev.map(item => {
+                if (item.symbol !== symbol) return item;
+                const validQty = Math.max(0, Math.min(item.heldQuantity, Math.floor(newQty) || 0));
+                return {
+                    ...item,
+                    quantity: validQty,
+                    enabled: validQty > 0 ? true : item.enabled
+                };
+            })
+        );
+    };
+
+    const handleToggleStock = (symbol: string) => {
+        setSellItems(prev =>
+            prev.map(item =>
+                item.symbol === symbol ? { ...item, enabled: !item.enabled } : item
+            )
+        );
+    };
+
+    const handleToggleAll = (enable: boolean) => {
+        setSellItems(prev => prev.map(item => ({ ...item, enabled: enable })));
+    };
+
+    const handleSetLiquidationPercent = (pct: number) => {
+        setLiquidationPercent(pct);
+        setSellItems(prev =>
+            prev.map(item => {
+                if (!item.enabled) return item;
+                const calculatedQty = pct === 100
+                    ? item.heldQuantity
+                    : Math.max(1, Math.floor((item.heldQuantity * pct) / 100));
+                return {
+                    ...item,
+                    quantity: Math.min(item.heldQuantity, calculatedQty)
+                };
+            })
+        );
+    };
+
+    const handleExecuteSell = async () => {
+        const activeOrders = sellItems
+            .filter(i => i.enabled && i.quantity > 0)
+            .map(i => ({
+                symbol: i.symbol,
+                quantity: i.quantity,
+                price: i.currentPrice,
+                name: i.name
+            }));
+
+        if (activeOrders.length === 0) {
+            alert("No stocks with quantity > 0 selected for sale.");
+            return;
+        }
+
+        setIsExecutingSell(true);
+        try {
+            const res = await fetch('/api/portfolio/bucket-sell', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orders: activeOrders })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Sale execution failed");
+
+            setSellResult(data);
+            await fetchPortfolio();
+        } catch (err: any) {
+            alert(err.message || "Failed to execute sale.");
+        } finally {
+            setIsExecutingSell(false);
+        }
+    };
+
     // Calculation Engine
     const holdings = portfolio?.holdings || [];
     const totalInvested = holdings.reduce((acc: number, h: any) => acc + (h.quantity * h.averagePrice), 0);
@@ -104,6 +253,15 @@ export default function PortfolioClient({
     const combinedPL = realizedPL + totalUnrealizedPL;
     const combinedPLPercent = totalInvested > 0 ? (combinedPL / totalInvested) * 100 : 0;
     const isTotalPositive = combinedPL >= 0;
+
+    // Derived Sell Calculations
+    const enabledSellItems = sellItems.filter(i => i.enabled);
+    const activeSellCount = sellItems.filter(i => i.enabled && i.quantity > 0).length;
+    const totalSellShares = sellItems.reduce((sum, item) => item.enabled ? sum + item.quantity : sum, 0);
+    const totalSellProceeds = sellItems.reduce((sum, item) => item.enabled ? sum + (item.quantity * item.currentPrice) : sum, 0);
+    const totalSellRealizedPL = sellItems.reduce((sum, item) => item.enabled ? sum + ((item.currentPrice - item.averagePrice) * item.quantity) : sum, 0);
+    const currentWalletCash = portfolio?.cashBalance || 0;
+    const projectedWalletCash = currentWalletCash + totalSellProceeds;
 
     // Daily High Alphas & Underperformers (Strict filtering for non-zero movers)
     const gainers = [...holdings]
@@ -248,11 +406,54 @@ export default function PortfolioClient({
                                     </div>
                                 </section>
 
+                                {/* PROMINENT 1-CLICK LIQUIDATION BANNER */}
+                                {holdings.length > 0 && (
+                                    <button
+                                        onClick={handleOpenSellModal}
+                                        className="w-full p-4 rounded-2xl bg-gradient-to-r from-rose-600/90 via-red-600 to-orange-600/90 hover:from-rose-500 hover:via-red-500 hover:to-orange-500 text-white font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-rose-900/30 flex items-center justify-between group border border-rose-400/20 active:scale-[0.99]"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-md">
+                                                <ArrowDownRight size={18} />
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="text-sm font-black flex items-center gap-2">
+                                                    Sell Portfolio ({holdings.length} Stocks)
+                                                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-[9px] font-bold">1-Click Dialog</span>
+                                                </div>
+                                                <div className="text-[10px] text-rose-100/80 font-bold tracking-wider">
+                                                    Liquidate entire portfolio or selectively customize sell quantities
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-bold tracking-widest uppercase bg-black/20 px-3 py-1.5 rounded-xl border border-white/10 hidden sm:inline-block">
+                                                Est. Value: ₹{formatIndianNumber(holdings.reduce((sum: number, h: any) => sum + (h.quantity * (h.currentPrice || h.averagePrice)), 0))}
+                                            </span>
+                                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                        </div>
+                                    </button>
+                                )}
+
                                 <section className="glass-morphic-card rounded-[32px] overflow-hidden">
-                                    <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
-                                        <h2 className="text-xl font-bold text-white tracking-tight">Deployment Ledger</h2>
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">Active Flux</span>
+                                    <div className="p-8 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/[0.01]">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-white tracking-tight">Deployment Ledger</h2>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                                                {holdings.length} Active Positions • Real-time valuation
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10 hidden sm:inline-block">Active Flux</span>
+                                            {holdings.length > 0 && (
+                                                <button
+                                                    onClick={handleOpenSellModal}
+                                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-900/30 active:scale-95 border border-rose-400/20"
+                                                >
+                                                    <ArrowDownRight size={15} />
+                                                    <span>Sell All ({holdings.length} Stocks)</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="overflow-x-auto">
@@ -450,6 +651,337 @@ export default function PortfolioClient({
                         className="min-h-[600px]"
                     >
                         <BacktestSimulator />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* INTERACTIVE BATCH SELL MODAL */}
+            <AnimatePresence>
+                {isSellModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-2xl bg-[#0d0e12] border border-rose-500/20 rounded-[32px] overflow-hidden shadow-2xl"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-rose-500/10 via-red-500/5 to-transparent">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                        <ArrowDownRight size={22} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white font-outfit uppercase tracking-tight">
+                                            Liquidate Portfolio
+                                        </h3>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                            Sell Entire Portfolio ({sellItems.length} Stocks) • Custom Quantity Controls
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => { setIsSellModalOpen(false); setSellResult(null); }}
+                                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                                {sellResult ? (
+                                    /* RESULT SUCCESS SCREEN */
+                                    <div className="text-center space-y-6 py-4">
+                                        <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
+                                            <CheckCircle2 size={36} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-2xl font-black text-white font-outfit uppercase tracking-tight">Positions Liquidated!</h4>
+                                            <p className="text-xs text-slate-400 font-medium mt-1">
+                                                Successfully executed {sellResult.executedCount} sell orders from your portfolio.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                                            <div className="text-center">
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Proceeds Added</div>
+                                                <div className="text-sm sm:text-base font-black text-emerald-400">
+                                                    ₹{formatIndianNumber(sellResult.totalProceeds || 0)}
+                                                </div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Realized P&L</div>
+                                                <div className={cn(
+                                                    "text-sm sm:text-base font-black",
+                                                    (sellResult.totalRealizedPL || 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                                                )}>
+                                                    {(sellResult.totalRealizedPL || 0) >= 0 ? '+' : ''}₹{formatIndianNumber(sellResult.totalRealizedPL || 0)}
+                                                </div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">New Wallet Balance</div>
+                                                <div className="text-sm sm:text-base font-black text-white">
+                                                    ₹{formatIndianNumber(sellResult.remainingCash || 0)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 text-left">
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                                Executed Sell Orders ({sellResult.executedTrades?.length})
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto divide-y divide-white/5 bg-black/40 rounded-xl p-3 border border-white/5 space-y-1">
+                                                {sellResult.executedTrades?.map((t: any) => (
+                                                    <div key={t.symbol} className="flex items-center justify-between py-2 text-xs">
+                                                        <div>
+                                                            <span className="font-bold text-white uppercase">{formatSymbol(t.symbol)}</span>
+                                                            <span className="text-[10px] text-slate-500 font-mono block">
+                                                                {t.quantity} shares @ ₹{t.price?.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="font-black text-emerald-400 block">₹{formatIndianNumber(t.totalValue)}</span>
+                                                            {t.realizedPL !== undefined && (
+                                                                <span className={cn(
+                                                                    "text-[10px] font-bold",
+                                                                    t.realizedPL >= 0 ? "text-emerald-400" : "text-rose-400"
+                                                                )}>
+                                                                    {t.realizedPL >= 0 ? '+' : ''}₹{formatIndianNumber(Math.round(t.realizedPL))}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3 pt-2">
+                                            <button
+                                                onClick={() => { setIsSellModalOpen(false); setSellResult(null); }}
+                                                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/30"
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* PRE-SELL CONFIGURATION FORM */
+                                    <>
+                                        {/* Portfolio Liquidation Controls Card */}
+                                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest">
+                                                    <Wallet size={14} className="text-rose-400" />
+                                                    Current Wallet Balance
+                                                </div>
+                                                <div className="text-base font-black text-white font-mono">
+                                                    ₹{formatIndianNumber(currentWalletCash)}
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Percentage Batch Sell Controls */}
+                                            <div className="space-y-2 pt-2 border-t border-white/5">
+                                                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                                                    <span className="uppercase tracking-wider">Quick Liquidation Percentage:</span>
+                                                    <span className="text-rose-400 font-mono">{liquidationPercent}% of Holdings</span>
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-1.5 flex-1">
+                                                        {[25, 50, 75, 100].map(pct => (
+                                                            <button
+                                                                key={pct}
+                                                                onClick={() => handleSetLiquidationPercent(pct)}
+                                                                className={cn(
+                                                                    "flex-1 py-2 rounded-xl text-xs font-black transition-all border",
+                                                                    liquidationPercent === pct
+                                                                        ? "bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-900/30"
+                                                                        : "bg-white/5 hover:bg-white/10 text-slate-300 border-white/5 hover:text-white"
+                                                                )}
+                                                            >
+                                                                {pct === 100 ? "100% (ALL)" : `${pct}%`}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* Select All / Deselect All */}
+                                                    <button
+                                                        onClick={() => handleToggleAll(enabledSellItems.length !== sellItems.length)}
+                                                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[10px] font-bold text-slate-400 hover:text-white uppercase tracking-wider border border-white/5 transition-all whitespace-nowrap"
+                                                    >
+                                                        {enabledSellItems.length === sellItems.length ? "Deselect All" : "Select All"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Live Prices Status Bar */}
+                                        {isLoadingLivePrices && (
+                                            <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
+                                                <Loader2 size={14} className="animate-spin" />
+                                                <span>Refreshing live market quotes for all positions...</span>
+                                            </div>
+                                        )}
+
+                                        {/* Interactive Itemized Stock Table */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                                                <span>Position Breakdown ({enabledSellItems.length} of {sellItems.length} Selected)</span>
+                                                <span>Shares to Sell & P&L</span>
+                                            </div>
+
+                                            <div className="max-h-72 overflow-y-auto divide-y divide-white/5 bg-black/40 rounded-2xl border border-white/10 custom-scrollbar">
+                                                {sellItems.map((item) => {
+                                                    const itemProceeds = item.quantity * item.currentPrice;
+                                                    const itemPL = (item.currentPrice - item.averagePrice) * item.quantity;
+                                                    const itemPLPct = item.averagePrice > 0 ? ((item.currentPrice - item.averagePrice) / item.averagePrice) * 100 : 0;
+                                                    const isProfitable = itemPL >= 0;
+
+                                                    return (
+                                                        <div
+                                                            key={item.symbol}
+                                                            className={cn(
+                                                                "p-3 sm:p-4 flex items-center justify-between gap-4 transition-colors",
+                                                                item.enabled ? "bg-white/[0.01]" : "opacity-40 bg-black/20"
+                                                            )}
+                                                        >
+                                                            {/* Checkbox & Symbol Info */}
+                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                <button
+                                                                    onClick={() => handleToggleStock(item.symbol)}
+                                                                    className="text-slate-400 hover:text-rose-400 transition-colors shrink-0"
+                                                                >
+                                                                    {item.enabled ? (
+                                                                        <CheckSquare size={18} className="text-rose-500" />
+                                                                    ) : (
+                                                                        <Square size={18} className="text-slate-600" />
+                                                                    )}
+                                                                </button>
+
+                                                                <div className="min-w-0">
+                                                                    <div className="font-black text-white text-sm uppercase tracking-tight flex items-center gap-2">
+                                                                        {formatSymbol(item.symbol)}
+                                                                        <span className="text-[10px] text-slate-400 font-mono font-normal">
+                                                                            @ ₹{item.currentPrice.toFixed(2)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                                                                            Entry: ₹{item.averagePrice.toFixed(1)}
+                                                                        </span>
+                                                                        <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">
+                                                                            Held: {item.heldQuantity}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Quantity Adjust Controls */}
+                                                            <div className="flex items-center gap-1.5">
+                                                                <button
+                                                                    onClick={() => handleQuantityChange(item.symbol, item.quantity - 1)}
+                                                                    disabled={!item.enabled || item.quantity <= 0}
+                                                                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 disabled:opacity-30 flex items-center justify-center transition-all border border-white/5"
+                                                                >
+                                                                    <Minus size={12} />
+                                                                </button>
+
+                                                                <input
+                                                                    type="number"
+                                                                    value={item.quantity}
+                                                                    disabled={!item.enabled}
+                                                                    min={0}
+                                                                    max={item.heldQuantity}
+                                                                    onChange={e => handleQuantityChange(item.symbol, Number(e.target.value))}
+                                                                    className="w-14 py-1 text-center bg-black/60 border border-white/10 rounded-lg text-white font-mono text-xs font-bold focus:border-rose-500 focus:outline-none"
+                                                                />
+
+                                                                <button
+                                                                    onClick={() => handleQuantityChange(item.symbol, item.quantity + 1)}
+                                                                    disabled={!item.enabled || item.quantity >= item.heldQuantity}
+                                                                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 disabled:opacity-30 flex items-center justify-center transition-all border border-white/5"
+                                                                >
+                                                                    <Plus size={12} />
+                                                                </button>
+
+                                                                <button
+                                                                    onClick={() => handleQuantityChange(item.symbol, item.heldQuantity)}
+                                                                    disabled={!item.enabled || item.quantity === item.heldQuantity}
+                                                                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-rose-500/20 text-[9px] font-black text-slate-400 hover:text-rose-400 border border-white/5 transition-all disabled:opacity-30"
+                                                                >
+                                                                    MAX
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Item Proceeds & Realized PL */}
+                                                            <div className="text-right shrink-0 w-28">
+                                                                <div className="text-xs font-black text-white font-mono">
+                                                                    ₹{formatIndianNumber(itemProceeds)}
+                                                                </div>
+                                                                <div className={cn(
+                                                                    "text-[9px] font-bold font-mono tracking-tight",
+                                                                    isProfitable ? "text-emerald-400" : "text-rose-400"
+                                                                )}>
+                                                                    {isProfitable ? '+' : ''}₹{formatIndianNumber(Math.round(itemPL))} ({itemPLPct.toFixed(1)}%)
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Total Summary Footer */}
+                                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-2">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-300 font-bold uppercase tracking-wider">Total Proceeds (Wallet Credit):</span>
+                                                <span className="font-mono font-black text-sm text-emerald-400">
+                                                    +₹{formatIndianNumber(totalSellProceeds)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                                <span>Estimated Realized Net P&L:</span>
+                                                <span className={cn("font-mono font-bold", totalSellRealizedPL >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                                    {totalSellRealizedPL >= 0 ? '+' : ''}₹{formatIndianNumber(Math.round(totalSellRealizedPL))}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                                <span>Projected Wallet Balance:</span>
+                                                <span className="font-mono font-bold text-white">
+                                                    ₹{formatIndianNumber(projectedWalletCash)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="flex gap-3 pt-2">
+                                            <button
+                                                onClick={() => setIsSellModalOpen(false)}
+                                                className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleExecuteSell}
+                                                disabled={isExecutingSell || activeSellCount === 0}
+                                                className="flex-1 py-3.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 disabled:opacity-40 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-rose-900/40 flex items-center justify-center gap-2 active:scale-95"
+                                            >
+                                                {isExecutingSell ? (
+                                                    <div className="w-4 h-4"><GlobalLoader minimal={true} /></div>
+                                                ) : <ArrowDownRight size={16} />}
+                                                {isExecutingSell ? "Liquidating Positions..." : `Liquidate ${activeSellCount} Stocks`}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

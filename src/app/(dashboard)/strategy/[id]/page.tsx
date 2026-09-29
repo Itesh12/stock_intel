@@ -30,7 +30,7 @@ export default async function StrategyDetailPage({ params }: { params: Promise<{
     // which cannot cross the Next.js Server → Client Component boundary.
     const strategyData = JSON.parse(JSON.stringify({
         ...strategy,
-        recommendations: recommendations.map(r => r.symbol),
+        recommendations: recommendations.slice(0, 10).map(r => r.symbol),
         recommendationsUpdatedAt: recommendations.length > 0 ? recommendations[0].timestamp : null
     }));
 

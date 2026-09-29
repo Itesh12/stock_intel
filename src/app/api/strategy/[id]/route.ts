@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             return {
                 ...strategy,
-                recommendations: recommendations.map(r => r.symbol),
+                recommendations: recommendations.slice(0, 10).map(r => r.symbol),
                 recommendationsUpdatedAt: recommendations.length > 0 ? recommendations[0].timestamp : null
             };
         }, TTL);
