@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight, Bot } from "lucide-react";
+import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight, Bot, CalendarDays } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
 import { GlobalLoader } from "@/components/ui/global-loader";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 import { NotificationsPopover } from "@/components/ui/notifications-popover";
+import PnLCalendarDrawer from "@/components/portfolio/PnLCalendarDrawer";
 
 export default function DashboardLayout({
     children,
@@ -21,9 +22,16 @@ export default function DashboardLayout({
     const [isSearching, setIsSearching] = useState(false);
     const [indices, setIndices] = useState<any[]>([]);
     const [marketStatus, setMarketStatus] = useState<any>(null);
+    const [isPnLDrawerOpen, setIsPnLDrawerOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
     const searchRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleOpenPnL = () => setIsPnLDrawerOpen(true);
+        window.addEventListener("open-pnl-calendar", handleOpenPnL);
+        return () => window.removeEventListener("open-pnl-calendar", handleOpenPnL);
+    }, []);
 
     useEffect(() => {
         // 1. Fetch market status once
@@ -145,6 +153,24 @@ export default function DashboardLayout({
                                 <NavItem icon={<PieChart size={18} />} label="Dashboard" href="/" setOpen={setIsSidebarOpen} />
                                 <NavItem icon={<Zap size={18} />} label="Market Scan" href="/market" setOpen={setIsSidebarOpen} />
                                 <NavItem icon={<Briefcase size={18} />} label="Portfolio" href="/portfolio" setOpen={setIsSidebarOpen} />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsSidebarOpen(false);
+                                        setIsPnLDrawerOpen(true);
+                                    }}
+                                    className="w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group text-slate-400 hover:bg-white/5 hover:text-white text-left"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-slate-500 group-hover:text-emerald-400 transition-colors duration-300">
+                                            <CalendarDays size={18} />
+                                        </span>
+                                        <span className="text-[13px] font-semibold tracking-wide">P&L Calendar</span>
+                                    </div>
+                                    <span className="text-[8px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
+                                        NEW
+                                    </span>
+                                </button>
                             </nav>
                         </div>
 
@@ -320,6 +346,12 @@ export default function DashboardLayout({
                     </div>
                 </div>
             </main>
+
+            {/* Daily P&L Calendar Drawer */}
+            <PnLCalendarDrawer
+                isOpen={isPnLDrawerOpen}
+                onClose={() => setIsPnLDrawerOpen(false)}
+            />
         </div>
     );
 }

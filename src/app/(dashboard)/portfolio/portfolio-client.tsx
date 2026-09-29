@@ -29,7 +29,8 @@ import {
     Zap,
     X,
     ChevronRight,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Calendar as CalendarIcon
 } from "lucide-react";
 
 export interface SellItem {
@@ -304,6 +305,14 @@ export default function PortfolioClient({
                         >
                             Quant History
                             {activeTab === 'backtest' && <motion.div layoutId="portTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-pnl-calendar'))}
+                            className="text-[10px] font-black uppercase tracking-[0.3em] pb-2 transition-all text-slate-500 hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
+                        >
+                            <CalendarIcon size={13} className="text-emerald-400" />
+                            P&L Calendar
                         </button>
                     </div>
                 </div>
@@ -639,6 +648,45 @@ export default function PortfolioClient({
                                         </div>
                                     </div>
                                 </section>
+                            </div>
+                        </div>
+
+                        {/* DAILY P&L CALENDAR DRAWER TRIGGER (BELOW PORTFOLIO) */}
+                        <div className="glass-morphic-card rounded-[32px] p-6 sm:p-8 border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-black/40 to-teal-950/20 relative overflow-hidden group hover:border-emerald-500/40 transition-all duration-500 shadow-2xl">
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 p-8 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
+                                <CalendarIcon size={180} />
+                            </div>
+
+                            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
+                                        <CalendarIcon size={26} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                                                Option A Realized P&L Ledger
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 font-bold">• Daily Performance Calendar</span>
+                                        </div>
+                                        <h3 className="text-xl sm:text-2xl font-bold text-white font-outfit uppercase tracking-tight">
+                                            Daily Profit & Loss Calendar
+                                        </h3>
+                                        <p className="text-xs text-slate-400 font-medium max-w-xl mt-1 leading-relaxed">
+                                            View color-coded daily trading performance, green/red day streaks, weekend activity, and itemized trade logs in a slide-out drawer.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => window.dispatchEvent(new CustomEvent('open-pnl-calendar'))}
+                                    className="px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-900/30 flex items-center gap-3 shrink-0 active:scale-95 group-hover:shadow-emerald-500/20 border border-emerald-400/20"
+                                >
+                                    <CalendarIcon size={16} />
+                                    <span>Open P&L Calendar Drawer</span>
+                                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
                             </div>
                         </div>
                     </motion.div>
