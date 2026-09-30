@@ -534,115 +534,69 @@ export class BuffetScanner extends BaseScanner {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Intraday Confluence Scanner
+// John F. Carter Master Intraday Scanner
 // ─────────────────────────────────────────────────────────────────────────────
 
-export class IntradayScanner extends BaseScanner {
+export class CarterMasterIntradayScanner extends BaseScanner {
     async scan(): Promise<StrategyRecommendation[]> {
         return this.runScan({
-            strategySlug: 'intraday-strategy',
-            screeners: ['most_actives', 'day_gainers'],
+            strategySlug: 'john-carter-intraday',
+            screeners: ['most_actives', 'day_gainers', 'day_losers'],
             preScreenOpts: {
-                minVolume: 50_000,
-                minPrice: 10,
-                maxPrice: 25_000,
-                minMarketCap: 30_000_000_000,
-                minChangePercent: -100, // no change filter for intraday
-                minVolumeOrAvg: true,
-            },
-            concurrency: 35,
-            topN: 10,
-            label: 'INTRADAY CONFLUENCE',
-            scorer: async (q, strategyId) => {
-                const price = q.regularMarketPrice || 0;
-                const changePercent = q.regularMarketChangePercent || 0;
-                const volume = q.regularMarketVolume || 0;
-                const avgVolume = q.averageDailyVolume3Month || 1;
-
-                const rvol = volume / avgVolume;
-                const gapPercent = Math.abs(changePercent);
-
-                let score = 50;
-                if (rvol >= 1.5) score += 15;
-                if (rvol >= 2.0) score += 10;
-                if (gapPercent >= 1.0) score += 10;
-                if (gapPercent >= 2.0) score += 10;
-                if (changePercent > 0.5 || changePercent < -0.5) score += 5;
-
-                if (score < 60) return null;
-
-                // Tie-breaker: prefer higher relative volume and larger absolute price change gap
-                const rvolFactor = Math.min(5, rvol) / 5;
-                const gapFactor = Math.min(10, gapPercent) / 10;
-                const changeFactor = Math.min(10, Math.abs(changePercent)) / 10;
-                const tieBreaker = (rvolFactor * 0.5) + (gapFactor * 0.3) + (changeFactor * 0.2);
-                const finalScore = score + Number(tieBreaker.toFixed(4));
-
-                return {
-                    id: uuidv4(),
-                    strategyId,
-                    symbol: q.symbol,
-                    score: finalScore,
-                    matchDetails: { rvol, changePercent, gapPercent, price },
-                    timestamp: new Date(),
-                };
-            },
-            notify: {
-                minScore: 80,
-                type: 'PRICE_SURGE',
-                description: (rec) =>
-                    `Intraday Confluence breakout setup detected for ${rec.symbol}. Score: ${rec.score}/100.`,
-            },
-        });
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Swing Confluence Scanner
-// ─────────────────────────────────────────────────────────────────────────────
-
-export class SwingScanner extends BaseScanner {
-    async scan(): Promise<StrategyRecommendation[]> {
-        return this.runScan({
-            strategySlug: 'swing-strategy',
-            screeners: ['most_actives', 'day_gainers'],
-            preScreenOpts: {
-                minVolume: 50_000,
-                minPrice: 10,
-                maxPrice: 25_000,
+                minVolume: 40_000,
+                minPrice: 20,
+                maxPrice: 30_000,
                 minMarketCap: 30_000_000_000,
                 minChangePercent: -100,
                 minVolumeOrAvg: true,
             },
             concurrency: 35,
             topN: 10,
-            label: 'SWING CONFLUENCE',
+            label: 'CARTER MASTER INTRADAY',
             scorer: async (q, strategyId) => {
                 const price = q.regularMarketPrice || 0;
                 const changePercent = q.regularMarketChangePercent || 0;
                 const volume = q.regularMarketVolume || 0;
                 const avgVolume = q.averageDailyVolume3Month || 1;
+                const high = q.regularMarketDayHigh || price;
+                const low = q.regularMarketDayLow || price;
+                const prevClose = q.regularMarketPreviousClose || price;
 
-                const fiftyTwoWeekHigh = q.fiftyTwoWeekHigh || price || 1;
-                const distanceToHigh = (fiftyTwoWeekHigh - price) / fiftyTwoWeekHigh;
+                const rvol = volume / avgVolume;
+                const gapPercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : changePercent;
 
-                const isAbove52WLow = price > (q.fiftyTwoWeekLow || 0) * 1.3;
-                const volSurge = volume / avgVolume;
+                // Floor Pivot calculations (Carter Step 1)
+                const P = (high + low + prevClose) / 3;
+                const R1 = (2 * P) - low;
+                const S1 = (2 * P) - high;
+                const R2 = P + (high - low);
+                const S2 = P - (high - low);
+
+                // Check 52-week high proximity (Trigger C)
+                const fiftyTwoWeekHigh = q.fiftyTwoWeekHigh || price;
+                const distanceTo52WHigh = fiftyTwoWeekHigh > 0 ? ((fiftyTwoWeekHigh - price) / fiftyTwoWeekHigh) * 100 : 100;
 
                 let score = 55;
-                if (isAbove52WLow) score += 15;
-                if (distanceToHigh <= 0.05) score += 15; // Near 52W high
-                if (volSurge >= 1.5) score += 10;
-                if (changePercent > 1.0) score += 5;
+
+                // Trigger A: Opening Gap / Pivot alignment
+                if (Math.abs(gapPercent) >= 0.8) score += 10;
+                if (Math.abs(gapPercent) >= 1.5) score += 5;
+
+                // Trigger B: TTM Squeeze volume / momentum readiness
+                if (rvol >= 1.2) score += 10;
+                if (rvol >= 1.8) score += 10;
+
+                // Trigger C: 52-week high exhaustion / breakout proximity
+                if (distanceTo52WHigh <= 4.0) score += 10;
 
                 if (score < 65) return null;
 
-                // Tie-breaker: prefer higher volume surge, closer proximity to 52W high, and higher positive price change
-                const volFactor = Math.min(5, volSurge) / 5;
-                const highFactor = Math.max(0, 1 - distanceToHigh);
-                const changeFactor = Math.min(10, Math.max(0, changePercent)) / 10;
-                const tieBreaker = (volFactor * 0.4) + (highFactor * 0.4) + (changeFactor * 0.2);
-                const finalScore = score + Number(tieBreaker.toFixed(4));
+                // Tie-breaker
+                const rvolFactor = Math.min(5, rvol) / 5;
+                const gapFactor = Math.min(5, Math.abs(gapPercent)) / 5;
+                const pivotFactor = Math.abs(price - P) / (P || 1);
+                const tieBreaker = (rvolFactor * 0.5) + (gapFactor * 0.3) + (Math.min(1, pivotFactor) * 0.2);
+                const finalScore = Number((score + tieBreaker).toFixed(4));
 
                 return {
                     id: uuidv4(),
@@ -650,20 +604,28 @@ export class SwingScanner extends BaseScanner {
                     symbol: q.symbol,
                     score: finalScore,
                     matchDetails: {
-                        volSurge,
-                        changePercent,
-                        distanceToHighPercent: distanceToHigh * 100,
                         price,
+                        changePercent,
+                        gapPercent,
+                        rvol,
+                        P: Number(P.toFixed(2)),
+                        R1: Number(R1.toFixed(2)),
+                        S1: Number(S1.toFixed(2)),
+                        R2: Number(R2.toFixed(2)),
+                        S2: Number(S2.toFixed(2)),
+                        distanceTo52WHigh: Number(distanceTo52WHigh.toFixed(2))
                     },
                     timestamp: new Date(),
                 };
             },
             notify: {
                 minScore: 80,
-                type: 'VOLUME_BREAKOUT',
+                type: 'PRICE_SURGE',
                 description: (rec) =>
-                    `Swing Positional Breakout setup detected for ${rec.symbol}. Score: ${rec.score}/100.`,
+                    `John Carter Master Intraday Setup detected for ${rec.symbol}. Carter Score: ${rec.score}/100.`,
             },
         });
     }
 }
+
+

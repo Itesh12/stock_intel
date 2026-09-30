@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight, Bot, CalendarDays } from "lucide-react";
+import { Search, Bell, Settings, PieChart, Zap, Briefcase, Globe, Menu, X, TrendingUp, TrendingDown, Activity, Trophy, Scale, FlaskConical, BookOpen, Palette, ArrowRight, Bot, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserNav } from "@/components/user-nav";
 import { GlobalLoader } from "@/components/ui/global-loader";
@@ -159,17 +159,12 @@ export default function DashboardLayout({
                                         setIsSidebarOpen(false);
                                         setIsPnLDrawerOpen(true);
                                     }}
-                                    className="w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group text-slate-400 hover:bg-white/5 hover:text-white text-left"
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group text-left ${isPnLDrawerOpen ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-slate-500 group-hover:text-emerald-400 transition-colors duration-300">
-                                            <CalendarDays size={18} />
-                                        </span>
-                                        <span className="text-[13px] font-semibold tracking-wide">P&L Calendar</span>
-                                    </div>
-                                    <span className="text-[8px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
-                                        NEW
+                                    <span className={`transition-colors duration-300 ${isPnLDrawerOpen ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'}`}>
+                                        <Calendar size={18} />
                                     </span>
+                                    <span className="text-[13px] font-semibold tracking-wide">P&L Calendar</span>
                                 </button>
                             </nav>
                         </div>

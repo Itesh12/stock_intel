@@ -117,11 +117,8 @@ export class DecisionReasoningService {
             case 'warren-buffet':
                 return this.buffettReasons(d, rec.score);
 
-            case 'intraday-strategy':
-                return this.intradayReasons(d, rec.score);
-
-            case 'swing-strategy':
-                return this.swingReasons(d, rec.score);
+            case 'john-carter-intraday':
+                return this.carterIntradayReasons(d, rec.score);
 
             default:
                 return [{
@@ -240,60 +237,31 @@ export class DecisionReasoningService {
         ];
     }
 
-    private intradayReasons(d: any, score: number): DecisionReasoning['reasons'] {
+    private carterIntradayReasons(d: any, score: number): DecisionReasoning['reasons'] {
         return [
             {
-                key: 'volume_breakout',
-                label: 'Relative Volume (RVOL)',
-                status: (d.rvol || 0) >= 1.5 ? 'PASS' : 'WARN',
-                description: `RVOL: ${d.rvol?.toFixed(2) || 'N/A'}x average (threshold ≥1.5x)`
+                key: 'floor_pivot_alignment',
+                label: 'Floor Pivot Alignment (P, R1, S1)',
+                status: d.P ? 'PASS' : 'WARN',
+                description: `Pivot P: ₹${d.P || 'N/A'} (R1: ₹${d.R1 || 'N/A'}, S1: ₹${d.S1 || 'N/A'})`
             },
             {
-                key: 'gap_momentum',
-                label: 'Intraday Gap',
-                status: (d.gapPercent || 0) >= 1.0 ? 'PASS' : 'WARN',
-                description: `Gap: ${d.gapPercent?.toFixed(2) || 'N/A'}% (threshold ≥1%)`
+                key: 'intraday_trigger',
+                label: 'Intraday Carter Trigger',
+                status: (d.rvol || 0) >= 1.2 || Math.abs(d.gapPercent || 0) >= 0.8 ? 'PASS' : 'WARN',
+                description: `Gap: ${d.gapPercent?.toFixed(2) || '0.00'}% | RVOL: ${d.rvol?.toFixed(2) || '1.0'}x`
             },
             {
-                key: 'sector_strength',
-                label: 'Positive Momentum',
-                status: (d.changePercent || 0) > 0.5 ? 'PASS' : 'WARN',
-                description: `Today's change: ${d.changePercent?.toFixed(2) || 'N/A'}%`
+                key: 'risk_position_sizing',
+                label: '1%-2% Capital Risk Discipline',
+                status: 'PASS',
+                description: `Stop Market order protocol with strict 1%-2% capital risk formula`
             },
             {
-                key: 'intraday_score',
-                label: 'Intraday Confluence Score',
-                status: score >= 70 ? 'PASS' : 'WARN',
-                description: `Intraday score: ${score}/100`
-            }
-        ];
-    }
-
-    private swingReasons(d: any, score: number): DecisionReasoning['reasons'] {
-        return [
-            {
-                key: 'price_near_52w_high',
-                label: 'Near 52-Week High',
-                status: (d.distanceToHighPercent || 100) <= 5 ? 'PASS' : 'WARN',
-                description: `${d.distanceToHighPercent?.toFixed(1) || 'N/A'}% below 52W high (threshold ≤5%)`
-            },
-            {
-                key: 'volume_breakout',
-                label: 'Volume Surge',
-                status: (d.volSurge || 0) >= 1.5 ? 'PASS' : 'WARN',
-                description: `Volume: ${d.volSurge?.toFixed(2) || 'N/A'}x average (threshold ≥1.5x)`
-            },
-            {
-                key: 'sector_strength',
-                label: 'Positive Trend',
-                status: (d.changePercent || 0) > 1.0 ? 'PASS' : 'WARN',
-                description: `Momentum: ${d.changePercent?.toFixed(2) || 'N/A'}%`
-            },
-            {
-                key: 'swing_score',
-                label: 'Swing Confluence Score',
+                key: 'carter_score',
+                label: 'Master Intraday Score',
                 status: score >= 65 ? 'PASS' : 'WARN',
-                description: `Swing score: ${score}/100`
+                description: `Carter composite score: ${score}/100`
             }
         ];
     }

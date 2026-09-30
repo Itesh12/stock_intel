@@ -27,6 +27,13 @@ export class MongoStrategyRepository implements StrategyRepository {
         );
     }
 
+    async deleteBySlug(slug: string): Promise<void> {
+        await this.strategies.deleteMany({
+            $or: [{ slug }, { id: slug }]
+        } as any);
+        await this.recommendations.deleteMany({ strategyId: slug } as any);
+    }
+
     async getRecommendations(strategyId: string): Promise<StrategyRecommendation[]> {
         return await this.recommendations.find({ strategyId } as any).sort({ score: -1 }).toArray();
     }

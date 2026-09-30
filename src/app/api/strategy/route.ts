@@ -12,15 +12,23 @@ export async function GET() {
         const TTL = 5 * 60 * 1000; // 5 minutes TTL
 
         const strategiesData = await CacheUtils.getOrFetch(cacheKey, async () => {
+            // Clean up removed strategies
+            await infra.strategy.deleteBySlug('intraday-strategy');
+            await infra.strategy.deleteBySlug('swing-strategy');
+
             // Ensure predefined strategies are in the DB
             for (const s of predefinedStrategies) {
-                const existing = await infra.strategy.findBySlug(s.slug);
-                if (!existing) {
-                    await infra.strategy.save(s);
-                }
+                await infra.strategy.save({
+                    ...s,
+                    slug: s.id,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any);
             }
 
-            return infra.strategy.list();
+            const all = await infra.strategy.list();
+            const valid = new Set(predefinedStrategies.map(p => p.id));
+            return all.filter(item => valid.has(item.id) || valid.has(item.slug));
         }, TTL);
 
         return NextResponse.json(strategiesData);

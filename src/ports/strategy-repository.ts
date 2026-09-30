@@ -4,6 +4,7 @@ export interface StrategyRepository {
     findBySlug(slug: string): Promise<Strategy | null>;
     list(): Promise<Strategy[]>;
     save(strategy: Strategy): Promise<void>;
+    deleteBySlug(slug: string): Promise<void>;
 
     // Recommendations
     getRecommendations(strategyId: string): Promise<StrategyRecommendation[]>;

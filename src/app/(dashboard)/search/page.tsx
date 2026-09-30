@@ -10,20 +10,23 @@ export const dynamic = "force-dynamic";
 export default async function StrategyFinderPage() {
     const infra = await getInfrastructure();
     
-    // Ensure predefined strategies are in the DB
+    // Clean up any old removed strategies
+    await infra.strategy.deleteBySlug('intraday-strategy');
+    await infra.strategy.deleteBySlug('swing-strategy');
+
+    // Ensure predefined strategies are in the DB and updated
     for (const s of predefinedStrategies) {
-        const existing = await infra.strategy.findBySlug(s.id);
-        if (!existing) {
-            await infra.strategy.save({
-                ...s,
-                slug: s.id,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            } as any);
-        }
+        await infra.strategy.save({
+            ...s,
+            slug: s.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        } as any);
     }
 
-    const strategies = await infra.strategy.list();
+    const allInDb = await infra.strategy.list();
+    const validIds = new Set(predefinedStrategies.map(s => s.id));
+    const strategies = allInDb.filter(s => validIds.has(s.id) || validIds.has(s.slug));
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">

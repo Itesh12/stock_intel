@@ -4,8 +4,7 @@ import {
     CanslimScanner,
     IntermarketScanner,
     BuffetScanner,
-    IntradayScanner,
-    SwingScanner,
+    CarterMasterIntradayScanner,
 } from "./quant-scanner";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,8 +21,7 @@ const SCANNER_REGISTRY: Record<string, ScannerConstructor> = {
     'canslim': CanslimScanner,
     'warren-buffet': BuffetScanner,
     'intermarket-analysis-india': IntermarketScanner,
-    'intraday-strategy': IntradayScanner,
-    'swing-strategy': SwingScanner,
+    'john-carter-intraday': CarterMasterIntradayScanner,
 };
 
 /**
