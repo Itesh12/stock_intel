@@ -13,7 +13,7 @@ import {
     AlertTriangle, 
     AlertCircle, 
     TrendingUp, 
-    DollarSign, 
+    IndianRupee, 
     Activity, 
     X, 
     SlidersHorizontal, 
@@ -23,6 +23,7 @@ import {
     ArrowUpRight, 
     ArrowDownRight, 
     Terminal,
+    Loader2,
     BookOpen,
     HelpCircle,
     Info,
@@ -128,6 +129,7 @@ export default function AssistantClient({
     const [formMaxSectorPercent, setFormMaxSectorPercent] = useState(assistant.maxSectorAllocationPercent);
     const [formDrawdownPercent, setFormDrawdownPercent] = useState(assistant.drawdownProtectionPercent);
     const [formUseTrailing, setFormUseTrailing] = useState(assistant.useTrailingStop);
+    const [isScanningNow, setIsScanningNow] = useState(false);
 
     // Load Logs History and Subscribe to Live SSE Telemetry Stream
     useEffect(() => {
@@ -367,6 +369,30 @@ export default function AssistantClient({
         }
     };
 
+    const handleTriggerScanNow = async () => {
+        setIsScanningNow(true);
+        try {
+            const res = await fetch(`/api/strategy-assistants/${assistant.id}/trigger`, {
+                method: "POST"
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to trigger scan");
+
+            // Refetch positions
+            const portRes = await fetch(`/api/portfolio/me?t=${Date.now()}`);
+            if (portRes.ok) {
+                const portData = await portRes.json();
+                setHoldings(portData.holdings?.filter((h: any) => h.botId === assistant.id) || []);
+            }
+            router.refresh();
+        } catch (err: any) {
+            console.error("Scan trigger failed:", err);
+            alert(err.message || "Failed to trigger scan");
+        } finally {
+            setIsScanningNow(false);
+        }
+    };
+
     // Handle Delete Assistant
     const handleDeleteAssistant = async (liquidate: boolean) => {
         setActionLoading("delete");
@@ -534,6 +560,16 @@ export default function AssistantClient({
                                         Resume Assistant
                                     </>
                                 )}
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={isScanningNow}
+                                onClick={handleTriggerScanNow}
+                                className="bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-md active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                            >
+                                {isScanningNow ? <Loader2 className="w-4 h-4 animate-spin text-indigo-400" /> : <Zap className="w-4 h-4 text-indigo-400" />}
+                                <span>{isScanningNow ? "Evaluating..." : "Scan & Trade Now"}</span>
                             </button>
 
                             <button

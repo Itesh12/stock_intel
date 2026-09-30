@@ -8,7 +8,7 @@ import {
     Pause, 
     Trash2, 
     Activity, 
-    DollarSign, 
+    IndianRupee, 
     ArrowUpRight, 
     ArrowDownRight, 
     RefreshCw,
@@ -226,7 +226,7 @@ export default function AutoTradeClient({
                     <div className="flex justify-between items-center mb-3">
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available Capital</span>
                         <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                            <DollarSign size={16} />
+                            <IndianRupee size={16} />
                         </div>
                     </div>
                     <h3 className="text-2xl font-bold text-white tracking-tight">

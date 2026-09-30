@@ -29,7 +29,33 @@ export default async function SetupPage() {
     const reservedCash = portfolio ? (portfolio.reservedCash || 0) : 0;
     const availableCash = Math.max(0, cashBalance - reservedCash);
 
-    const plainStrategies = JSON.parse(JSON.stringify(dbStrategies || []));
+    // Calculate real live bot win rate and completed trades for each strategy
+    let enrichedStrategies = dbStrategies;
+    if (infra.mongoClient) {
+        const db = infra.mongoClient.db(process.env.MONGO_DB || "market");
+        const allAssistants = await db.collection("strategy_assistants").find({}).toArray();
+        const allTrades = await db.collection("trades").find({ type: "SELL" }).toArray();
+
+        enrichedStrategies = dbStrategies.map((strat: any) => {
+            const slug = strat.slug || strat.id;
+            const assistantIds = new Set(
+                allAssistants.filter((a: any) => a.strategySlug === slug).map((a: any) => a.id)
+            );
+            const strategyTrades = allTrades.filter((t: any) => t.botId && assistantIds.has(t.botId));
+            const totalTrades = strategyTrades.length;
+            const winningTrades = strategyTrades.filter((t: any) => (t.realizedPL || 0) > 0).length;
+            const liveWinRate = totalTrades > 0 ? Math.round((winningTrades / totalTrades) * 100) : null;
+
+            return {
+                ...strat,
+                liveWinRate,
+                totalTrades,
+                benchmarkWinRate: strat.winRate || "65%"
+            };
+        });
+    }
+
+    const plainStrategies = JSON.parse(JSON.stringify(enrichedStrategies || []));
 
     return (
         <SetupClient

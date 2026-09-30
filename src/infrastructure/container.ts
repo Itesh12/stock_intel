@@ -238,7 +238,7 @@ export async function getInfrastructure(): Promise<Infrastructure> {
     const workerManager = new WorkerManager(cachedInfra as Infrastructure);
     (cachedInfra as any).workerManager = workerManager;
 
-    if (!isBuildPhase && process.env.ENABLE_WORKER_RUNTIME !== "true") {
+    if (!isBuildPhase && process.env.RUN_WORKERS === "true" && process.env.VERCEL !== "1") {
         workerManager.startAll();
     }
 
