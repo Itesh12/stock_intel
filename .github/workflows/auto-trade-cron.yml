@@ -1,8 +1,8 @@
-name: Auto-Trade Bot Cron
+name: Auto-Trade Bot Cron (1-Minute Ticks)
 
 on:
   schedule:
-    # Run every 5 minutes during Indian Market Hours (9:15 AM - 3:30 PM IST)
+    # Triggered every 5 minutes during Indian Market Hours (9:15 AM - 3:30 PM IST)
     # Mon-Fri: 03:45 UTC to 10:00 UTC
     - cron: '*/5 3-10 * * 1-5'
   workflow_dispatch: # Allows manual trigger from GitHub UI anytime
@@ -11,8 +11,16 @@ jobs:
   trigger-auto-trade:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger StockIntel Auto-Trade Engine
+      - name: Execute 1-Minute Auto-Trade Ticks
         run: |
-          curl -s -X POST "https://stock-intel-two.vercel.app/api/cron/auto-trade?secret=${{ secrets.CRON_SECRET || 'stock_intel_secret_key_12345' }}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET || 'stock_intel_secret_key_12345' }}" \
-            -H "Content-Type: application/json"
+          for i in 1 2 3 4 5; do
+            echo "⚡ [Tick $i/5] Executing Auto-Trade at $(date -u)..."
+            curl -s -X POST "https://stock-intel-two.vercel.app/api/cron/auto-trade?secret=${{ secrets.CRON_SECRET || 'stock_intel_secret_key_12345' }}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET || 'stock_intel_secret_key_12345' }}" \
+              -H "Content-Type: application/json"
+            
+            if [ $i -lt 5 ]; then
+              echo "Waiting 60 seconds for next 1-minute market tick..."
+              sleep 60
+            fi
+          done
